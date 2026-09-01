@@ -5,6 +5,9 @@ from openai import AsyncOpenAI
 
 from ..config import Settings
 from ..schemas import TranscriptionResult
+from .errors import UPSTREAM_EXCEPTIONS, upstream_error
+
+_MB = 1024 * 1024
 
 
 async def transcribe(
@@ -19,8 +22,8 @@ async def transcribe(
         raise HTTPException(
             status_code=413,
             detail=(
-                f"El audio pesa {len(audio) / 1e6:.1f} MB y el limite de Whisper es "
-                f"{settings.max_audio_bytes / 1e6:.0f} MB. Graba en AAC mono a 32 kbps "
+                f"El audio pesa {len(audio) / _MB:.1f} MB y el limite de Whisper es "
+                f"{settings.max_audio_bytes / _MB:.0f} MB. Graba en AAC mono a 32 kbps "
                 "o parte la reunion en tramos."
             ),
         )
@@ -31,12 +34,15 @@ async def transcribe(
     buffer = io.BytesIO(audio)
     buffer.name = filename or "reunion.m4a"
 
-    result = await client.audio.transcriptions.create(
-        model=settings.whisper_model,
-        file=buffer,
-        language=language or None,
-        response_format="verbose_json",
-    )
+    try:
+        result = await client.audio.transcriptions.create(
+            model=settings.whisper_model,
+            file=buffer,
+            language=language or None,
+            response_format="verbose_json",
+        )
+    except UPSTREAM_EXCEPTIONS as exc:
+        raise upstream_error("Whisper", exc) from exc
 
     return TranscriptionResult(
         text=result.text,

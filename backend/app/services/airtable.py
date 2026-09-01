@@ -5,6 +5,7 @@ from fastapi import HTTPException
 
 from ..config import Settings
 from ..schemas import Answer, PublishRequest, PublishResult, Report
+from .errors import UPSTREAM_EXCEPTIONS, upstream_error
 
 API = "https://api.airtable.com/v0"
 
@@ -64,12 +65,15 @@ async def publish(settings: Settings, req: PublishRequest) -> PublishResult:
 
     table = quote(settings.airtable_table, safe="")
     url = f"{API}/{settings.airtable_base_id}/{table}"
-    async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
-            url,
-            headers={"Authorization": f"Bearer {settings.airtable_token}"},
-            json={"fields": fields, "typecast": True},
-        )
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(
+                url,
+                headers={"Authorization": f"Bearer {settings.airtable_token}"},
+                json={"fields": fields, "typecast": True},
+            )
+    except UPSTREAM_EXCEPTIONS as exc:
+        raise upstream_error("Airtable", exc) from exc
 
     if response.status_code >= 400:
         raise HTTPException(
@@ -77,7 +81,14 @@ async def publish(settings: Settings, req: PublishRequest) -> PublishResult:
             detail=f"Airtable respondio {response.status_code}: {response.text[:400]}",
         )
 
-    record_id = response.json()["id"]
+    try:
+        record_id = response.json()["id"]
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Airtable respondio 200 pero sin el id del registro: {response.text[:400]}",
+        ) from exc
+
     return PublishResult(
         record_id=record_id,
         url=f"https://airtable.com/{settings.airtable_base_id}/{record_id}",

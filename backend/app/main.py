@@ -1,5 +1,8 @@
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+import logging
+
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .config import Settings, get_settings
 from .schemas import (
@@ -11,6 +14,8 @@ from .schemas import (
 )
 from .services import airtable, report as report_service, transcription
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="Sirius Reuniones API", version="0.1.0")
 
 # La app corre tambien en web, asi que el navegador hace preflight.
@@ -20,6 +25,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_error(request: Request, exc: Exception) -> JSONResponse:
+    """Red de seguridad: la app espera JSON con `detail`, no un "Internal Server Error" pelado."""
+    # Starlette vuelve a levantar la excepcion despues de esto, asi que el traceback
+    # completo lo imprime uvicorn; aca solo dejamos la ruta que fallo.
+    logger.error("Fallo no controlado en %s %s: %r", request.method, request.url.path, exc)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"Error interno del backend: {type(exc).__name__}. Revisa los logs del servidor."
+        },
+    )
 
 
 def require_api_key(

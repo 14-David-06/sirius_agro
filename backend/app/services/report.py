@@ -2,9 +2,11 @@ import json
 
 from anthropic import AsyncAnthropic
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from ..config import Settings
 from ..schemas import Report, ReportRequest
+from .errors import UPSTREAM_EXCEPTIONS, upstream_error
 
 REPORT_SCHEMA = {
     "type": "object",
@@ -88,18 +90,21 @@ async def build_report(settings: Settings, req: ReportRequest) -> Report:
 
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
-    response = await client.beta.messages.create(
-        model=settings.claude_model,
-        max_tokens=16000,
-        system=SYSTEM,
-        messages=[{"role": "user", "content": _build_prompt(req)}],
-        thinking={"type": "adaptive"},
-        output_config={"format": {"type": "json_schema", "schema": REPORT_SCHEMA}},
-        # Si un clasificador de seguridad rechaza la peticion, la API reintenta sola
-        # en otro modelo en vez de devolvernos una reunion sin informe.
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-    )
+    try:
+        response = await client.beta.messages.create(
+            model=settings.claude_model,
+            max_tokens=16000,
+            system=SYSTEM,
+            messages=[{"role": "user", "content": _build_prompt(req)}],
+            thinking={"type": "adaptive"},
+            output_config={"format": {"type": "json_schema", "schema": REPORT_SCHEMA}},
+            # Si un clasificador de seguridad rechaza la peticion, la API reintenta sola
+            # en otro modelo en vez de devolvernos una reunion sin informe.
+            betas=["server-side-fallback-2026-07-01"],
+            fallbacks="default",
+        )
+    except UPSTREAM_EXCEPTIONS as exc:
+        raise upstream_error("Claude", exc) from exc
 
     if response.stop_reason == "refusal":
         raise HTTPException(
@@ -111,4 +116,10 @@ async def build_report(settings: Settings, req: ReportRequest) -> Report:
     if not text:
         raise HTTPException(status_code=502, detail="El modelo no devolvio contenido.")
 
-    return Report(**json.loads(text))
+    try:
+        return Report(**json.loads(text))
+    except (json.JSONDecodeError, ValidationError) as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"El informe que devolvio el modelo no tiene el formato esperado: {exc}",
+        ) from exc

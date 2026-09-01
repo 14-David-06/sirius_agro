@@ -1,0 +1,14 @@
+# Python
+backend/.venv/
+backend/.env
+__pycache__/
+*.pyc
+
+# Flutter (el proyecto trae su propio .gitignore en app/)
+build/
+.dart_tool/
+
+# Editores
+.idea/
+.vscode/
+*.iml

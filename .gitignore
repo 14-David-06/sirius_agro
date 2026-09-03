@@ -12,3 +12,8 @@ build/
 .idea/
 .vscode/
 *.iml
+
+# Capturas reales de campo extraidas de un telefono: audio de conversaciones,
+# fotos de fincas, GPS y la base sqlite del dispositivo. Datos de personas, no
+# fixtures: nunca al repositorio (que ademas es publico).
+extraidos/

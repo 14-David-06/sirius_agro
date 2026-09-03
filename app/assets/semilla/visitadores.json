@@ -1,0 +1,190 @@
+{
+  "_nota": "Espejo de los 18 empleados ACTIVOS de Sirius Nomina Core (tabla Personal) al 2026-09-02. Se empaqueta en el APK para que el selector de visitador funcione en el primer arranque sin red. La persona NO se administra aqui: si alguien entra o sale de la empresa se cambia en nomina y se vuelve a sembrar. La llave entre las dos bases es id_empleado, porque Airtable no vincula entre bases.",
+  "_nota_rol": "Nadie en la nomina tiene cargo de visitador de campo: las visitas del piloto son una reasignacion, no un puesto. El rol se derivo del nivel de acceso de nomina (Super Admin/Admin -> Coordinador, Usuario -> Visitador) y es una propuesta, no un dato de la empresa.",
+  "_nota_password": "Aqui NO va ninguna credencial. Personal.Password de nomina guarda texto plano y no se lee ni se copia: la app agro tendra su propia credencial con hash en el backend.",
+  "generado": "2026-09-02",
+  "activos": 18,
+  "visitadores": [
+    {
+      "id": "recYyT37PNw88O0Yf",
+      "id_empleado": "SIRIUS-PER-0001",
+      "nombre": "Santiago Alexander Amaya Salazar",
+      "cargo": "JEFE DE PLANTA",
+      "rol": "Visitador",
+      "usuario_app": "santiago",
+      "activo": true,
+      "remote_id": "recYyT37PNw88O0Yf"
+    },
+    {
+      "id": "rec71ZpxVxT1a1DRh",
+      "id_empleado": "SIRIUS-PER-0002",
+      "nombre": "Hermes David Hernandez Garcia",
+      "cargo": "INGENIERO DE DESARROLLO",
+      "rol": "Coordinador",
+      "usuario_app": "david",
+      "activo": true,
+      "remote_id": "rec71ZpxVxT1a1DRh"
+    },
+    {
+      "id": "recMtpLqcjktnYQa7",
+      "id_empleado": "SIRIUS-PER-0003",
+      "nombre": "Sirley Yesenia Ramirez Moreno",
+      "cargo": "JEFE DE PRODUCCION DE HONGOS",
+      "rol": "Visitador",
+      "usuario_app": "sirley",
+      "activo": true,
+      "remote_id": "recMtpLqcjktnYQa7"
+    },
+    {
+      "id": "recTTGZ191AiFKpxI",
+      "id_empleado": "SIRIUS-PER-0004",
+      "nombre": "Mario Andres Barrera Macea",
+      "cargo": "AUXILIAR OPERATIVO",
+      "rol": "Visitador",
+      "usuario_app": "mario.barrera",
+      "activo": true,
+      "remote_id": "recTTGZ191AiFKpxI"
+    },
+    {
+      "id": "recNFrXWbffK98hrV",
+      "id_empleado": "SIRIUS-PER-0005",
+      "nombre": "Kevin Fernando Avila Santamaria",
+      "cargo": "AUXILIAR OPERATIVO",
+      "rol": "Visitador",
+      "usuario_app": "kevin.avila",
+      "activo": true,
+      "remote_id": "recNFrXWbffK98hrV"
+    },
+    {
+      "id": "reczQ5KV3n6MVLOBg",
+      "id_empleado": "SIRIUS-PER-0006",
+      "nombre": "Joys Fernanda Moreno Firigua",
+      "cargo": "COORDINADORA LIDER GERENCIA",
+      "rol": "Coordinador",
+      "usuario_app": "joys",
+      "activo": true,
+      "remote_id": "reczQ5KV3n6MVLOBg"
+    },
+    {
+      "id": "rec9zKfFQDO3s6YeC",
+      "id_empleado": "SIRIUS-PER-0007",
+      "nombre": "Angi Yohana Cardenas Rey",
+      "cargo": "AUXILIAR ADMINISTRATIVO/A",
+      "rol": "Coordinador",
+      "usuario_app": "angi",
+      "activo": true,
+      "remote_id": "rec9zKfFQDO3s6YeC"
+    },
+    {
+      "id": "recik1jjdFnWSnvFs",
+      "id_empleado": "SIRIUS-PER-0009",
+      "nombre": "Maria Alexandra Orosco Gil",
+      "cargo": "JEFE DE PRODUCCION DE BACTERIAS",
+      "rol": "Visitador",
+      "usuario_app": "alexandra.orosco",
+      "activo": true,
+      "remote_id": "recik1jjdFnWSnvFs"
+    },
+    {
+      "id": "rec5fgHn0CK59gAlQ",
+      "id_empleado": "SIRIUS-PER-0010",
+      "nombre": "Alejandro Uricoechea Reyes",
+      "cargo": "DIRECTOR FINANCIERO",
+      "rol": "Coordinador",
+      "usuario_app": "alejandro.uricoechea",
+      "activo": true,
+      "remote_id": "rec5fgHn0CK59gAlQ"
+    },
+    {
+      "id": "recyTgCoGGDa4tZx1",
+      "id_empleado": "SIRIUS-PER-0011",
+      "nombre": "Yenny Carolina Casas Ortegon",
+      "cargo": "ASISTENTE FINANCIERO Y CONTABLE",
+      "rol": "Coordinador",
+      "usuario_app": "carolina.casas",
+      "activo": true,
+      "remote_id": "recyTgCoGGDa4tZx1"
+    },
+    {
+      "id": "recG1KSsHwJR5lIWL",
+      "id_empleado": "SIRIUS-PER-0012",
+      "nombre": "Luis Alberto Obando Mendieta",
+      "cargo": "AUXILIAR OPERATIVO",
+      "rol": "Visitador",
+      "usuario_app": "luis.obando",
+      "activo": true,
+      "remote_id": "recG1KSsHwJR5lIWL"
+    },
+    {
+      "id": "recilMHCPPWRtReBx",
+      "id_empleado": "SIRIUS-PER-0013",
+      "nombre": "Maria Alejandra Polania Perdomo",
+      "cargo": "LIDER EN REGENERACION AMBIENTAL",
+      "rol": "Coordinador",
+      "usuario_app": "alejandra.polania",
+      "activo": true,
+      "remote_id": "recilMHCPPWRtReBx"
+    },
+    {
+      "id": "recaxcLMGvwz0cnuD",
+      "id_empleado": "SIRIUS-PER-0014",
+      "nombre": "Claudia Viviana Gomez Alvarez",
+      "cargo": "AUXILIAR OPERATIVO DE EMBELLECIMIENTO",
+      "rol": "Visitador",
+      "usuario_app": "claudia.gomez",
+      "activo": true,
+      "remote_id": "recaxcLMGvwz0cnuD"
+    },
+    {
+      "id": "recuSTRGT19el7epl",
+      "id_empleado": "SIRIUS-PER-0016",
+      "nombre": "Martin Herrera Lara",
+      "cargo": "DIRECTOR EJECUTIVO (CEO)",
+      "rol": "Coordinador",
+      "usuario_app": "martin",
+      "activo": true,
+      "remote_id": "recuSTRGT19el7epl"
+    },
+    {
+      "id": "recDdMM3gz5mCgp5w",
+      "id_empleado": "SIRIUS-PER-0018",
+      "nombre": "Aldemar Acosta",
+      "cargo": "AUXILIAR OPERATIVO DE PRODUCCION",
+      "rol": "Visitador",
+      "usuario_app": "aldemar.acosta",
+      "activo": true,
+      "remote_id": "recDdMM3gz5mCgp5w"
+    },
+    {
+      "id": "recXFXT3xI9EYnXo0",
+      "id_empleado": "SIRIUS-PER-0019",
+      "nombre": "Pablo Felipe Acebedo Cuellar",
+      "cargo": "INGENIERO DE DESARROLLO",
+      "rol": "Coordinador",
+      "usuario_app": "pablo.acebedo",
+      "activo": true,
+      "remote_id": "recXFXT3xI9EYnXo0"
+    },
+    {
+      "id": "recLqK7wJiDzCnYYU",
+      "id_empleado": "SIRIUS-PER-0020",
+      "nombre": "Omaira Suarez Villamil",
+      "cargo": "CONTADORA",
+      "rol": "Visitador",
+      "usuario_app": "omaira.suarez",
+      "activo": true,
+      "remote_id": "recLqK7wJiDzCnYYU"
+    },
+    {
+      "id": "reco8GhaYSiSiZyPZ",
+      "id_empleado": "SIRIUS-PER-0021",
+      "nombre": "Angelica Maria Herrera Romero",
+      "cargo": "DIRECTORA COMERCIAL",
+      "rol": "Coordinador",
+      "usuario_app": "angelica.herrera",
+      "activo": true,
+      "remote_id": "reco8GhaYSiSiZyPZ"
+    }
+  ],
+  "_nota_pii": "Sin email ni telefono a proposito: el repositorio es publico y la UI no muestra esos campos. Las columnas email/telefono de Visitadores siguen existiendo y quedan en NULL; se llenan desde nomina si alguna vez se necesitan. No volver a empaquetarlos aqui."
+}

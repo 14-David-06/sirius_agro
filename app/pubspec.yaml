@@ -1,5 +1,5 @@
-name: sirius_reuniones
-description: "Graba reuniones, responde un cuestionario guiado y publica transcripcion e informe en Airtable"
+name: sirius_agro
+description: "Copiloto de campo: graba la conversacion de una visita, extrae los datos y entrega diagnostico e informe"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -43,6 +43,13 @@ dependencies:
   uuid: ^4.6.0
   flutter_riverpod: ^2.6.1
   permission_handler: ^13.0.1
+  geolocator: ^13.0.2
+  flutter_foreground_task: ^9.1.0
+  camera: ^0.11.0
+  drift: ^2.20.0
+  drift_flutter: ^0.2.0
+  path: ^1.9.0
+  bcrypt: ^1.2.0
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +61,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  drift_dev: ^2.20.0
+  build_runner: ^2.4.13
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -65,6 +74,16 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    # Semilla offline: la app debe conocer las veredas y los obligatorios en el
+    # primer arranque, en un potrero y sin red.
+    - assets/semilla/veredas.json
+    - assets/semilla/catalogo.json
+    - assets/semilla/visitadores.json
+    # Marca: wordmark a color y version blanca para tema oscuro.
+    - assets/marca/sirius.png
+    - assets/marca/sirius_blanco.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

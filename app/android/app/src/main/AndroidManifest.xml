@@ -1,10 +1,41 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- GPS de la finca al crear la visita. Solo en primer plano: la app no
+         rastrea al visitador, toma una coordenada al llegar. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <!-- Servicio en primer plano: es lo unico que impide que Android suspenda
+         el proceso cuando se apaga la pantalla a mitad de una conversacion. -->
+    <!-- Fotos de cultivos, suelo y etiquetas durante la conversacion.
+         La camara se abre con enableAudio=false para no pelearle el
+         microfono al grabador: en Android el microfono es exclusivo. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <!-- Desde Android 14 el tipo hay que declararlo explicitamente, y para un
+         servicio que mantiene el microfono abierto tiene que ser microphone.
+         Declarar otro tipo hace que el sistema rechace el arranque. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
+    <!-- Android 13+ exige permiso para mostrar la notificacion permanente. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Sin esto la CPU se duerme con la pantalla apagada y el encoder de
+         audio se detiene a media frase. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- Los fabricantes agresivos (Xiaomi, Huawei) matan procesos en segundo
+         plano incluso con servicio en primer plano. Se le pide al visitador
+         excluir la app; si la niega, graba igual con mas riesgo. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <!-- Sin `usesCleartextTraffic`: en release el backend va por HTTPS y Android
+         bloquea el http en claro. El permiso vive solo en el manifiesto de
+         debug, para poder apuntar a la LAN mientras se desarrolla. -->
     <application
-        android:label="Sirius Reuniones"
+        android:label="Sirius Agro"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -27,6 +58,16 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- No cambiar el nombre: lo resuelve el plugin.
+             stopWithTask=false a proposito: si el visitador barre la app de
+             recientes por accidente a mitad de visita, el servicio sigue y el
+             audio no se pierde. -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="microphone"
+            android:stopWithTask="false"
+            android:exported="false"/>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

@@ -1,0 +1,54 @@
+{
+  "_nota": "Barranca de Upia, Meta. Precargadas para que el selector de vereda funcione en el primer arranque, sin red. El id local ES el record id de Airtable: la vereda es dato de referencia, no lo crea el dispositivo.",
+  "veredas": [
+    {
+      "id": "recHaeJEvDMNMvB8C",
+      "vereda": "Carutal",
+      "municipio": "Barranca de Upia",
+      "departamento": "Meta",
+      "remote_id": "recHaeJEvDMNMvB8C"
+    },
+    {
+      "id": "recKHULDEogeFu2bY",
+      "vereda": "El Algarrobo",
+      "municipio": "Barranca de Upia",
+      "departamento": "Meta",
+      "remote_id": "recKHULDEogeFu2bY"
+    },
+    {
+      "id": "recbmR4XC7ypJ1uvp",
+      "vereda": "El Hijoa",
+      "municipio": "Barranca de Upia",
+      "departamento": "Meta",
+      "remote_id": "recbmR4XC7ypJ1uvp"
+    },
+    {
+      "id": "recJbC4Pu92zaDZOe",
+      "vereda": "Guaicaramo",
+      "municipio": "Barranca de Upia",
+      "departamento": "Meta",
+      "remote_id": "recJbC4Pu92zaDZOe"
+    },
+    {
+      "id": "recYYiGHCifM74VOU",
+      "vereda": "Las Moras",
+      "municipio": "Barranca de Upia",
+      "departamento": "Meta",
+      "remote_id": "recYYiGHCifM74VOU"
+    },
+    {
+      "id": "recw6Oq6NTWf9StgB",
+      "vereda": "Los Pavitos",
+      "municipio": "Barranca de Upia",
+      "departamento": "Meta",
+      "remote_id": "recw6Oq6NTWf9StgB"
+    },
+    {
+      "id": "recBaB5Dbg6WauhMg",
+      "vereda": "San Ignacio",
+      "municipio": "Barranca de Upia",
+      "departamento": "Meta",
+      "remote_id": "recBaB5Dbg6WauhMg"
+    }
+  ]
+}

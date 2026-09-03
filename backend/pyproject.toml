@@ -1,0 +1,10 @@
+# Solo existe para decirle a Vercel donde esta la app.
+#
+# Sin esto, Vercel busca `main.py` y lo carga suelto; `app/main.py` usa
+# imports relativos (`from .config import ...`) y reventaria al importarse
+# fuera del paquete. El `module:variable` lo carga como parte de `app`.
+#
+# Las dependencias siguen en requirements.txt a proposito: es lo que usa el
+# .venv local, y tener la lista en dos lados es tener dos listas distintas.
+[tool.vercel]
+entrypoint = "app.main:app"

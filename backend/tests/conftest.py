@@ -5,11 +5,15 @@ import pytest
 # Las llaves se fijan antes de importar la app para que Settings las tome.
 os.environ.update(
     APP_API_KEY="test-key",
+    ELEVENLABS_API_KEY="eleven-test",
     OPENAI_API_KEY="sk-test",
     ANTHROPIC_API_KEY="sk-ant-test",
     AIRTABLE_TOKEN="pat-test",
     AIRTABLE_BASE_ID="appTEST",
     AIRTABLE_TABLE="Reuniones",
+    NOMINA_TOKEN="pat-nomina-test",
+    NOMINA_BASE_ID="appNOMINATEST",
+    NOMINA_TABLE="Personal",
 )
 
 from fastapi.testclient import TestClient  # noqa: E402

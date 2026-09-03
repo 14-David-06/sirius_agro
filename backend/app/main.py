@@ -15,11 +15,15 @@ from .schemas import (
     TranscriptionResult,
 )
 from .schemas_auth import LoginRequest, LoginResult
+from .schemas_chat import ChatRequest, ChatResult
+from .schemas_informe import InformeRequest, InformeResult
 from .schemas_visita import ArchivoSubido, VisitaPayload, VisitaSyncResult
 from .services import (
     airtable,
     almacenamiento,
+    chat as chat_service,
     extraccion as extraccion_service,
+    informe as informe_service,
     nomina,
     report as report_service,
     sincronizacion,
@@ -162,6 +166,34 @@ async def crear_extraccion(
     settings: Settings = Depends(require_api_key),
 ) -> ExtraccionResult:
     return await extraccion_service.extraer(settings, req)
+
+
+@app.post("/v1/informes", response_model=InformeResult)
+async def crear_informe(
+    req: InformeRequest,
+    settings: Settings = Depends(require_api_key),
+) -> InformeResult:
+    """El informe que el visitador le entrega al agricultor.
+
+    Distinto de `/v1/reports`, que arma un acta de reunion corporativa. Este lo
+    lee el productor: sale de la conversacion y de los hallazgos, y respeta la
+    certeza de cada dato en vez de afirmarlo todo por igual.
+    """
+    return await informe_service.generar(settings, req)
+
+
+@app.post("/v1/chat", response_model=ChatResult)
+async def chat(
+    req: ChatRequest,
+    settings: Settings = Depends(require_api_key),
+) -> ChatResult:
+    """El chat que el visitador consulta en campo.
+
+    No guarda nada: el hilo vive en el telefono y viaja completo en cada
+    peticion. Asi el backend sigue sin estado y el visitador puede seguir la
+    conversacion aunque el servidor se haya reiniciado en el medio.
+    """
+    return await chat_service.responder(settings, req)
 
 
 @app.post("/v1/reports", response_model=Report)

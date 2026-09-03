@@ -6,6 +6,33 @@ import 'package:http/http.dart' as http;
 import '../data/sesion_repository.dart';
 import 'config.dart';
 
+class InformeGenerado {
+  const InformeGenerado({
+    required this.titulo,
+    required this.tipo,
+    required this.contenido,
+    this.modelo,
+  });
+
+  final String titulo;
+  final String tipo;
+  final String contenido;
+  final String? modelo;
+}
+
+/// Un turno del chat de campo. `rol` es "user" o "assistant" tal cual lo
+/// espera el backend.
+class MensajeChat {
+  const MensajeChat({required this.rol, required this.contenido});
+
+  final String rol;
+  final String contenido;
+
+  bool get esDelVisitador => rol == 'user';
+
+  Map<String, dynamic> toJson() => {'rol': rol, 'contenido': contenido};
+}
+
 class ApiException implements Exception {
   ApiException(this.message);
   final String message;
@@ -198,6 +225,55 @@ class ApiClient {
       hashBcrypt: json['hash_offline'] as String? ?? '',
       diasMaxOffline: (json['dias_max_offline'] as num?)?.toInt() ?? 30,
     );
+  }
+
+  /// Arma el informe que el visitador le entrega al agricultor.
+  ///
+  /// Necesita señal: lo escribe Claude a partir de la conversacion y los
+  /// hallazgos. No hay modo degradado — un informe generado sin el modelo
+  /// seria una plantilla con el nombre de la finca encima.
+  Future<InformeGenerado> generarInforme(Map<String, dynamic> contexto) async {
+    final response = await _client.post(
+      _uri('/v1/informes'),
+      headers: _headers,
+      body: jsonEncode(contexto),
+    );
+    if (response.statusCode >= 400) _fail(response);
+
+    final json =
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return InformeGenerado(
+      titulo: json['titulo'] as String,
+      tipo: json['tipo'] as String? ?? 'Resumen para el agricultor',
+      contenido: json['contenido'] as String,
+      modelo: json['modelo'] as String?,
+    );
+  }
+
+  /// Responde una pregunta del visitador en campo.
+  ///
+  /// El hilo viaja completo en cada peticion: el backend no guarda la
+  /// conversacion. Necesita señal — es una consulta al modelo, no hay como
+  /// responderla desde el telefono.
+  Future<String> chat({
+    required List<MensajeChat> mensajes,
+    String? visitador,
+    String? contexto,
+  }) async {
+    final response = await _client.post(
+      _uri('/v1/chat'),
+      headers: _headers,
+      body: jsonEncode({
+        'mensajes': [for (final m in mensajes) m.toJson()],
+        'visitador': ?visitador,
+        if (contexto != null && contexto.isNotEmpty) 'contexto': contexto,
+      }),
+    );
+    if (response.statusCode >= 400) _fail(response);
+
+    final json =
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return json['respuesta'] as String;
   }
 
   /// Trae el catalogo vigente para refrescar el espejo local. Airtable es la

@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
+import '../state/informe.dart';
 import '../state/procesador.dart';
 import '../state/providers.dart';
 import 'camara_page.dart';
 import 'galeria_fotos.dart';
-import 'visita_page.dart';
+import 'informe_page.dart';
 import 'theme.dart';
+import 'visita_page.dart';
 
 /// Fotos durante la conversacion, sin detener la grabacion.
 class SeccionFotos extends ConsumerWidget {
@@ -227,6 +230,129 @@ class SeccionProcesar extends ConsumerWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// El botón que cumple lo que se le prometió al productor en el
+/// consentimiento: "con eso le armo un informe de su finca y se lo entrego".
+///
+/// Necesita señal y no se encola: el visitador lo pide para leérselo antes de
+/// irse de la finca, y un informe que llega tres días después ya no es eso.
+class SeccionInforme extends ConsumerWidget {
+  const SeccionInforme({super.key, required this.visitaId});
+
+  final String visitaId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final estado = ref.watch(informeProvider(visitaId));
+    final informes = ref.watch(informesProvider(visitaId)).valueOrNull ?? [];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(
+                    Icons.description_outlined,
+                    color: estado.error != null ? scheme.error : scheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Informe para el productor',
+                        style: tema.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        estado.error ??
+                            (informes.isEmpty
+                                ? 'Se arma con la conversacion. Necesita senal.'
+                                : '${informes.length} generado(s)'),
+                        style: tema.textTheme.bodySmall?.copyWith(
+                          color: estado.error != null
+                              ? scheme.error
+                              : scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: estado.trabajando
+                    ? null
+                    : () async {
+                        final informe = await ref
+                            .read(informeProvider(visitaId).notifier)
+                            .generar();
+                        if (informe != null && context.mounted) {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => InformePage(informe: informe),
+                            ),
+                          );
+                        }
+                      },
+                icon: estado.trabajando
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(informes.isEmpty ? Icons.auto_stories : Icons.refresh),
+                label: Text(
+                  estado.trabajando
+                      ? 'Escribiendo el informe...'
+                      : informes.isEmpty
+                          ? 'Generar informe'
+                          : 'Generar de nuevo',
+                ),
+              ),
+            ),
+            // Los anteriores no se borran: si el nuevo sale peor, el que ya se
+            // le mostro al productor sigue estando.
+            if (informes.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              for (final i in informes)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  dense: true,
+                  leading: Icon(
+                    i.entregado ? Icons.mark_email_read_outlined : Icons.article_outlined,
+                    color: i.entregado ? tema.marca.exito : scheme.onSurfaceVariant,
+                  ),
+                  title: Text('Version ${i.version}', style: tema.textTheme.bodyLarge),
+                  subtitle: Text(
+                    DateFormat("d 'de' MMMM, h:mm a", 'es').format(i.generadoEn),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => InformePage(informe: i)),
                   ),
                 ),
             ],

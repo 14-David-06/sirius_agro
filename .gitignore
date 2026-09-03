@@ -17,3 +17,9 @@ build/
 # fotos de fincas, GPS y la base sqlite del dispositivo. Datos de personas, no
 # fixtures: nunca al repositorio (que ademas es publico).
 extraidos/
+
+# Firma de Android. Quien tenga esto puede publicar una actualizacion que los
+# telefonos aceptan como legitima: no entra al repositorio nunca.
+app/android/key.properties
+*.jks
+*.keystore

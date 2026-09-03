@@ -1,3 +1,13 @@
+import java.util.Properties
+
+// La llave de firma vive fuera del repositorio, en `android/key.properties`.
+// Nunca se commitea: quien la tenga puede publicar una actualizacion que los
+// telefonos van a aceptar como legitima.
+val propsFirma = Properties().apply {
+    val archivo = rootProject.file("key.properties")
+    if (archivo.exists()) archivo.inputStream().use { load(it) }
+}
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -32,11 +42,35 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            // Solo se configura si existe key.properties. Sin eso, un `flutter
+            // build` en la maquina de otro no falla: cae a la llave de debug,
+            // que sirve para probar pero NO para repartir.
+            if (propsFirma.isNotEmpty()) {
+                storeFile = file(propsFirma.getProperty("storeFile"))
+                storePassword = propsFirma.getProperty("storePassword")
+                keyAlias = propsFirma.getProperty("keyAlias")
+                keyPassword = propsFirma.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // La llave de firma es la identidad de la app para Android: un APK
+            // firmado con otra llave NO puede actualizar al instalado, hay que
+            // desinstalar — y desinstalar borra la base local, o sea las visitas
+            // que todavia no se sincronizaron. Por eso hay que fijarla ANTES de
+            // repartir el primer APK, no despues.
+            //
+            // La de debug se genera sola en cada maquina: si este PC se pierde,
+            // ningun APK nuevo podria actualizar los telefonos del piloto.
+            signingConfig = if (propsFirma.isNotEmpty()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

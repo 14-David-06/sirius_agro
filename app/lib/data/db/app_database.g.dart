@@ -8190,6 +8190,722 @@ class HallazgosCompanion extends UpdateCompanion<Hallazgo> {
   }
 }
 
+class $InformesTable extends Informes with TableInfo<$InformesTable, Informe> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $InformesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _visitaIdMeta = const VerificationMeta(
+    'visitaId',
+  );
+  @override
+  late final GeneratedColumn<String> visitaId = GeneratedColumn<String>(
+    'visita_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tituloMeta = const VerificationMeta('titulo');
+  @override
+  late final GeneratedColumn<String> titulo = GeneratedColumn<String>(
+    'titulo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tipoMeta = const VerificationMeta('tipo');
+  @override
+  late final GeneratedColumn<String> tipo = GeneratedColumn<String>(
+    'tipo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('Resumen para el agricultor'),
+  );
+  static const VerificationMeta _contenidoMeta = const VerificationMeta(
+    'contenido',
+  );
+  @override
+  late final GeneratedColumn<String> contenido = GeneratedColumn<String>(
+    'contenido',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _generadoEnMeta = const VerificationMeta(
+    'generadoEn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> generadoEn = GeneratedColumn<DateTime>(
+    'generado_en',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modeloMeta = const VerificationMeta('modelo');
+  @override
+  late final GeneratedColumn<String> modelo = GeneratedColumn<String>(
+    'modelo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _entregadoMeta = const VerificationMeta(
+    'entregado',
+  );
+  @override
+  late final GeneratedColumn<bool> entregado = GeneratedColumn<bool>(
+    'entregado',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("entregado" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _medioEntregaMeta = const VerificationMeta(
+    'medioEntrega',
+  );
+  @override
+  late final GeneratedColumn<String> medioEntrega = GeneratedColumn<String>(
+    'medio_entrega',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  @override
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sincronizadoMeta = const VerificationMeta(
+    'sincronizado',
+  );
+  @override
+  late final GeneratedColumn<bool> sincronizado = GeneratedColumn<bool>(
+    'sincronizado',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sincronizado" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    visitaId,
+    titulo,
+    tipo,
+    contenido,
+    version,
+    generadoEn,
+    modelo,
+    entregado,
+    medioEntrega,
+    remoteId,
+    sincronizado,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'informes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Informe> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('visita_id')) {
+      context.handle(
+        _visitaIdMeta,
+        visitaId.isAcceptableOrUnknown(data['visita_id']!, _visitaIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visitaIdMeta);
+    }
+    if (data.containsKey('titulo')) {
+      context.handle(
+        _tituloMeta,
+        titulo.isAcceptableOrUnknown(data['titulo']!, _tituloMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tituloMeta);
+    }
+    if (data.containsKey('tipo')) {
+      context.handle(
+        _tipoMeta,
+        tipo.isAcceptableOrUnknown(data['tipo']!, _tipoMeta),
+      );
+    }
+    if (data.containsKey('contenido')) {
+      context.handle(
+        _contenidoMeta,
+        contenido.isAcceptableOrUnknown(data['contenido']!, _contenidoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contenidoMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('generado_en')) {
+      context.handle(
+        _generadoEnMeta,
+        generadoEn.isAcceptableOrUnknown(data['generado_en']!, _generadoEnMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_generadoEnMeta);
+    }
+    if (data.containsKey('modelo')) {
+      context.handle(
+        _modeloMeta,
+        modelo.isAcceptableOrUnknown(data['modelo']!, _modeloMeta),
+      );
+    }
+    if (data.containsKey('entregado')) {
+      context.handle(
+        _entregadoMeta,
+        entregado.isAcceptableOrUnknown(data['entregado']!, _entregadoMeta),
+      );
+    }
+    if (data.containsKey('medio_entrega')) {
+      context.handle(
+        _medioEntregaMeta,
+        medioEntrega.isAcceptableOrUnknown(
+          data['medio_entrega']!,
+          _medioEntregaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
+    }
+    if (data.containsKey('sincronizado')) {
+      context.handle(
+        _sincronizadoMeta,
+        sincronizado.isAcceptableOrUnknown(
+          data['sincronizado']!,
+          _sincronizadoMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Informe map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Informe(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      visitaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visita_id'],
+      )!,
+      titulo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}titulo'],
+      )!,
+      tipo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tipo'],
+      )!,
+      contenido: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contenido'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      generadoEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}generado_en'],
+      )!,
+      modelo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}modelo'],
+      ),
+      entregado: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}entregado'],
+      )!,
+      medioEntrega: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}medio_entrega'],
+      ),
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
+      ),
+      sincronizado: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sincronizado'],
+      )!,
+    );
+  }
+
+  @override
+  $InformesTable createAlias(String alias) {
+    return $InformesTable(attachedDatabase, alias);
+  }
+}
+
+class Informe extends DataClass implements Insertable<Informe> {
+  final String id;
+  final String visitaId;
+  final String titulo;
+  final String tipo;
+
+  /// Markdown. Se guarda el texto y no un PDF: desde aqui se regenera el
+  /// documento sin volver a pagarle al modelo.
+  final String contenido;
+
+  /// Sube en cada regeneracion. El anterior no se borra: si el visitador
+  /// regenera y el nuevo sale peor, el que ya le mostro al productor sigue ahi.
+  final int version;
+  final DateTime generadoEn;
+  final String? modelo;
+  final bool entregado;
+  final String? medioEntrega;
+  final String? remoteId;
+  final bool sincronizado;
+  const Informe({
+    required this.id,
+    required this.visitaId,
+    required this.titulo,
+    required this.tipo,
+    required this.contenido,
+    required this.version,
+    required this.generadoEn,
+    this.modelo,
+    required this.entregado,
+    this.medioEntrega,
+    this.remoteId,
+    required this.sincronizado,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['visita_id'] = Variable<String>(visitaId);
+    map['titulo'] = Variable<String>(titulo);
+    map['tipo'] = Variable<String>(tipo);
+    map['contenido'] = Variable<String>(contenido);
+    map['version'] = Variable<int>(version);
+    map['generado_en'] = Variable<DateTime>(generadoEn);
+    if (!nullToAbsent || modelo != null) {
+      map['modelo'] = Variable<String>(modelo);
+    }
+    map['entregado'] = Variable<bool>(entregado);
+    if (!nullToAbsent || medioEntrega != null) {
+      map['medio_entrega'] = Variable<String>(medioEntrega);
+    }
+    if (!nullToAbsent || remoteId != null) {
+      map['remote_id'] = Variable<String>(remoteId);
+    }
+    map['sincronizado'] = Variable<bool>(sincronizado);
+    return map;
+  }
+
+  InformesCompanion toCompanion(bool nullToAbsent) {
+    return InformesCompanion(
+      id: Value(id),
+      visitaId: Value(visitaId),
+      titulo: Value(titulo),
+      tipo: Value(tipo),
+      contenido: Value(contenido),
+      version: Value(version),
+      generadoEn: Value(generadoEn),
+      modelo: modelo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modelo),
+      entregado: Value(entregado),
+      medioEntrega: medioEntrega == null && nullToAbsent
+          ? const Value.absent()
+          : Value(medioEntrega),
+      remoteId: remoteId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteId),
+      sincronizado: Value(sincronizado),
+    );
+  }
+
+  factory Informe.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Informe(
+      id: serializer.fromJson<String>(json['id']),
+      visitaId: serializer.fromJson<String>(json['visitaId']),
+      titulo: serializer.fromJson<String>(json['titulo']),
+      tipo: serializer.fromJson<String>(json['tipo']),
+      contenido: serializer.fromJson<String>(json['contenido']),
+      version: serializer.fromJson<int>(json['version']),
+      generadoEn: serializer.fromJson<DateTime>(json['generadoEn']),
+      modelo: serializer.fromJson<String?>(json['modelo']),
+      entregado: serializer.fromJson<bool>(json['entregado']),
+      medioEntrega: serializer.fromJson<String?>(json['medioEntrega']),
+      remoteId: serializer.fromJson<String?>(json['remoteId']),
+      sincronizado: serializer.fromJson<bool>(json['sincronizado']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'visitaId': serializer.toJson<String>(visitaId),
+      'titulo': serializer.toJson<String>(titulo),
+      'tipo': serializer.toJson<String>(tipo),
+      'contenido': serializer.toJson<String>(contenido),
+      'version': serializer.toJson<int>(version),
+      'generadoEn': serializer.toJson<DateTime>(generadoEn),
+      'modelo': serializer.toJson<String?>(modelo),
+      'entregado': serializer.toJson<bool>(entregado),
+      'medioEntrega': serializer.toJson<String?>(medioEntrega),
+      'remoteId': serializer.toJson<String?>(remoteId),
+      'sincronizado': serializer.toJson<bool>(sincronizado),
+    };
+  }
+
+  Informe copyWith({
+    String? id,
+    String? visitaId,
+    String? titulo,
+    String? tipo,
+    String? contenido,
+    int? version,
+    DateTime? generadoEn,
+    Value<String?> modelo = const Value.absent(),
+    bool? entregado,
+    Value<String?> medioEntrega = const Value.absent(),
+    Value<String?> remoteId = const Value.absent(),
+    bool? sincronizado,
+  }) => Informe(
+    id: id ?? this.id,
+    visitaId: visitaId ?? this.visitaId,
+    titulo: titulo ?? this.titulo,
+    tipo: tipo ?? this.tipo,
+    contenido: contenido ?? this.contenido,
+    version: version ?? this.version,
+    generadoEn: generadoEn ?? this.generadoEn,
+    modelo: modelo.present ? modelo.value : this.modelo,
+    entregado: entregado ?? this.entregado,
+    medioEntrega: medioEntrega.present ? medioEntrega.value : this.medioEntrega,
+    remoteId: remoteId.present ? remoteId.value : this.remoteId,
+    sincronizado: sincronizado ?? this.sincronizado,
+  );
+  Informe copyWithCompanion(InformesCompanion data) {
+    return Informe(
+      id: data.id.present ? data.id.value : this.id,
+      visitaId: data.visitaId.present ? data.visitaId.value : this.visitaId,
+      titulo: data.titulo.present ? data.titulo.value : this.titulo,
+      tipo: data.tipo.present ? data.tipo.value : this.tipo,
+      contenido: data.contenido.present ? data.contenido.value : this.contenido,
+      version: data.version.present ? data.version.value : this.version,
+      generadoEn: data.generadoEn.present
+          ? data.generadoEn.value
+          : this.generadoEn,
+      modelo: data.modelo.present ? data.modelo.value : this.modelo,
+      entregado: data.entregado.present ? data.entregado.value : this.entregado,
+      medioEntrega: data.medioEntrega.present
+          ? data.medioEntrega.value
+          : this.medioEntrega,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
+      sincronizado: data.sincronizado.present
+          ? data.sincronizado.value
+          : this.sincronizado,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Informe(')
+          ..write('id: $id, ')
+          ..write('visitaId: $visitaId, ')
+          ..write('titulo: $titulo, ')
+          ..write('tipo: $tipo, ')
+          ..write('contenido: $contenido, ')
+          ..write('version: $version, ')
+          ..write('generadoEn: $generadoEn, ')
+          ..write('modelo: $modelo, ')
+          ..write('entregado: $entregado, ')
+          ..write('medioEntrega: $medioEntrega, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('sincronizado: $sincronizado')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    visitaId,
+    titulo,
+    tipo,
+    contenido,
+    version,
+    generadoEn,
+    modelo,
+    entregado,
+    medioEntrega,
+    remoteId,
+    sincronizado,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Informe &&
+          other.id == this.id &&
+          other.visitaId == this.visitaId &&
+          other.titulo == this.titulo &&
+          other.tipo == this.tipo &&
+          other.contenido == this.contenido &&
+          other.version == this.version &&
+          other.generadoEn == this.generadoEn &&
+          other.modelo == this.modelo &&
+          other.entregado == this.entregado &&
+          other.medioEntrega == this.medioEntrega &&
+          other.remoteId == this.remoteId &&
+          other.sincronizado == this.sincronizado);
+}
+
+class InformesCompanion extends UpdateCompanion<Informe> {
+  final Value<String> id;
+  final Value<String> visitaId;
+  final Value<String> titulo;
+  final Value<String> tipo;
+  final Value<String> contenido;
+  final Value<int> version;
+  final Value<DateTime> generadoEn;
+  final Value<String?> modelo;
+  final Value<bool> entregado;
+  final Value<String?> medioEntrega;
+  final Value<String?> remoteId;
+  final Value<bool> sincronizado;
+  final Value<int> rowid;
+  const InformesCompanion({
+    this.id = const Value.absent(),
+    this.visitaId = const Value.absent(),
+    this.titulo = const Value.absent(),
+    this.tipo = const Value.absent(),
+    this.contenido = const Value.absent(),
+    this.version = const Value.absent(),
+    this.generadoEn = const Value.absent(),
+    this.modelo = const Value.absent(),
+    this.entregado = const Value.absent(),
+    this.medioEntrega = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.sincronizado = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  InformesCompanion.insert({
+    required String id,
+    required String visitaId,
+    required String titulo,
+    this.tipo = const Value.absent(),
+    required String contenido,
+    this.version = const Value.absent(),
+    required DateTime generadoEn,
+    this.modelo = const Value.absent(),
+    this.entregado = const Value.absent(),
+    this.medioEntrega = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.sincronizado = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       visitaId = Value(visitaId),
+       titulo = Value(titulo),
+       contenido = Value(contenido),
+       generadoEn = Value(generadoEn);
+  static Insertable<Informe> custom({
+    Expression<String>? id,
+    Expression<String>? visitaId,
+    Expression<String>? titulo,
+    Expression<String>? tipo,
+    Expression<String>? contenido,
+    Expression<int>? version,
+    Expression<DateTime>? generadoEn,
+    Expression<String>? modelo,
+    Expression<bool>? entregado,
+    Expression<String>? medioEntrega,
+    Expression<String>? remoteId,
+    Expression<bool>? sincronizado,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (visitaId != null) 'visita_id': visitaId,
+      if (titulo != null) 'titulo': titulo,
+      if (tipo != null) 'tipo': tipo,
+      if (contenido != null) 'contenido': contenido,
+      if (version != null) 'version': version,
+      if (generadoEn != null) 'generado_en': generadoEn,
+      if (modelo != null) 'modelo': modelo,
+      if (entregado != null) 'entregado': entregado,
+      if (medioEntrega != null) 'medio_entrega': medioEntrega,
+      if (remoteId != null) 'remote_id': remoteId,
+      if (sincronizado != null) 'sincronizado': sincronizado,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  InformesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? visitaId,
+    Value<String>? titulo,
+    Value<String>? tipo,
+    Value<String>? contenido,
+    Value<int>? version,
+    Value<DateTime>? generadoEn,
+    Value<String?>? modelo,
+    Value<bool>? entregado,
+    Value<String?>? medioEntrega,
+    Value<String?>? remoteId,
+    Value<bool>? sincronizado,
+    Value<int>? rowid,
+  }) {
+    return InformesCompanion(
+      id: id ?? this.id,
+      visitaId: visitaId ?? this.visitaId,
+      titulo: titulo ?? this.titulo,
+      tipo: tipo ?? this.tipo,
+      contenido: contenido ?? this.contenido,
+      version: version ?? this.version,
+      generadoEn: generadoEn ?? this.generadoEn,
+      modelo: modelo ?? this.modelo,
+      entregado: entregado ?? this.entregado,
+      medioEntrega: medioEntrega ?? this.medioEntrega,
+      remoteId: remoteId ?? this.remoteId,
+      sincronizado: sincronizado ?? this.sincronizado,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (visitaId.present) {
+      map['visita_id'] = Variable<String>(visitaId.value);
+    }
+    if (titulo.present) {
+      map['titulo'] = Variable<String>(titulo.value);
+    }
+    if (tipo.present) {
+      map['tipo'] = Variable<String>(tipo.value);
+    }
+    if (contenido.present) {
+      map['contenido'] = Variable<String>(contenido.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (generadoEn.present) {
+      map['generado_en'] = Variable<DateTime>(generadoEn.value);
+    }
+    if (modelo.present) {
+      map['modelo'] = Variable<String>(modelo.value);
+    }
+    if (entregado.present) {
+      map['entregado'] = Variable<bool>(entregado.value);
+    }
+    if (medioEntrega.present) {
+      map['medio_entrega'] = Variable<String>(medioEntrega.value);
+    }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
+    }
+    if (sincronizado.present) {
+      map['sincronizado'] = Variable<bool>(sincronizado.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InformesCompanion(')
+          ..write('id: $id, ')
+          ..write('visitaId: $visitaId, ')
+          ..write('titulo: $titulo, ')
+          ..write('tipo: $tipo, ')
+          ..write('contenido: $contenido, ')
+          ..write('version: $version, ')
+          ..write('generadoEn: $generadoEn, ')
+          ..write('modelo: $modelo, ')
+          ..write('entregado: $entregado, ')
+          ..write('medioEntrega: $medioEntrega, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('sincronizado: $sincronizado, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncQueueTable extends SyncQueue
     with TableInfo<$SyncQueueTable, SyncItem> {
   @override
@@ -9042,6 +9758,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GrabacionesTable grabaciones = $GrabacionesTable(this);
   late final $EvidenciasTable evidencias = $EvidenciasTable(this);
   late final $HallazgosTable hallazgos = $HallazgosTable(this);
+  late final $InformesTable informes = $InformesTable(this);
   late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -9060,6 +9777,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     grabaciones,
     evidencias,
     hallazgos,
+    informes,
     syncQueue,
   ];
 }
@@ -12884,6 +13602,339 @@ typedef $$HallazgosTableProcessedTableManager =
       Hallazgo,
       PrefetchHooks Function()
     >;
+typedef $$InformesTableCreateCompanionBuilder =
+    InformesCompanion Function({
+      required String id,
+      required String visitaId,
+      required String titulo,
+      Value<String> tipo,
+      required String contenido,
+      Value<int> version,
+      required DateTime generadoEn,
+      Value<String?> modelo,
+      Value<bool> entregado,
+      Value<String?> medioEntrega,
+      Value<String?> remoteId,
+      Value<bool> sincronizado,
+      Value<int> rowid,
+    });
+typedef $$InformesTableUpdateCompanionBuilder =
+    InformesCompanion Function({
+      Value<String> id,
+      Value<String> visitaId,
+      Value<String> titulo,
+      Value<String> tipo,
+      Value<String> contenido,
+      Value<int> version,
+      Value<DateTime> generadoEn,
+      Value<String?> modelo,
+      Value<bool> entregado,
+      Value<String?> medioEntrega,
+      Value<String?> remoteId,
+      Value<bool> sincronizado,
+      Value<int> rowid,
+    });
+
+class $$InformesTableFilterComposer
+    extends Composer<_$AppDatabase, $InformesTable> {
+  $$InformesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visitaId => $composableBuilder(
+    column: $table.visitaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get titulo => $composableBuilder(
+    column: $table.titulo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tipo => $composableBuilder(
+    column: $table.tipo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contenido => $composableBuilder(
+    column: $table.contenido,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get generadoEn => $composableBuilder(
+    column: $table.generadoEn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelo => $composableBuilder(
+    column: $table.modelo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get entregado => $composableBuilder(
+    column: $table.entregado,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get medioEntrega => $composableBuilder(
+    column: $table.medioEntrega,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sincronizado => $composableBuilder(
+    column: $table.sincronizado,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$InformesTableOrderingComposer
+    extends Composer<_$AppDatabase, $InformesTable> {
+  $$InformesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visitaId => $composableBuilder(
+    column: $table.visitaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get titulo => $composableBuilder(
+    column: $table.titulo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tipo => $composableBuilder(
+    column: $table.tipo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contenido => $composableBuilder(
+    column: $table.contenido,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get generadoEn => $composableBuilder(
+    column: $table.generadoEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelo => $composableBuilder(
+    column: $table.modelo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get entregado => $composableBuilder(
+    column: $table.entregado,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get medioEntrega => $composableBuilder(
+    column: $table.medioEntrega,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get sincronizado => $composableBuilder(
+    column: $table.sincronizado,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$InformesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InformesTable> {
+  $$InformesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get visitaId =>
+      $composableBuilder(column: $table.visitaId, builder: (column) => column);
+
+  GeneratedColumn<String> get titulo =>
+      $composableBuilder(column: $table.titulo, builder: (column) => column);
+
+  GeneratedColumn<String> get tipo =>
+      $composableBuilder(column: $table.tipo, builder: (column) => column);
+
+  GeneratedColumn<String> get contenido =>
+      $composableBuilder(column: $table.contenido, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get generadoEn => $composableBuilder(
+    column: $table.generadoEn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelo =>
+      $composableBuilder(column: $table.modelo, builder: (column) => column);
+
+  GeneratedColumn<bool> get entregado =>
+      $composableBuilder(column: $table.entregado, builder: (column) => column);
+
+  GeneratedColumn<String> get medioEntrega => $composableBuilder(
+    column: $table.medioEntrega,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
+  GeneratedColumn<bool> get sincronizado => $composableBuilder(
+    column: $table.sincronizado,
+    builder: (column) => column,
+  );
+}
+
+class $$InformesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $InformesTable,
+          Informe,
+          $$InformesTableFilterComposer,
+          $$InformesTableOrderingComposer,
+          $$InformesTableAnnotationComposer,
+          $$InformesTableCreateCompanionBuilder,
+          $$InformesTableUpdateCompanionBuilder,
+          (Informe, BaseReferences<_$AppDatabase, $InformesTable, Informe>),
+          Informe,
+          PrefetchHooks Function()
+        > {
+  $$InformesTableTableManager(_$AppDatabase db, $InformesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$InformesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$InformesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$InformesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> visitaId = const Value.absent(),
+                Value<String> titulo = const Value.absent(),
+                Value<String> tipo = const Value.absent(),
+                Value<String> contenido = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<DateTime> generadoEn = const Value.absent(),
+                Value<String?> modelo = const Value.absent(),
+                Value<bool> entregado = const Value.absent(),
+                Value<String?> medioEntrega = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
+                Value<bool> sincronizado = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => InformesCompanion(
+                id: id,
+                visitaId: visitaId,
+                titulo: titulo,
+                tipo: tipo,
+                contenido: contenido,
+                version: version,
+                generadoEn: generadoEn,
+                modelo: modelo,
+                entregado: entregado,
+                medioEntrega: medioEntrega,
+                remoteId: remoteId,
+                sincronizado: sincronizado,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String visitaId,
+                required String titulo,
+                Value<String> tipo = const Value.absent(),
+                required String contenido,
+                Value<int> version = const Value.absent(),
+                required DateTime generadoEn,
+                Value<String?> modelo = const Value.absent(),
+                Value<bool> entregado = const Value.absent(),
+                Value<String?> medioEntrega = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
+                Value<bool> sincronizado = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => InformesCompanion.insert(
+                id: id,
+                visitaId: visitaId,
+                titulo: titulo,
+                tipo: tipo,
+                contenido: contenido,
+                version: version,
+                generadoEn: generadoEn,
+                modelo: modelo,
+                entregado: entregado,
+                medioEntrega: medioEntrega,
+                remoteId: remoteId,
+                sincronizado: sincronizado,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$InformesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $InformesTable,
+      Informe,
+      $$InformesTableFilterComposer,
+      $$InformesTableOrderingComposer,
+      $$InformesTableAnnotationComposer,
+      $$InformesTableCreateCompanionBuilder,
+      $$InformesTableUpdateCompanionBuilder,
+      (Informe, BaseReferences<_$AppDatabase, $InformesTable, Informe>),
+      Informe,
+      PrefetchHooks Function()
+    >;
 typedef $$SyncQueueTableCreateCompanionBuilder =
     SyncQueueCompanion Function({
       required String id,
@@ -13288,6 +14339,8 @@ class $AppDatabaseManager {
       $$EvidenciasTableTableManager(_db, _db.evidencias);
   $$HallazgosTableTableManager get hallazgos =>
       $$HallazgosTableTableManager(_db, _db.hallazgos);
+  $$InformesTableTableManager get informes =>
+      $$InformesTableTableManager(_db, _db.informes);
   $$SyncQueueTableTableManager get syncQueue =>
       $$SyncQueueTableTableManager(_db, _db.syncQueue);
 }

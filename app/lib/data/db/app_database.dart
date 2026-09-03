@@ -91,6 +91,7 @@ ProcedenciaResuelta resolverProcedencia({
     Grabaciones,
     Evidencias,
     Hallazgos,
+    Informes,
     SyncQueue,
   ],
 )
@@ -110,7 +111,7 @@ class AppDatabase extends _$AppDatabase {
   /// v2: tabla `Ajustes`, `CatalogoCampos.noSugerir` y las cuatro columnas de
   ///     nomina en `Visitadores` (idEmpleado, cargo, email, telefono).
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -136,6 +137,8 @@ class AppDatabase extends _$AppDatabase {
           }
           await _asegurarTabla(m, credencialesLocales);
           await _asegurarTabla(m, sesiones);
+          // v5: el informe que se le entrega al agricultor.
+          await _asegurarTabla(m, informes);
           await _asegurarColumna(m, catalogoCampos, catalogoCampos.noSugerir);
           await _asegurarColumna(m, visitadores, visitadores.idEmpleado);
           await _asegurarColumna(m, visitadores, visitadores.cargo);

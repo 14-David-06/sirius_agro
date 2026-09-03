@@ -553,6 +553,208 @@ class VisitaRepository {
     });
   }
 
+  /// Todo lo que hace falta para armar el informe del agricultor.
+  ///
+  /// Los hallazgos se cruzan con el catalogo para que el modelo reciba el
+  /// nombre legible del campo y su modulo, no la clave tecnica: el informe lo
+  /// lee el productor, no un desarrollador.
+  Future<Map<String, dynamic>> contextoInforme(String visitaId) async {
+    final v = await (_db.select(_db.visitas)..where((x) => x.id.equals(visitaId)))
+        .getSingle();
+
+    final visitador = v.visitadorLocalId == null
+        ? null
+        : await (_db.select(_db.visitadores)
+              ..where((x) => x.id.equals(v.visitadorLocalId!)))
+            .getSingleOrNull();
+    final productor = v.productorLocalId == null
+        ? null
+        : await (_db.select(_db.productores)
+              ..where((x) => x.id.equals(v.productorLocalId!)))
+            .getSingleOrNull();
+    final finca = v.fincaLocalId == null
+        ? null
+        : await (_db.select(_db.fincas)
+              ..where((x) => x.id.equals(v.fincaLocalId!)))
+            .getSingleOrNull();
+    final vereda = v.veredaLocalId == null
+        ? null
+        : await (_db.select(_db.veredas)
+              ..where((x) => x.id.equals(v.veredaLocalId!)))
+            .getSingleOrNull();
+
+    final catalogo = {
+      for (final c in await _db.select(_db.catalogoCampos).get())
+        c.claveTecnica: c,
+    };
+    final hallazgos = await (_db.select(_db.hallazgos)
+          ..where((h) => h.visitaId.equals(visitaId)))
+        .get();
+
+    final transcripcion = await transcripcionCompleta(visitaId);
+
+    return {
+      'codigo_visita': v.id,
+      'fecha': v.inicio.toIso8601String(),
+      if (productor != null) 'productor': productor.nombreCompleto,
+      if (finca != null) 'finca': finca.nombre,
+      if (vereda != null) 'vereda': vereda.vereda,
+      if (vereda != null) 'municipio': vereda.municipio,
+      if (visitador != null) 'visitador': visitador.nombre,
+      if (transcripcion.isNotEmpty) 'transcripcion': transcripcion,
+      if (v.temasPendientes != null) 'temas_pendientes': v.temasPendientes,
+      'completitud_pct': v.completitudPct,
+      'hallazgos': [
+        for (final h in hallazgos)
+          {
+            'campo': catalogo[h.claveTecnica]?.campo ?? h.claveTecnica,
+            'clave_tecnica': h.claveTecnica,
+            'valor': h.valorTexto ?? '${h.valorNumerico ?? ''}',
+            if (h.unidad != null) 'unidad': h.unidad,
+            // `.airtable` y no el enum: esto se serializa a JSON.
+            'certeza': h.certeza.airtable,
+            if (catalogo[h.claveTecnica] != null)
+              'modulo': catalogo[h.claveTecnica]!.modulo,
+          },
+      ],
+    };
+  }
+
+  /// Guarda el informe generado y lo encola. La version sube en cada
+  /// regeneracion y el anterior NO se borra: si el visitador regenera y el
+  /// nuevo sale peor, el que ya le mostro al productor sigue existiendo.
+  Future<Informe> guardarInforme({
+    required String visitaId,
+    required String titulo,
+    required String contenido,
+    required String tipo,
+    String? modelo,
+  }) async {
+    final previos = await informesDeVisita(visitaId);
+    final informe = InformesCompanion.insert(
+      id: _uuid.v4(),
+      visitaId: visitaId,
+      titulo: titulo,
+      tipo: Value(tipo),
+      contenido: contenido,
+      version: Value(previos.length + 1),
+      generadoEn: DateTime.now(),
+      modelo: Value(modelo),
+    );
+    await _db.into(_db.informes).insert(informe);
+    // Prioridad alta pero por debajo del audio: el informe se puede volver a
+    // generar, la grabacion no.
+    await encolarVisita(visitaId);
+    return (await informesDeVisita(visitaId)).first;
+  }
+
+  /// Los informes de una visita, el mas nuevo primero.
+  Future<List<Informe>> informesDeVisita(String visitaId) =>
+      (_db.select(_db.informes)
+            ..where((i) => i.visitaId.equals(visitaId))
+            ..orderBy([
+              (i) => OrderingTerm(expression: i.version, mode: OrderingMode.desc),
+            ]))
+          .get();
+
+  Stream<List<Informe>> observarInformes(String visitaId) =>
+      (_db.select(_db.informes)
+            ..where((i) => i.visitaId.equals(visitaId))
+            ..orderBy([
+              (i) => OrderingTerm(expression: i.version, mode: OrderingMode.desc),
+            ]))
+          .watch();
+
+  /// Lo que el PDF necesita y no esta en el informe: la ficha de la visita y
+  /// las rutas de las fotos en disco.
+  Future<Map<String, dynamic>> contextoPdf(String visitaId) async {
+    final ctx = await contextoInforme(visitaId);
+    final fotos = await evidenciasDeVisita(visitaId);
+    return {
+      ...ctx,
+      'fotos': [for (final f in fotos) f.archivoPath],
+    };
+  }
+
+  /// Lo que el chat de campo sabe de estas fincas.
+  ///
+  /// Va un resumen y no las transcripciones: el hilo del chat viaja completo en
+  /// cada pregunta, y meter tres conversaciones enteras lo vuelve lento y caro
+  /// sin responder mejor. Solo entran los datos que ya pasaron por las reglas
+  /// de certeza — un Pendiente no es un dato y no puede llegar al modelo como
+  /// si lo fuera.
+  Future<String> contextoChat({int maxVisitas = 8, int maxDatos = 12}) async {
+    final lista = await visitas();
+    if (lista.isEmpty) return '';
+
+    final catalogo = {
+      for (final c in await _db.select(_db.catalogoCampos).get())
+        c.claveTecnica: c,
+    };
+
+    final bloques = <String>[];
+    for (final v in lista.take(maxVisitas)) {
+      final productor = v.productorLocalId == null
+          ? null
+          : await (_db.select(_db.productores)
+                ..where((x) => x.id.equals(v.productorLocalId!)))
+              .getSingleOrNull();
+      final finca = v.fincaLocalId == null
+          ? null
+          : await (_db.select(_db.fincas)
+                ..where((x) => x.id.equals(v.fincaLocalId!)))
+              .getSingleOrNull();
+      final vereda = v.veredaLocalId == null
+          ? null
+          : await (_db.select(_db.veredas)
+                ..where((x) => x.id.equals(v.veredaLocalId!)))
+              .getSingleOrNull();
+
+      final fecha = v.inicio.toIso8601String().substring(0, 10);
+      final encabezado = [
+        finca?.nombre ?? 'Finca sin registrar',
+        if (productor != null) 'productor ${productor.nombreCompleto}',
+        if (vereda != null) '${vereda.vereda} (${vereda.municipio})',
+        'visita del $fecha',
+        '${v.completitudPct}% del cuestionario',
+        v.estado,
+      ].join(' — ');
+
+      final hallazgos = await (_db.select(_db.hallazgos)
+            ..where((h) => h.visitaId.equals(v.id)))
+          .get();
+      final lineas = <String>[];
+      for (final h in hallazgos) {
+        if (h.certeza == Certeza.pendiente) continue;
+        if (lineas.length >= maxDatos) break;
+        final valor = h.valorTexto ?? '${h.valorNumerico ?? ''}';
+        final campo = catalogo[h.claveTecnica]?.campo ?? h.claveTecnica;
+        lineas.add(
+          '  - $campo: ${h.unidad == null ? valor : '$valor ${h.unidad}'} '
+          '[${h.certeza.airtable}]',
+        );
+      }
+
+      bloques.add(
+        lineas.isEmpty
+            ? '$encabezado\n  (Sin datos registrados todavia.)'
+            : '$encabezado\n${lineas.join('\n')}',
+      );
+    }
+
+    return bloques.join('\n\n');
+  }
+
+  /// Se marca al compartir, no al confirmar que llego: el telefono no puede
+  /// saber si el productor lo abrio.
+  Future<void> marcarInformeEntregado(String informeId, {String? medio}) =>
+      (_db.update(_db.informes)..where((i) => i.id.equals(informeId))).write(
+        InformesCompanion(
+          entregado: const Value(true),
+          medioEntrega: Value(medio),
+        ),
+      );
+
   /// Encola la visita entera para sincronizar. El payload lleva el UUID, asi
   /// que `POST /v1/visitas` es idempotente: reintentar no duplica.
   Future<void> encolarVisita(String visitaId) async {
@@ -656,6 +858,19 @@ class VisitaRepository {
       if (v.temasPendientes != null) 'temas_pendientes': v.temasPendientes,
       if (v.notasPruebaCampo != null) 'notas_prueba_campo': v.notasPruebaCampo,
       'completitud_pct': v.completitudPct,
+      'informes': [
+        for (final i in await informesDeVisita(v.id))
+          {
+            'id': i.id,
+            'titulo': i.titulo,
+            'tipo': i.tipo,
+            'contenido': i.contenido,
+            'version': i.version,
+            'generado_en': i.generadoEn.toIso8601String(),
+            'entregado': i.entregado,
+            if (i.medioEntrega != null) 'medio_entrega': i.medioEntrega,
+          },
+      ],
       'grabaciones': [
         for (final g in grabaciones)
           {
@@ -779,4 +994,89 @@ class VisitaRepository {
                   ),
             ]))
           .get();
+
+  /// Cuanto pesa una visita en el telefono: audios y fotos que existen en
+  /// disco. Se muestra antes de borrar, para que el visitador sepa que esta
+  /// tirando a la basura.
+  Future<int> bytesEnDisco(String visitaId) async {
+    var total = 0;
+    for (final ruta in await _archivosDeVisita(visitaId)) {
+      final archivo = File(ruta);
+      if (await archivo.exists()) total += await archivo.length();
+    }
+    return total;
+  }
+
+  Future<List<String>> _archivosDeVisita(String visitaId) async => [
+        for (final g in await grabacionesDeVisita(visitaId)) g.archivoPath,
+        for (final e in await evidenciasDeVisita(visitaId)) e.archivoPath,
+      ];
+
+  /// Borra visitas de ESTE telefono: filas, archivos y lo que quedaba en cola.
+  ///
+  /// Es irreversible y es local. Lo que ya se sincronizo sigue en Airtable —
+  /// esto no le pide al backend que borre nada, y confundir las dos cosas
+  /// seria grave: para la eliminacion que SI viaja (el productor revoca el
+  /// consentimiento) existe `Visitas.marcadaParaEliminacion`, que el backend
+  /// respeta al sincronizar.
+  ///
+  /// El orden no es negociable: primero los hijos y la cola, al final la
+  /// visita. Al revés, las claves foráneas rechazan el borrado.
+  Future<void> eliminarVisitas(List<String> visitaIds) async {
+    if (visitaIds.isEmpty) return;
+
+    // Las rutas se leen ANTES de borrar las filas: despues no hay de donde
+    // sacarlas, y los archivos quedarian ocupando el telefono para siempre.
+    final archivos = <String>[];
+    for (final id in visitaIds) {
+      archivos.addAll(await _archivosDeVisita(id));
+    }
+
+    await _db.transaction(() async {
+      // La cola primero y por `entidadId`: si queda un item apuntando a una
+      // visita borrada, el sincronizador va a fallar en cada corrida al leer
+      // una fila que ya no existe.
+      await (_db.delete(_db.syncQueue)
+            ..where((q) => q.entidadId.isIn(visitaIds)))
+          .go();
+
+      await (_db.delete(_db.hallazgos)
+            ..where((h) => h.visitaId.isIn(visitaIds)))
+          .go();
+      await (_db.delete(_db.evidencias)
+            ..where((e) => e.visitaId.isIn(visitaIds)))
+          .go();
+      await (_db.delete(_db.grabaciones)
+            ..where((g) => g.visitaId.isIn(visitaIds)))
+          .go();
+      await (_db.delete(_db.informes)
+            ..where((i) => i.visitaId.isIn(visitaIds)))
+          .go();
+      await (_db.delete(_db.visitas)..where((v) => v.id.isIn(visitaIds))).go();
+    });
+
+    // Los archivos van despues de la transaccion: borrar en disco no se puede
+    // deshacer, asi que si la transaccion falla se conservan los archivos de
+    // una visita que sigue existiendo en la base.
+    for (final ruta in archivos) {
+      try {
+        final archivo = File(ruta);
+        if (await archivo.exists()) await archivo.delete();
+      } catch (_) {
+        // Un archivo que no se puede borrar no puede dejar la visita a medio
+        // eliminar: las filas ya no estan y eso es lo que ve el visitador.
+      }
+    }
+
+    // Y la carpeta entera, que barre los tramos de audio que quedaron en disco
+    // sin fila en la base (la app muerta a mitad de grabacion los deja ahi).
+    for (final id in visitaIds) {
+      try {
+        final carpeta = await _carpetaDeVisita(id);
+        if (await carpeta.exists()) await carpeta.delete(recursive: true);
+      } catch (_) {
+        // Igual que arriba.
+      }
+    }
+  }
 }

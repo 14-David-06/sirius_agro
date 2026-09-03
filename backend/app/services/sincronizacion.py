@@ -24,6 +24,7 @@ from ..config import Settings
 from ..schemas_visita import (
     EvidenciaPayload,
     GrabacionPayload,
+    InformePayload,
     HallazgoPayload,
     VisitaPayload,
     VisitaSyncResult,
@@ -43,6 +44,7 @@ TBL_VISITAS = "tblv5fzFJiqjuZKwr"
 TBL_GRABACIONES = "tblpfHtKhrPNPQAMm"
 TBL_EVIDENCIAS = "tblKaxB2PDit0B7qR"
 TBL_HALLAZGOS = "tbl73vmrXGHqQxGp5"
+TBL_INFORMES = "tblczDOcHeq9taOQ9"
 
 # Airtable topa en 5 req/s. Se escribe en lotes de 10 registros y se espera
 # entre lotes: pasarse no da un error claro, da 429 a mitad de una visita y
@@ -431,6 +433,28 @@ def _campos_evidencia(e: EvidenciaPayload, visita_id: str, orden: int) -> dict:
     return fields
 
 
+def _campos_informe(
+    i: InformePayload, visita_id: str, productor_id: str | None
+) -> dict:
+    fields: dict = {
+        "Nombre": i.titulo,
+        "Visita": [visita_id],
+        "Tipo": i.tipo,
+        # El markdown, no un PDF: desde aca se puede regenerar el documento sin
+        # volver a pagarle al modelo.
+        "Contenido": i.contenido,
+        "Version": i.version,
+        "Entregado": i.entregado,
+    }
+    if productor_id:
+        fields["Productor"] = [productor_id]
+    if i.generado_en:
+        fields["Generado en"] = i.generado_en.isoformat()
+    if i.medio_entrega:
+        fields["Medio de entrega"] = i.medio_entrega
+    return fields
+
+
 def _campos_hallazgo(h: HallazgoPayload, visita_id: str, campo_id: str) -> dict:
     etiqueta = h.valor_texto or (
         f"{h.valor_numerico} {h.unidad or ''}".strip()
@@ -500,6 +524,7 @@ async def _upsert_hijos(
         TBL_GRABACIONES: "Archivo",
         TBL_EVIDENCIAS: "Titulo",
         TBL_HALLAZGOS: "Hallazgo",
+        TBL_INFORMES: "Nombre",
     }[tabla]
 
     por_llave = {
@@ -596,6 +621,16 @@ async def sincronizar(settings: Settings, p: VisitaPayload) -> VisitaSyncResult:
             at, TBL_HALLAZGOS, p.codigo_visita, deseados_hallazgos
         )
 
+        informes = await _upsert_hijos(
+            at,
+            TBL_INFORMES,
+            p.codigo_visita,
+            [
+                (i.titulo, _campos_informe(i, visita_id, productor_id))
+                for i in p.informes
+            ],
+        )
+
     if desconocidas:
         logger.warning(
             "Visita %s: %d hallazgos descartados por clave fuera del catalogo: %s",
@@ -611,6 +646,7 @@ async def sincronizar(settings: Settings, p: VisitaPayload) -> VisitaSyncResult:
         grabaciones=grabaciones,
         evidencias=evidencias,
         hallazgos=hallazgos,
+        informes=informes,
         claves_desconocidas=sorted(set(desconocidas)),
         degradados=degradados,
     )

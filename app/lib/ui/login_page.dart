@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/config.dart';
 import '../state/sesion.dart';
 import 'marca.dart';
 import 'theme.dart';
@@ -58,6 +60,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Un APK mal compilado se descubre aca, en el escritorio,
+                  // y no en una finca a una hora del pueblo.
+                  if (kReleaseMode && AppConfig.problemaDeCompilacion != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: Banda(
+                        texto: AppConfig.problemaDeCompilacion!,
+                        icono: Icons.build_circle_outlined,
+                        tono: TonoPildora.error,
+                      ),
+                    ),
                   const Center(child: LogoSirius(alto: 40)),
                   const SizedBox(height: 10),
                   Text(

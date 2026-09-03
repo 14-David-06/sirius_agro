@@ -82,6 +82,24 @@ class HallazgoPayload(BaseModel):
     valor_corregido: str | None = None
 
 
+class InformePayload(BaseModel):
+    """El informe que se le entrega al agricultor.
+
+    Viaja con la visita en vez de subirse aparte: se genera en el celular, en
+    la finca, y tiene que llegar a Airtable por el mismo camino que el resto —
+    la cola offline — o se perderia al cerrar la app sin señal.
+    """
+
+    id: str
+    titulo: str
+    tipo: str = "Resumen para el agricultor"
+    contenido: str
+    version: int = 1
+    generado_en: datetime | None = None
+    entregado: bool = False
+    medio_entrega: str | None = None
+
+
 class ProductorPayload(BaseModel):
     nombre_completo: str
     documento: str | None = None
@@ -133,6 +151,7 @@ class VisitaPayload(BaseModel):
     grabaciones: list[GrabacionPayload] = Field(default_factory=list)
     evidencias: list[EvidenciaPayload] = Field(default_factory=list)
     hallazgos: list[HallazgoPayload] = Field(default_factory=list)
+    informes: list[InformePayload] = Field(default_factory=list)
 
 
 class VisitaSyncResult(BaseModel):
@@ -143,6 +162,7 @@ class VisitaSyncResult(BaseModel):
     grabaciones: int = 0
     evidencias: int = 0
     hallazgos: int = 0
+    informes: int = 0
 
     # Claves que el modelo devolvio y no estan en el catalogo. No se inventan
     # campos: el hallazgo se descarta y la clave se reporta para que alguien

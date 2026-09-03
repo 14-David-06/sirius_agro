@@ -50,6 +50,10 @@ dependencies:
   drift_flutter: ^0.2.0
   path: ^1.9.0
   bcrypt: ^1.2.0
+  share_plus: ^13.3.0
+  pdf: ^3.13.0
+  printing: ^5.15.0
+  archive: ^4.0.9
 
 dev_dependencies:
   flutter_test:
@@ -84,6 +88,11 @@ flutter:
     # Marca: wordmark a color y version blanca para tema oscuro.
     - assets/marca/sirius.png
     - assets/marca/sirius_blanco.png
+    # Roboto (Apache 2.0) para el PDF. Las fuentes que trae el generador de
+    # PDF solo cubren Latin-1 a medias: sin esto, "señor" y "años" salen rotos
+    # en el papel que se le entrega al productor.
+    - assets/fuentes/Roboto-Regular.ttf
+    - assets/fuentes/Roboto-Bold.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

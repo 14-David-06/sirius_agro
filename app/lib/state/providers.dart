@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api_client.dart';
 import '../data/db/app_database.dart';
+import '../data/exportador_visita.dart';
 import '../data/semilla.dart';
 import '../data/visita_repository.dart';
 
@@ -17,6 +18,10 @@ final repoProvider =
     Provider<VisitaRepository>((ref) => VisitaRepository(ref.watch(dbProvider)));
 
 final apiProvider = Provider<ApiClient>((ref) => ApiClient());
+
+final exportadorProvider = Provider<ExportadorVisitas>(
+  (ref) => ExportadorVisitas(ref.watch(dbProvider), ref.watch(repoProvider)),
+);
 
 /// Siembra veredas y catalogo desde los assets del APK. Es lo primero que
 /// corre: sin esto la app no sabe que preguntar ni en que vereda esta.

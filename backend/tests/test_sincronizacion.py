@@ -8,12 +8,15 @@ se le entrega firmado al productor contenga un valor que nadie dijo.
 
 from datetime import datetime
 
+import json
+
 import httpx
 import pytest
 import respx
 
 from app.config import Settings
 from app.schemas_visita import (
+    InformePayload,
     EvidenciaPayload,
     FincaPayload,
     GrabacionPayload,
@@ -242,7 +245,12 @@ def _mockear_airtable(visita_existente: dict | None = None):
             200, json={"records": [visita_existente] if visita_existente else []}
         )
     )
-    for tabla in (sync.TBL_GRABACIONES, sync.TBL_EVIDENCIAS, sync.TBL_HALLAZGOS):
+    for tabla in (
+        sync.TBL_GRABACIONES,
+        sync.TBL_EVIDENCIAS,
+        sync.TBL_HALLAZGOS,
+        sync.TBL_INFORMES,
+    ):
         respx.get(f"{API}/{tabla}").mock(
             return_value=httpx.Response(200, json={"records": []})
         )
@@ -364,3 +372,58 @@ async def test_un_error_de_airtable_se_explica_con_la_tabla(settings):
     assert exc.value.status_code == 502
     assert sync.TBL_VISITAS in exc.value.detail
     assert "UNKNOWN_FIELD_NAME" in exc.value.detail
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_el_informe_llega_a_airtable_con_la_visita(settings):
+    """`Informes` era una de las tablas que nadie escribia. El informe se
+    genera en la finca y viaja por la misma cola que el resto: si se subiera
+    aparte, cerrar la app sin señal lo perderia."""
+    _mockear_airtable()
+    respx.post(f"{API}/{sync.TBL_VISITAS}").mock(
+        return_value=httpx.Response(200, json={"id": "recVisita"})
+    )
+    escritura = respx.post(f"{API}/{sync.TBL_INFORMES}").mock(
+        return_value=httpx.Response(200, json={"records": []})
+    )
+
+    r = await sync.sincronizar(
+        settings,
+        _payload_completo(
+            informes=[
+                InformePayload(
+                    id="inf-1",
+                    titulo="Informe La Esperanza - 2026-09-02",
+                    contenido="# Informe de su visita\n\nContenido.",
+                    generado_en=datetime(2026, 9, 2, 10, 30),
+                )
+            ]
+        ),
+    )
+
+    assert r.informes == 1
+    enviado = json.loads(escritura.calls.last.request.content)["records"][0]["fields"]
+    assert enviado["Tipo"] == "Resumen para el agricultor"
+    assert enviado["Visita"] == ["recVisita"]
+    # El markdown va completo: desde ahi se regenera el PDF sin volver a
+    # pagarle al modelo.
+    assert enviado["Contenido"].startswith("# Informe de su visita")
+    assert enviado["Entregado"] is False
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_una_visita_sin_informe_no_toca_la_tabla(settings):
+    _mockear_airtable()
+    respx.post(f"{API}/{sync.TBL_VISITAS}").mock(
+        return_value=httpx.Response(200, json={"id": "recVisita"})
+    )
+    escritura = respx.post(f"{API}/{sync.TBL_INFORMES}").mock(
+        return_value=httpx.Response(200, json={"records": []})
+    )
+
+    r = await sync.sincronizar(settings, _payload_completo())
+
+    assert r.informes == 0
+    assert not escritura.called

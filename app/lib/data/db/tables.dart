@@ -163,6 +163,41 @@ class Sesiones extends Table {
   Set<Column> get primaryKey => {unica};
 }
 
+/// El informe que se le entrega al agricultor.
+///
+/// Se guarda local antes de subirlo: se genera en la finca, y si dependiera de
+/// que la subida funcione, cerrar la app sin señal lo perderia. Va a Airtable
+/// por la misma cola que el audio y las fotos.
+@DataClassName('Informe')
+class Informes extends Table {
+  TextColumn get id => text()();
+  TextColumn get visitaId => text().references(Visitas, #id)();
+
+  TextColumn get titulo => text()();
+  TextColumn get tipo =>
+      text().withDefault(const Constant('Resumen para el agricultor'))();
+
+  /// Markdown. Se guarda el texto y no un PDF: desde aqui se regenera el
+  /// documento sin volver a pagarle al modelo.
+  TextColumn get contenido => text()();
+
+  /// Sube en cada regeneracion. El anterior no se borra: si el visitador
+  /// regenera y el nuevo sale peor, el que ya le mostro al productor sigue ahi.
+  IntColumn get version => integer().withDefault(const Constant(1))();
+
+  DateTimeColumn get generadoEn => dateTime()();
+  TextColumn get modelo => text().nullable()();
+
+  BoolColumn get entregado => boolean().withDefault(const Constant(false))();
+  TextColumn get medioEntrega => text().nullable()();
+
+  TextColumn get remoteId => text().nullable()();
+  BoolColumn get sincronizado => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('Productor')
 class Productores extends Table {
   TextColumn get id => text()();

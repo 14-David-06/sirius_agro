@@ -53,7 +53,7 @@ void main() {
   test('la version del esquema subio: sin eso ninguna migracion corre', () {
     // Si alguien agrega una columna y no sube este numero, drift no altera la
     // base y la app falla en el telefono, no en el CI.
-    expect(db.schemaVersion, greaterThanOrEqualTo(4));
+    expect(db.schemaVersion, greaterThanOrEqualTo(5));
   });
 
   group('reponer columnas que faltan', () {
@@ -128,6 +128,16 @@ void main() {
 
       expect(await db.select(db.visitas).get(), hasLength(1));
       expect(await db.select(db.grabaciones).get(), hasLength(1));
+    });
+
+    test('la v5 crea la tabla de informes', () async {
+      await db.customStatement('DROP TABLE informes');
+      expect(await existeTabla('informes'), isFalse);
+
+      await db.migration.onUpgrade(Migrator(db), 4, db.schemaVersion);
+
+      expect(await existeTabla('informes'), isTrue);
+      expect(await db.columnasDe('informes'), containsAll(['contenido', 'version']));
     });
 
     test('correrla dos veces no rompe nada', () async {

@@ -1,10 +1,42 @@
-# Solo existe para decirle a Vercel donde esta la app.
+# Vercel construye esta carpeta con uv, y uv exige un `[project]` de verdad:
+# sin el, el build muere con "No `project` table found". Asi que las
+# dependencias viven aca y en ningun otro lado; `requirements.txt` quedo como
+# un puntero a este archivo para no tener dos listas que se desincronizan.
 #
-# Sin esto, Vercel busca `main.py` y lo carga suelto; `app/main.py` usa
-# imports relativos (`from .config import ...`) y reventaria al importarse
-# fuera del paquete. El `module:variable` lo carga como parte de `app`.
-#
-# Las dependencias siguen en requirements.txt a proposito: es lo que usa el
-# .venv local, y tener la lista en dos lados es tener dos listas distintas.
+# El `[tool.vercel] entrypoint` es lo otro que justifica este archivo: sin el,
+# Vercel busca `main.py` y lo carga suelto; `app/main.py` usa imports relativos
+# (`from .config import ...`) y reventaria al importarse fuera del paquete.
+[project]
+name = "sirius-agro-backend"
+version = "0.1.0"
+description = "Backend de visitas de campo: transcripcion, informe y registro"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "python-multipart==0.0.20",
+    "pydantic==2.10.4",
+    "pydantic-settings==2.7.1",
+    "httpx==0.28.1",
+    "anthropic>=0.45.0",
+    "openai>=1.59.0",
+    "boto3>=1.35.0",
+    "bcrypt>=4.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.2",
+    "respx==0.22.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
 [tool.vercel]
 entrypoint = "app.main:app"

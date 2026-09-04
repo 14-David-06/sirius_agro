@@ -69,7 +69,9 @@ subir `MAX_AUDIO_BYTES` por entorno.
 mismo repo y se le indica que carpeta construir:
 
 - **Root Directory: `backend`** (la app Flutter queda al lado, ignorada)
-- Framework: lo detecta solo por `requirements.txt`
+- Framework: lo detecta solo por `pyproject.toml` (Vercel construye Python con
+  `uv`, y `uv lock` exige un `[project]` con las dependencias ahi mismo:
+  `requirements.txt` quedo como un `-e .` que apunta al mismo archivo)
 
 Si mas adelante hace falta desplegar algo mas del repo (una web, un panel), se
 crea otro proyecto de Vercel apuntando al mismo repositorio con otro Root

@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- connectivity_plus: saber si hay wifi o datos sin tener que
+         intentar una subida y esperar el timeout. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <!-- GPS de la finca al crear la visita. Solo en primer plano: la app no
          rastrea al visitador, toma una coordenada al llegar. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>

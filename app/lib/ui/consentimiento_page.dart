@@ -9,9 +9,16 @@ import 'visita_page.dart';
 /// Ley 1581/2012. Los tres permisos se piden en CADA visita: autorizar una
 /// grabacion en marzo no autoriza la de septiembre.
 ///
-/// El texto esta escrito para leerse EN VOZ ALTA al productor, no para que el
-/// visitador lo resuma. Por eso esta en segunda persona y sin jerga legal: un
-/// consentimiento que el productor no entendio no es consentimiento.
+/// El texto es el aviso de privacidad completo y esta escrito para leerse EN
+/// VOZ ALTA al productor, no para que el visitador lo resuma. Trae lo que la
+/// norma exige — quien es el responsable, para que se usa la informacion, los
+/// derechos del titular y por donde ejercerlos — en frases que se pueden decir
+/// de pie en un potrero: un consentimiento que el productor no entendio no es
+/// consentimiento.
+///
+/// El canal para ejercer los derechos es el propio visitador (WhatsApp o
+/// llamada) porque es el unico contacto de Sirius que el productor ya tiene
+/// guardado. Lo que llegue por ahi lo escala Sirius.
 ///
 /// La misma pantalla sirve para las dos veces que hace falta:
 ///  - al crear la visita (`ConsentimientoPage`), y
@@ -100,8 +107,8 @@ class _ConsentimientoPageState extends ConsumerState<ConsentimientoPage> {
     return Scaffold(
       appBar: AppBarMarca(
         titulo: widget.revisar
-            ? 'Volver a pedir permiso'
-            : 'Permiso del productor',
+            ? 'Solicitar autorizacion de nuevo'
+            : 'Autorizacion del productor',
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -124,8 +131,8 @@ class _ConsentimientoPageState extends ConsumerState<ConsentimientoPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'El permiso se pide de nuevo completo: leale otra vez '
-                        'el texto en voz alta antes de marcar.',
+                        'La autorizacion se solicita de nuevo completa: lea '
+                        'otra vez el texto en voz alta antes de marcar.',
                         style: TextStyle(
                           fontSize: 13.5,
                           height: 1.4,
@@ -160,7 +167,7 @@ class _ConsentimientoPageState extends ConsumerState<ConsentimientoPage> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'LEALE ESTO EN VOZ ALTA',
+                          'AVISO DE PRIVACIDAD - LEER EN VOZ ALTA',
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
@@ -174,24 +181,59 @@ class _ConsentimientoPageState extends ConsumerState<ConsentimientoPage> {
                   const SizedBox(height: 14),
                   Text(
                     widget.revisar
-                        ? 'Don/Dona, ¿le parece si grabamos de aqui en '
-                            'adelante? Es solo para no estar escribiendo '
-                            'mientras hablamos, y con eso le armo el informe '
-                            'de su finca.\n\n'
-                            'Usted sigue decidiendo. Si en algun momento '
-                            'quiere que pare o que borremos todo, me dice.'
-                        : 'Don/Dona, yo trabajo con Sirius. Para no estar '
-                            'escribiendo mientras hablamos, me gustaria grabar '
-                            'la conversacion y tomar algunas fotos de los '
-                            'cultivos. Con eso le armo un informe de su finca '
-                            'y se lo entrego.\n\n'
-                            'Usted decide. Si no quiere que grabe, conversamos '
-                            'igual. Y si mas adelante cambia de opinion, me '
-                            'dice y borramos todo.',
+                        ? 'Le solicito su autorizacion para grabar la '
+                            'conversacion a partir de este momento. Sirius '
+                            'Regenerative es la empresa responsable del '
+                            'tratamiento de esa informacion y la finalidad '
+                            'sigue siendo la misma: elaborar el informe '
+                            'tecnico de su finca y hacer el seguimiento '
+                            'agronomico posterior.\n\n'
+                            'Usted conserva sus derechos como titular de la '
+                            'informacion: conocer, actualizar y rectificar '
+                            'sus datos, solicitar prueba de esta '
+                            'autorizacion, revocarla y pedir que la '
+                            'informacion se suprima. Para ejercerlos me '
+                            'escribe o me llama a mi numero de WhatsApp y '
+                            'Sirius atiende la solicitud.\n\n'
+                            'Su autorizacion es voluntaria y puede retirarla '
+                            'en cualquier momento.'
+                        : 'Buen dia. Represento a Sirius Regenerative, la '
+                            'empresa responsable del tratamiento de los '
+                            'datos que se recojan en esta visita. Le '
+                            'solicito su autorizacion para grabar la '
+                            'conversacion y tomar fotografias de los '
+                            'cultivos.\n\n'
+                            'La finalidad es una sola: elaborar el informe '
+                            'tecnico de su finca y hacer el seguimiento '
+                            'agronomico posterior. El material no se entrega '
+                            'a terceros ajenos a ese proposito.\n\n'
+                            'Como titular de la informacion usted tiene '
+                            'derecho a conocer, actualizar y rectificar sus '
+                            'datos, a solicitar prueba de esta autorizacion, '
+                            'a revocarla y a pedir que la informacion se '
+                            'suprima. Para ejercer cualquiera de esos '
+                            'derechos me escribe o me llama a mi numero de '
+                            'WhatsApp y Sirius atiende la solicitud.\n\n'
+                            'Su autorizacion es voluntaria. Si prefiere que '
+                            'no grabemos, la visita se realiza igual y el '
+                            'registro se hace por escrito.',
                     style: TextStyle(
                       fontSize: 15,
                       height: 1.5,
                       color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // La norma citada al pie: si un dia alguien audita esta
+                  // visita, el aviso que se leyo tiene nombre propio.
+                  Text(
+                    'Autorizacion para el tratamiento de datos personales - '
+                    'Ley 1581 de 2012 y Decreto 1377 de 2013.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onPrimaryContainer.withValues(alpha: 0.75),
                     ),
                   ),
                 ],
@@ -202,20 +244,21 @@ class _ConsentimientoPageState extends ConsumerState<ConsentimientoPage> {
           const TituloSeccion('Lo que autoriza'),
           _Permiso(
             valor: _audio,
-            titulo: 'Puedo grabar la conversacion',
-            detalle: 'Sin esto no se habilita el boton de grabar.',
+            titulo: 'Autoriza grabar la conversacion',
+            detalle: 'Sin esta autorizacion no se habilita la grabacion.',
             onChanged: (v) => setState(() => _audio = v),
           ),
           _Permiso(
             valor: _fotos,
-            titulo: 'Puedo tomar fotos',
+            titulo: 'Autoriza tomar fotografias',
             detalle: 'Cultivos, suelo y etiquetas de los productos.',
             onChanged: (v) => setState(() => _fotos = v),
           ),
           _Permiso(
             valor: _datos,
-            titulo: 'Puedo usar la informacion para el diagnostico',
-            detalle: 'Para armar el informe y acompanarlo en el tiempo.',
+            titulo: 'Autoriza el uso de la informacion',
+            detalle: 'Para elaborar el informe tecnico y el seguimiento '
+                'agronomico en el tiempo.',
             onChanged: (v) => setState(() => _datos = v),
           ),
           const SizedBox(height: 28),
@@ -245,12 +288,13 @@ class _ConsentimientoPageState extends ConsumerState<ConsentimientoPage> {
           if (!_audio)
             Text(
               widget.revisar
-                  ? 'Si sigue sin autorizar la grabacion, deja el permiso de '
-                      'audio sin marcar: la visita continua con notas y fotos.'
+                  ? 'Si el productor mantiene su negativa, deje la '
+                      'autorizacion de audio sin marcar: la visita continua '
+                      'con notas escritas y fotografias.'
                   : 'Si el productor no autoriza la grabacion, la visita se '
-                      'hace igual y las notas se escriben a mano. Si mas '
-                      'adelante cambia de opinion, en la visita hay un boton '
-                      'para volver a pedirle el permiso.',
+                      'realiza igual y el registro se hace por escrito. Si '
+                      'mas adelante cambia de decision, dentro de la visita '
+                      'puede volver a solicitar la autorizacion.',
               style: TextStyle(
                 fontSize: 12.5,
                 height: 1.4,
@@ -259,8 +303,9 @@ class _ConsentimientoPageState extends ConsumerState<ConsentimientoPage> {
             ),
           const SizedBox(height: 12),
           Text(
-            'Cuando arranque la grabacion, pidale el permiso otra vez en voz '
-            'alta y marca el segundo donde quedo: esa es la prueba.',
+            'Al iniciar la grabacion, solicite la autorizacion nuevamente en '
+            'voz alta y registre el segundo en que quedo: ese es el soporte '
+            'de la autorizacion.',
             style: TextStyle(
               fontSize: 12.5,
               height: 1.4,

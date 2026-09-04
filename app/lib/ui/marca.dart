@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'indicador_red.dart';
 import 'theme.dart';
 
 /// El wordmark de Sirius. Dos archivos porque el logo a color no se lee sobre
@@ -24,6 +25,10 @@ class LogoSirius extends StatelessWidget {
 
 /// Encabezado de la app: el logo manda y el nombre de la pantalla va debajo,
 /// pequeno. Asi cada pantalla se ve como parte del mismo producto.
+///
+/// El estado de la conexion va aqui, antes de las acciones de cada pantalla:
+/// en campo se consulta a cada rato y tiene que estar siempre en el mismo
+/// lugar, no en una pantalla si y en otra no.
 class AppBarMarca extends StatelessWidget implements PreferredSizeWidget {
   const AppBarMarca({super.key, required this.titulo, this.actions});
 
@@ -55,7 +60,10 @@ class AppBarMarca extends StatelessWidget implements PreferredSizeWidget {
           ),
         ],
       ),
-      actions: actions,
+      actions: [
+        const IndicadorRed(),
+        ...?actions,
+      ],
     );
   }
 }

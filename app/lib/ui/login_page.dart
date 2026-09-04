@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/config.dart';
 import '../state/sesion.dart';
+import 'indicador_red.dart';
 import 'marca.dart';
 import 'theme.dart';
 
@@ -83,7 +84,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 14),
+                  // Aca vale mas que en cualquier pantalla: sin servidor, la
+                  // primera entrada de una cedula nueva no puede validar.
+                  const Center(child: PildoraRed()),
+                  const SizedBox(height: 28),
                   TextField(
                     controller: _cedula,
                     autocorrect: false,

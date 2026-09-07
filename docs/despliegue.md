@@ -143,10 +143,14 @@ curl -X POST https://<proyecto>.vercel.app/v1/auth/login \
 
 ```bash
 cd app
-flutter build apk --release \
+flutter build apk --release --flavor prod \
   --dart-define=API_BASE_URL=https://<proyecto>.vercel.app \
   --dart-define=API_KEY=<APP_API_KEY>
 ```
+
+`--flavor prod` no es opcional: sin el, Gradle no sabe cual de los dos canales
+compilar y el build falla. El canal `dev` (`...sirius_agro.dev`, «Sirius Agro
+Dev») es para probar en el mismo telefono sin tocar la app de campo.
 
 La URL y la llave **se fijan al compilar**. Cambiarlas exige reinstalar; no
 basta con reabrir la app.

@@ -156,6 +156,12 @@ class InformePage extends ConsumerWidget {
     try {
       final bytes = await _pdf(ref);
 
+      // Se guarda en disco y se encola ANTES de compartir: si se hiciera
+      // despues, un `share` que el visitador cancela o que tumba la app se
+      // llevaria el documento, y ese es justo el que hay que archivar. Subirlo
+      // no cuesta nada aca — la cola lo manda cuando haya señal.
+      await ref.read(repoProvider).guardarPdfInforme(informe.id, bytes);
+
       // `share` abre WhatsApp, correo o lo que el telefono tenga. No se fuerza
       // un canal: en el llano el productor a veces solo tiene WhatsApp, y a
       // veces solo el papel del pueblo.
@@ -191,6 +197,12 @@ class InformePage extends ConsumerWidget {
     final mensajero = ScaffoldMessenger.of(context);
     try {
       final bytes = await _pdf(ref);
+
+      // Tambien se archiva: imprimir es entregar. En el pueblo a veces lo que
+      // hay es una impresora, y ese papel es igual de vinculante que el PDF
+      // que sale por WhatsApp.
+      await ref.read(repoProvider).guardarPdfInforme(informe.id, bytes);
+
       await Printing.layoutPdf(
         onLayout: (_) async => bytes,
         name: _nombreArchivo,

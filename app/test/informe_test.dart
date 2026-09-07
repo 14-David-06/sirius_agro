@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' hide isNull, isNotNull;
+import 'package:flutter/services.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sirius_agro/data/db/app_database.dart';
@@ -10,11 +13,28 @@ import 'package:sirius_agro/data/visita_repository.dart';
 /// legibles y no claves tecnicas, que regenerar no borre el que ya se le
 /// mostro al productor, y que el informe viaje en la cola offline.
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late AppDatabase db;
   late VisitaRepository repo;
+  late Directory documentos;
   const visitaId = 'v-informe-1';
 
+  // El PDF se guarda donde la app guarda el audio y las fotos, y eso lo
+  // resuelve path_provider, que en un test no tiene plataforma detras. Se le
+  // da una carpeta temporal para poder verificar que el archivo queda escrito
+  // de verdad: que la fila diga `pdf_path` y en disco no haya nada es
+  // exactamente el fallo que esto tiene que atrapar.
+  setUpAll(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async => documentos.path,
+    );
+  });
+
   setUp(() async {
+    documentos = await Directory.systemTemp.createTemp('docs-informe-');
     db = AppDatabase.forTesting(NativeDatabase.memory());
     repo = VisitaRepository(db);
 
@@ -34,7 +54,10 @@ void main() {
         );
   });
 
-  tearDown(() => db.close());
+  tearDown(() async {
+    await db.close();
+    if (await documentos.exists()) await documentos.delete(recursive: true);
+  });
 
   Future<void> conHallazgo({Certeza certeza = Certeza.confirmado}) =>
       db.insertarHallazgo(
@@ -164,6 +187,120 @@ void main() {
       expect(i['version'], 1);
       expect(i['contenido'], contains('tres pozos'));
       expect(i['entregado'], isFalse);
+    });
+
+    group('el PDF va al bucket', () {
+      test('se guarda en disco y se encola con la version en el nombre',
+          () async {
+        // El nombre lleva la version porque las versiones no se borran: sin
+        // eso, regenerar sobreescribiria en el bucket el informe que ya se le
+        // entrego al productor.
+        final informe = await repo.guardarInforme(
+          visitaId: visitaId,
+          titulo: 'Informe',
+          contenido: '# Informe',
+          tipo: 'Resumen para el agricultor',
+        );
+
+        final ruta = await repo.guardarPdfInforme(informe.id, [1, 2, 3, 4]);
+
+        expect(ruta, endsWith('informe-01.pdf'));
+        expect(File(ruta).existsSync(), isTrue);
+        expect(await File(ruta).length(), 4);
+
+        final item = await (db.select(db.syncQueue)
+              ..where((q) => q.operacion.equals('upload_informe')))
+            .getSingle();
+        expect(item.archivoPath, ruta);
+        // La cola sube por visita, igual que el audio y las fotos.
+        expect(item.entidadId, visitaId);
+        expect(item.bytesTotales, 4);
+      });
+
+      test('el PDF va detras del audio y de las fotos en la cola', () async {
+        // El audio es irrecuperable; el PDF se puede volver a armar desde el
+        // markdown. En una vereda con una barra, la ventana de red es para lo
+        // que no se recupera.
+        final informe = await repo.guardarInforme(
+          visitaId: visitaId,
+          titulo: 'Informe',
+          contenido: '# Informe',
+          tipo: 'Resumen para el agricultor',
+        );
+        await repo.guardarPdfInforme(informe.id, [1]);
+
+        final item = await (db.select(db.syncQueue)
+              ..where((q) => q.operacion.equals('upload_informe')))
+            .getSingle();
+        expect(item.prioridad, greaterThan(200));
+      });
+
+      test('entregar dos veces no encola dos subidas del mismo byte', () async {
+        final informe = await repo.guardarInforme(
+          visitaId: visitaId,
+          titulo: 'Informe',
+          contenido: '# Informe',
+          tipo: 'Resumen para el agricultor',
+        );
+
+        await repo.guardarPdfInforme(informe.id, [1, 2]);
+        await repo.guardarPdfInforme(informe.id, [1, 2]);
+
+        final items = await (db.select(db.syncQueue)
+              ..where((q) => q.operacion.equals('upload_informe')))
+            .get();
+        expect(items, hasLength(1));
+      });
+
+      test('regenerar deja el PDF del anterior donde estaba', () async {
+        // El que ya se le mostro al productor no se puede pisar.
+        final v1 = await repo.guardarInforme(
+          visitaId: visitaId,
+          titulo: 'Informe',
+          contenido: '# Uno',
+          tipo: 'Resumen para el agricultor',
+        );
+        final ruta1 = await repo.guardarPdfInforme(v1.id, [1]);
+
+        final v2 = await repo.guardarInforme(
+          visitaId: visitaId,
+          titulo: 'Informe',
+          contenido: '# Dos',
+          tipo: 'Resumen para el agricultor',
+        );
+        final ruta2 = await repo.guardarPdfInforme(v2.id, [2, 2]);
+
+        expect(ruta1, isNot(ruta2));
+        expect(ruta2, endsWith('informe-02.pdf'));
+        expect(File(ruta1).existsSync(), isTrue);
+        expect(await repo.versionDeInformePorPdf(ruta1), 1);
+        expect(await repo.versionDeInformePorPdf(ruta2), 2);
+      });
+
+      test('el enlace del bucket llega al payload cuando ya subio', () async {
+        // Antes de subir va vacio a proposito: el PDF tiene su propio item de
+        // la cola y el upsert de la visita corre antes. Vacio significa
+        // «todavia no subio», no «no existe».
+        final informe = await repo.guardarInforme(
+          visitaId: visitaId,
+          titulo: 'Informe',
+          contenido: '# Informe',
+          tipo: 'Resumen para el agricultor',
+        );
+        final ruta = await repo.guardarPdfInforme(informe.id, [1]);
+
+        var payload = await repo.payloadDeVisita(visitaId);
+        expect((payload['informes'] as List).single, isNot(contains('enlace_pdf')));
+
+        await repo.registrarEnlaceInforme(
+          ruta,
+          'https://b.s3.us-east-1.amazonaws.com/visitas/$visitaId/informes/informe-01.pdf',
+        );
+
+        payload = await repo.payloadDeVisita(visitaId);
+        final i = (payload['informes'] as List).single as Map;
+        expect(i['enlace_pdf'], contains('/informes/informe-01.pdf'));
+      });
     });
   });
 }

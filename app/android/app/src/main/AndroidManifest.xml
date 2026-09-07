@@ -36,7 +36,7 @@
          bloquea el http en claro. El permiso vive solo en el manifiesto de
          debug, para poder apuntar a la LAN mientras se desarrolla. -->
     <application
-        android:label="Sirius Agro"
+        android:label="${nombreApp}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round">

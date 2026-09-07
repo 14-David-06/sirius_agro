@@ -60,6 +60,10 @@ class Sincronizador {
         await _subirArchivo(item, categoria: 'audio');
       case 'upload_foto':
         await _subirArchivo(item, categoria: 'fotos');
+      case 'upload_foto_agricultor':
+        await _subirArchivo(item, categoria: 'fotos', perfil: true);
+      case 'upload_informe':
+        await _subirInforme(item);
       case 'upsert':
         await _sincronizarVisita(item);
       default:
@@ -67,7 +71,17 @@ class Sincronizador {
     }
   }
 
-  Future<void> _subirArchivo(SyncItem item, {required String categoria}) async {
+  /// Sube un archivo de la visita al bucket y guarda su URL donde corresponda.
+  ///
+  /// [perfil] distingue el retrato del agricultor de una foto de la
+  /// conversacion: van a la misma carpeta del bucket —el prefijo de la visita
+  /// es lo que permite borrarla entera si el productor revoca— pero la URL se
+  /// guarda en `Productores`, no en `Evidencias`.
+  Future<void> _subirArchivo(
+    SyncItem item, {
+    required String categoria,
+    bool perfil = false,
+  }) async {
     final ruta = item.archivoPath;
     if (ruta == null) {
       throw StateError('El item ${item.id} no trae ruta de archivo.');
@@ -96,11 +110,68 @@ class Sincronizador {
     // gastarlo en una vereda con senal contada.
     if (categoria == 'audio') {
       await _repo.registrarEnlaceAudio(ruta, url);
+    } else if (perfil) {
+      await _repo.registrarEnlaceFotoAgricultor(ruta, url);
     } else {
       await _repo.registrarEnlaceEvidencia(ruta, url);
     }
 
+    // Y se vuelve a encolar la visita, por la misma razon que el informe: el
+    // upsert tiene prioridad 10 y las fotos 200, asi que la visita SIEMPRE
+    // sube antes de que exista una sola URL de foto. Sin esto, el enlace se
+    // guarda en el telefono y no llega nunca — la evidencia queda en Airtable
+    // sin imagen, y en la tabla `Evidencias` el adjunto es el unico lugar
+    // donde vive la foto: no hay campo de enlace del que rescatarla.
+    //
+    // Eso producia el sintoma raro de «a veces se cargan»: aparecian las fotos
+    // que alcanzaron a subir antes del ultimo upsert de esa visita y faltaban
+    // las demas, sin ningun error a la vista.
+    //
+    // No se cambia el orden de la cola para arreglarlo. Que la visita suba
+    // primero es a proposito: en una vereda con senal contada es mejor que la
+    // conversacion llegue a Airtable aunque las fotos queden a medias.
+    //
+    // Encolar de mas no cuesta: `encolar` reemplaza por el id `upsert-<visita>`,
+    // asi que diez fotos dejan UN item pendiente, no diez. Y el upsert es
+    // idempotente por `codigo_visita`.
+    await _repo.encolarVisita(item.entidadId);
+
     await _db.registrarAvance(item.id, bytes.length);
+  }
+
+  /// El PDF del informe, con URL prefirmada.
+  ///
+  /// Va por su propio camino y no por `_subirArchivo` porque no cabe en el
+  /// cuerpo maximo del host: el informe lleva las fotos embebidas.
+  Future<void> _subirInforme(SyncItem item) async {
+    final ruta = item.archivoPath;
+    if (ruta == null) {
+      throw StateError('El item ${item.id} no trae ruta de archivo.');
+    }
+
+    final archivo = File(ruta);
+    if (!await archivo.exists()) {
+      throw StateError('El PDF ya no esta en disco: $ruta');
+    }
+
+    final url = await _api.subirInformePdf(
+      contenido: await archivo.readAsBytes(),
+      filename: ruta.split(Platform.pathSeparator).last,
+      codigoVisita: item.entidadId,
+      // La version, para que el bucket no sobreescriba el informe que ya se
+      // entrego cuando el visitador regenera.
+      orden: await _repo.versionDeInformePorPdf(ruta),
+    );
+
+    await _repo.registrarEnlaceInforme(ruta, url);
+
+    // El upsert de la visita tiene prioridad 10 y este item 300, asi que
+    // cuando el enlace existe la visita ya subio sin el. Se vuelve a encolar
+    // para que el enlace llegue a Airtable; el upsert es idempotente por
+    // `codigo_visita`, asi que repetirlo no duplica nada.
+    await _repo.encolarVisita(item.entidadId);
+
+    await _db.registrarAvance(item.id, await archivo.length());
   }
 
   Future<void> _sincronizarVisita(SyncItem item) async {

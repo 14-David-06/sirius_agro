@@ -38,6 +38,32 @@ void main() {
     // que sesion estaba abierta.
     await db.customStatement('DROP TABLE sesiones');
     await db.customStatement('DROP TABLE credenciales_locales');
+    // Antes de la v6 el PDF del informe vivia solo en memoria: no habia donde
+    // guardar la ruta en disco ni el enlace del bucket.
+    for (final c in ['pdf_path', 'enlace_pdf']) {
+      await db.customStatement('ALTER TABLE informes DROP COLUMN $c');
+    }
+    // Antes de la v7 el productor era un nombre y nada mas: el documento con
+    // el que el backend lo distingue de otro que se llama igual no tenia
+    // donde vivir en el telefono, ni su foto de perfil.
+    for (final c in [
+      'tipo_documento',
+      'telefono_alterno',
+      'genero',
+      'fecha_nacimiento',
+      'nivel_educativo',
+      'anios_experiencia',
+      'personas_hogar',
+      'organizacion',
+      'notas',
+      'foto_path',
+      'enlace_foto',
+      'consentimiento_datos',
+      'fecha_consentimiento',
+      'datos_completados_en',
+    ]) {
+      await db.customStatement('ALTER TABLE productores DROP COLUMN $c');
+    }
   }
 
   Future<bool> existeTabla(String nombre) async {
@@ -53,7 +79,7 @@ void main() {
   test('la version del esquema subio: sin eso ninguna migracion corre', () {
     // Si alguien agrega una columna y no sube este numero, drift no altera la
     // base y la app falla en el telefono, no en el CI.
-    expect(db.schemaVersion, greaterThanOrEqualTo(5));
+    expect(db.schemaVersion, greaterThanOrEqualTo(7));
   });
 
   group('reponer columnas que faltan', () {
@@ -66,6 +92,50 @@ void main() {
       final visitadores = await db.columnasDe('visitadores');
       expect(visitadores, containsAll(['id_empleado', 'cargo', 'email', 'telefono']));
       expect(await db.columnasDe('catalogo_campos'), contains('no_sugerir'));
+    });
+
+    test('agrega las columnas del PDF del informe de la v6', () async {
+      // Sin esto la app actualizada falla al guardar el PDF en un telefono que
+      // ya tenia informes, que es justo el que estuvo en el piloto.
+      await envejecer();
+      expect(await db.columnasDe('informes'), isNot(contains('pdf_path')));
+
+      await db.migration.onUpgrade(Migrator(db), 1, db.schemaVersion);
+
+      expect(
+        await db.columnasDe('informes'),
+        containsAll(['pdf_path', 'enlace_pdf']),
+      );
+    });
+
+    test('agrega la ficha del agricultor de la v7', () async {
+      // El telefono del piloto ya tiene productores: la migracion tiene que
+      // abrirles lugar a la ficha sin perder el nombre con el que nacieron.
+      await db.into(db.productores).insert(
+            ProductoresCompanion.insert(
+              id: 'prod-viejo',
+              nombreCompleto: 'Rumil',
+            ),
+          );
+      await envejecer();
+      expect(await db.columnasDe('productores'), isNot(contains('foto_path')));
+
+      await db.migration.onUpgrade(Migrator(db), 6, db.schemaVersion);
+
+      expect(
+        await db.columnasDe('productores'),
+        containsAll([
+          'tipo_documento',
+          'telefono_alterno',
+          'foto_path',
+          'enlace_foto',
+          'consentimiento_datos',
+          'datos_completados_en',
+        ]),
+      );
+      final productor = (await db.select(db.productores).get()).single;
+      expect(productor.nombreCompleto, 'Rumil');
+      expect(productor.fotoPath, isNull);
     });
 
     test('crea las tablas del login de la v3', () async {

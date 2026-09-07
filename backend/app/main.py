@@ -16,12 +16,19 @@ from .schemas import (
 )
 from .schemas_auth import LoginRequest, LoginResult
 from .schemas_chat import ChatRequest, ChatResult
+from .schemas_directorio import DirectorioProductores
 from .schemas_informe import InformeRequest, InformeResult
-from .schemas_visita import ArchivoSubido, VisitaPayload, VisitaSyncResult
+from .schemas_visita import (
+    ArchivoSubido,
+    SubidaFirmada,
+    VisitaPayload,
+    VisitaSyncResult,
+)
 from .services import (
     airtable,
     almacenamiento,
     chat as chat_service,
+    directorio as directorio_service,
     extraccion as extraccion_service,
     informe as informe_service,
     nomina,
@@ -212,6 +219,42 @@ async def publish_meeting(
     return await airtable.publish(settings, req)
 
 
+@app.post("/v1/archivos/firma", response_model=SubidaFirmada)
+async def firmar_archivo(
+    codigo_visita: str = Form(...),
+    nombre: str = Form(...),
+    # Por ahora solo `informes`. El audio y las fotos siguen por /v1/archivos:
+    # caben en el cuerpo y pasar por el backend deja validar el tamano y el
+    # tipo antes de que el byte toque el bucket.
+    categoria: str = Form("informes"),
+    orden: int | None = Form(None),
+    settings: Settings = Depends(require_api_key),
+) -> SubidaFirmada:
+    """Devuelve una URL prefirmada para subir el PDF del informe.
+
+    El informe no puede pasar por /v1/archivos: lleva las fotos embebidas y
+    supera el cuerpo maximo del host, que es un limite de infraestructura.
+    Con la firma el telefono sube directo al bucket sin que en el APK viva
+    nunca una llave — la firma vence y solo autoriza esa ruta.
+    """
+    if categoria != "informes":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Solo se firma la categoria 'informes'. El audio y las fotos "
+                "se suben por POST /v1/archivos."
+            ),
+        )
+
+    return almacenamiento.firmar_subida(
+        settings,
+        codigo_visita=codigo_visita,
+        categoria=categoria,
+        nombre=nombre,
+        orden=orden,
+    )
+
+
 @app.post("/v1/archivos", response_model=ArchivoSubido)
 async def subir_archivo(
     file: UploadFile = File(...),
@@ -253,6 +296,22 @@ async def subir_archivo(
         nombre=file.filename or "archivo",
         orden=orden,
     )
+
+
+@app.get("/v1/productores", response_model=DirectorioProductores)
+async def listar_productores(
+    buscar: str | None = None,
+    limite: int = directorio_service.LIMITE_POR_DEFECTO,
+    settings: Settings = Depends(require_api_key),
+) -> DirectorioProductores:
+    """Los agricultores ya registrados, para no volver a crearlos.
+
+    Es una ayuda, no un requisito: la app la pide cuando tiene senal y guarda
+    el resultado en su base local. Sin senal busca en ese espejo, y si el
+    agricultor no esta en ninguna parte se teclea el nombre y la visita
+    arranca igual. Este endpoint cayendose no puede impedir un registro.
+    """
+    return await directorio_service.listar_productores(settings, buscar, limite)
 
 
 @app.post("/v1/visitas", response_model=VisitaSyncResult)

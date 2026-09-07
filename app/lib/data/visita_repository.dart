@@ -83,6 +83,53 @@ class HallazgoExtraido {
       };
 }
 
+/// Deja un texto como se compara en campo: sin tildes, en minusculas y con un
+/// solo espacio entre palabras.
+///
+/// Existe porque el nombre de un agricultor se teclea distinto cada vez —«José
+/// Gómez», «jose gomez», «Jose  Gomez»— y sin esto cada forma seria una
+/// persona nueva en Airtable, con su propia finca y su propia historia.
+///
+/// La `ñ` NO se toca: quitarle la tilde a «Muñoz» lo volveria «Munoz», que es
+/// otro apellido y ademas frecuente en la misma vereda.
+String normalizarBusqueda(String texto) {
+  const con = 'áàäâãéèëêíìïîóòöôõúùüûÁÀÄÂÃÉÈËÊÍÌÏÎÓÒÖÔÕÚÙÜÛ';
+  const sin = 'aaaaaeeeeiiiiooooouuuuAAAAAEEEEIIIIOOOOOUUUU';
+
+  final limpio = StringBuffer();
+  for (final unidad in texto.trim().toLowerCase().runes) {
+    final caracter = String.fromCharCode(unidad);
+    final i = con.indexOf(caracter);
+    limpio.write(i == -1 ? caracter : sin[i]);
+  }
+
+  return limpio.toString().replaceAll(RegExp(r'\s+'), ' ');
+}
+
+/// Lo que le falta a la ficha del agricultor, en palabras del visitador.
+///
+/// La lista esta ordenada por lo que cuesta que falte, no por como se ve el
+/// formulario:
+///
+///  1. El documento primero. Es la llave con la que el backend decide si este
+///     agricultor ya existe: sin el, el upsert cae al nombre y dos personas
+///     que se llaman igual en la misma vereda terminan compartiendo fincas.
+///  2. El telefono, que es lo unico que permite volver a llamarlo.
+///  3. La foto, que es lo que hace que el visitador de la proxima visita sepa
+///     a quien esta buscando en una vereda donde todos son «don Pedro».
+///
+/// Devuelve vacio cuando la ficha alcanza para trabajar. NO exige el perfil
+/// socioeconomico: eso sale de la conversacion y vive en `Hallazgos`. Pedirlo
+/// aca convertiria el modulo en la encuesta que este proyecto vino a eliminar.
+List<String> faltantesDeAgricultor(Productor? p) {
+  if (p == null) return const ['los datos del agricultor'];
+  return [
+    if ((p.documento ?? '').trim().isEmpty) 'el documento',
+    if ((p.telefono ?? '').trim().isEmpty) 'un telefono',
+    if ((p.fotoPath ?? '').trim().isEmpty) 'la foto',
+  ];
+}
+
 /// Reemplaza a `MeetingStore`. La diferencia que importa: `MeetingStore`
 /// serializaba la lista completa en cada cambio, asi que no podia consultar
 /// nada — ni "cuantos obligatorios faltan", ni "que le queda por subir a esta
@@ -130,11 +177,21 @@ class VisitaRepository {
   /// lleva `codigoProductor`: ese consecutivo lo asigna el backend, porque dos
   /// telefonos trabajando offline generarian el mismo BU-0001.
   ///
+  /// [productorLocalId] es el agricultor que el visitador reconocio en el
+  /// directorio. Cuando viene, la visita se cuelga de esa ficha en vez de
+  /// crear una persona nueva —que es lo que convertia a «Pedro Gomez», «pedro
+  /// gomez» y «don Pedro» en tres productores con tres fincas y ninguna
+  /// historia— y la visita nace como `Seguimiento`, porque para esa persona
+  /// no es la primera. Si el id no existe (la ficha se borro entre que se
+  /// eligio y se toco el boton) se cae a crear uno nuevo: quedarse sin poder
+  /// registrar la visita seria peor que un duplicado.
+  ///
   /// Va en una transaccion para que no quede una visita apuntando a un
   /// productor que no se escribio.
   Future<String> crearVisitaConProductor({
     required DateTime inicio,
     required String nombreProductor,
+    String? productorLocalId,
     String? nombreFinca,
     String? veredaLocalId,
     String? visitadorLocalId,
@@ -143,13 +200,21 @@ class VisitaRepository {
     double? precisionGps,
   }) {
     return _db.transaction(() async {
-      final productorId = _uuid.v4();
-      await _db.into(_db.productores).insert(
-            ProductoresCompanion.insert(
-              id: productorId,
-              nombreCompleto: nombreProductor,
-            ),
-          );
+      final existente = productorLocalId == null
+          ? null
+          : await (_db.select(_db.productores)
+                ..where((p) => p.id.equals(productorLocalId)))
+              .getSingleOrNull();
+
+      final productorId = existente?.id ?? _uuid.v4();
+      if (existente == null) {
+        await _db.into(_db.productores).insert(
+              ProductoresCompanion.insert(
+                id: productorId,
+                nombreCompleto: nombreProductor,
+              ),
+            );
+      }
 
       String? fincaId;
       if (nombreFinca != null && nombreFinca.trim().isNotEmpty) {
@@ -175,7 +240,7 @@ class VisitaRepository {
         latitud: latitud,
         longitud: longitud,
         precisionGps: precisionGps,
-        tipoVisita: 'Primera visita',
+        tipoVisita: existente == null ? 'Primera visita' : 'Seguimiento',
       );
     });
   }
@@ -208,6 +273,387 @@ class VisitaRepository {
           ..where((v) => v.id.equals(visitaId)))
         .getSingleOrNull();
     return v?.consienteAudio ?? false;
+  }
+
+  // ------------------------------------------------------------- el agricultor
+
+  /// El agricultor de esta visita, o null si la visita se creo sin productor.
+  Future<Productor?> productorDeVisita(String visitaId) async {
+    final v = await (_db.select(_db.visitas)
+          ..where((t) => t.id.equals(visitaId)))
+        .getSingleOrNull();
+    if (v?.productorLocalId == null) return null;
+    return (_db.select(_db.productores)
+          ..where((p) => p.id.equals(v!.productorLocalId!)))
+        .getSingleOrNull();
+  }
+
+  Stream<Productor?> observarProductorDeVisita(String visitaId) {
+    return (_db.select(_db.visitas)..where((t) => t.id.equals(visitaId)))
+        .watchSingleOrNull()
+        .asyncExpand((v) {
+      if (v?.productorLocalId == null) return Stream<Productor?>.value(null);
+      return (_db.select(_db.productores)
+            ..where((p) => p.id.equals(v!.productorLocalId!)))
+          .watchSingleOrNull();
+    });
+  }
+
+  // ---------------------------------------------- el directorio de agricultores
+
+  /// Los agricultores que este telefono ya conoce, para completar el nombre.
+  ///
+  /// Busca en la base local SIEMPRE, tenga o no senal: el directorio remoto se
+  /// baja aparte y se guarda aca, asi que en una vereda sin cobertura sigue
+  /// habiendo con que reconocer a quien ya se visito. Que devuelva vacio no
+  /// significa que el agricultor no exista —significa que este telefono no lo
+  /// ha visto— y por eso jamas puede impedir escribir un nombre nuevo.
+  ///
+  /// Compara sin tildes ni mayusculas y por partes: «gomez» encuentra a «Pedro
+  /// Gómez Ruiz», que es como se busca a alguien cuyo apellido se oyo pero
+  /// cuyo nombre no. Tambien busca por documento y por codigo, que es lo que
+  /// se hace cuando el nombre esta escrito de tres maneras distintas.
+  Future<List<Productor>> buscarProductores(
+    String texto, {
+    int limite = 8,
+  }) async {
+    final partes = normalizarBusqueda(texto)
+        .split(' ')
+        .where((t) => t.isNotEmpty)
+        .toList();
+    if (partes.isEmpty) return const [];
+
+    // Se filtra en Dart y no en SQL porque SQLite no quita tildes: un LIKE
+    // sobre «Gómez» no encuentra «gomez», y en campo se teclea sin tildes.
+    final todos = await _db.select(_db.productores).get();
+    final encontrados = <Productor>[];
+    for (final p in todos) {
+      final aguja = normalizarBusqueda(
+        '${p.nombreCompleto} ${p.documento ?? ''} ${p.codigoProductor ?? ''}',
+      );
+      if (partes.every(aguja.contains)) encontrados.add(p);
+    }
+    encontrados.sort((a, b) => normalizarBusqueda(a.nombreCompleto)
+        .compareTo(normalizarBusqueda(b.nombreCompleto)));
+
+    return encontrados.take(limite).toList();
+  }
+
+  /// Cuantos agricultores hay en el espejo local. La pantalla lo dice en voz
+  /// alta: «12 agricultores en este telefono» explica por que el que se busca
+  /// puede no aparecer, y un cero explica por que no aparece ninguno.
+  Future<int> cuantosProductoresConocidos() async {
+    final conteo = _db.productores.id.count();
+    final fila =
+        await (_db.selectOnly(_db.productores)..addColumns([conteo]))
+            .getSingle();
+    return fila.read(conteo) ?? 0;
+  }
+
+  /// Mete en la base local el directorio que devolvio el backend.
+  ///
+  /// Reconoce a la misma persona con las mismas llaves que usa el backend y en
+  /// el mismo orden: record id, documento y por ultimo el nombre. Si se
+  /// invirtiera, dos homonimos de la misma vereda terminarian fundidos en una
+  /// sola ficha —con las fincas de ambos— que es justamente lo que el
+  /// documento existe para impedir.
+  ///
+  /// Regla de escritura: **rellena, no pisa**. Lo que el telefono ya tiene se
+  /// respeta, porque puede ser lo que el visitador acaba de teclear en la
+  /// finca y todavia no sube; lo de Airtable solo entra donde hay un hueco.
+  /// Las excepciones son las llaves de identidad (`remoteId`,
+  /// `codigoProductor`) y el nombre canonico cuando la persona se reconocio
+  /// por una llave fuerte: ahi manda Airtable, que es de donde salio.
+  ///
+  /// Devuelve cuantas fichas quedaron tocadas (nuevas mas actualizadas).
+  Future<int> refrescarDirectorioProductores(
+    List<Map<String, dynamic>> remotos,
+  ) async {
+    if (remotos.isEmpty) return 0;
+
+    var tocados = 0;
+
+    await _db.transaction(() async {
+      final locales = await _db.select(_db.productores).get();
+
+      for (final r in remotos) {
+        final remoteId = _texto(r['id']);
+        final nombre = _texto(r['nombre_completo']);
+        if (remoteId == null || nombre == null) continue;
+
+        final documento = _texto(r['documento']);
+        final codigo = _texto(r['codigo_productor']);
+
+        var llaveFuerte = true;
+        Productor? local = _primero(locales, (p) => p.remoteId == remoteId);
+        if (local == null && documento != null) {
+          local = _primero(
+            locales,
+            (p) =>
+                _texto(p.documento) == documento &&
+                (p.remoteId == null || p.remoteId == remoteId),
+          );
+        }
+        if (local == null) {
+          // El nombre es la ultima opcion y solo sobre fichas que todavia no
+          // estan atadas a nadie en Airtable: robarle la fila a otra persona
+          // seria peor que crear una de mas.
+          llaveFuerte = false;
+          local = _primero(
+            locales,
+            (p) =>
+                p.remoteId == null &&
+                normalizarBusqueda(p.nombreCompleto) ==
+                    normalizarBusqueda(nombre),
+          );
+        }
+
+        final fecha = _fecha(r['fecha_nacimiento']);
+        final campos = ProductoresCompanion(
+          remoteId: Value(remoteId),
+          sincronizado: const Value(true),
+          codigoProductor:
+              codigo == null ? const Value.absent() : Value(codigo),
+          nombreCompleto: llaveFuerte ? Value(nombre) : const Value.absent(),
+          documento: _rellenar(local?.documento, documento),
+          tipoDocumento:
+              _rellenar(local?.tipoDocumento, _texto(r['tipo_documento'])),
+          telefono: _rellenar(local?.telefono, _texto(r['telefono'])),
+          telefonoAlterno: _rellenar(
+            local?.telefonoAlterno,
+            _texto(r['telefono_alterno']),
+          ),
+          genero: _rellenar(local?.genero, _texto(r['genero'])),
+          fechaNacimiento: local?.fechaNacimiento != null || fecha == null
+              ? const Value.absent()
+              : Value(fecha),
+          nivelEducativo:
+              _rellenar(local?.nivelEducativo, _texto(r['nivel_educativo'])),
+          aniosExperiencia: local?.aniosExperiencia != null
+              ? const Value.absent()
+              : Value(_entero(r['anios_experiencia'])),
+          personasHogar: local?.personasHogar != null
+              ? const Value.absent()
+              : Value(_entero(r['personas_hogar'])),
+          organizacion:
+              _rellenar(local?.organizacion, _texto(r['organizacion'])),
+          // La miniatura se refresca siempre: Airtable rota esas URL cada
+          // pocas horas y conservar la vieja seria conservar un enlace roto.
+          fotoRemota: Value(_texto(r['foto_url'])),
+          // La autorizacion solo se prende. Que este telefono no sepa que la
+          // dio no puede borrarla: el permiso se dio delante de alguien y eso
+          // ya paso.
+          consentimientoDatos: r['consentimiento_datos'] == true
+              ? const Value(true)
+              : const Value.absent(),
+        );
+
+        if (local == null) {
+          await _db.into(_db.productores).insert(
+                ProductoresCompanion.insert(
+                  id: _uuid.v4(),
+                  nombreCompleto: nombre,
+                ).copyWith(
+                  remoteId: campos.remoteId,
+                  sincronizado: campos.sincronizado,
+                  codigoProductor: campos.codigoProductor,
+                  documento: campos.documento,
+                  tipoDocumento: campos.tipoDocumento,
+                  telefono: campos.telefono,
+                  telefonoAlterno: campos.telefonoAlterno,
+                  genero: campos.genero,
+                  fechaNacimiento: campos.fechaNacimiento,
+                  nivelEducativo: campos.nivelEducativo,
+                  aniosExperiencia: campos.aniosExperiencia,
+                  personasHogar: campos.personasHogar,
+                  organizacion: campos.organizacion,
+                  fotoRemota: campos.fotoRemota,
+                  consentimientoDatos: campos.consentimientoDatos,
+                ),
+              );
+        } else {
+          final id = local.id;
+          await (_db.update(_db.productores)..where((p) => p.id.equals(id)))
+              .write(campos);
+        }
+        tocados++;
+      }
+    });
+
+    return tocados;
+  }
+
+  static Productor? _primero(
+    List<Productor> lista,
+    bool Function(Productor) prueba,
+  ) {
+    for (final p in lista) {
+      if (prueba(p)) return p;
+    }
+    return null;
+  }
+
+  /// Solo escribe si el telefono no tenia nada. Lo que el visitador tecleo en
+  /// la finca vale mas que lo que Airtable sabia antes de esa visita.
+  static Value<String?> _rellenar(String? local, String? remoto) {
+    if (_texto(local) != null) return const Value.absent();
+    if (remoto == null) return const Value.absent();
+    return Value(remoto);
+  }
+
+  static String? _texto(Object? v) {
+    if (v == null) return null;
+    final t = v.toString().trim();
+    return t.isEmpty ? null : t;
+  }
+
+  static int? _entero(Object? v) => v is num ? v.toInt() : null;
+
+  static DateTime? _fecha(Object? v) {
+    final t = _texto(v);
+    return t == null ? null : DateTime.tryParse(t);
+  }
+
+  /// Guarda la ficha del agricultor y vuelve a encolar la visita.
+  ///
+  /// Se encola aca y no lo deja a cargo de la pantalla porque el productor no
+  /// sube por su propia cuenta: viaja dentro del payload de la visita. Sin
+  /// este encolado, el visitador llena la ficha, ve el nombre completo en el
+  /// telefono y en Airtable sigue estando «Rumil» a secas.
+  ///
+  /// El upsert de la cola se reemplaza por id (`upsert-<visita>`), asi que
+  /// guardar cinco veces deja un item, no cinco.
+  Future<void> guardarDatosAgricultor({
+    required String visitaId,
+    String? nombreCompleto,
+    String? documento,
+    String? tipoDocumento,
+    String? telefono,
+    String? telefonoAlterno,
+    String? genero,
+    DateTime? fechaNacimiento,
+    String? nivelEducativo,
+    int? aniosExperiencia,
+    int? personasHogar,
+    String? organizacion,
+    String? notas,
+  }) async {
+    final productor = await productorDeVisita(visitaId);
+    if (productor == null) {
+      throw StateError('La visita $visitaId no tiene productor.');
+    }
+
+    final visita = await (_db.select(_db.visitas)
+          ..where((t) => t.id.equals(visitaId)))
+        .getSingle();
+
+    String? limpio(String? v) {
+      final t = v?.trim();
+      return t == null || t.isEmpty ? null : t;
+    }
+
+    await (_db.update(_db.productores)
+          ..where((p) => p.id.equals(productor.id)))
+        .write(
+      ProductoresCompanion(
+        // El nombre solo se sobreescribe si vino con algo: la visita nacio con
+        // el nombre y borrarlo dejaria un agricultor sin como llamarlo.
+        nombreCompleto: limpio(nombreCompleto) == null
+            ? const Value.absent()
+            : Value(limpio(nombreCompleto)!),
+        documento: Value(limpio(documento)),
+        tipoDocumento: Value(limpio(tipoDocumento)),
+        telefono: Value(limpio(telefono)),
+        telefonoAlterno: Value(limpio(telefonoAlterno)),
+        genero: Value(limpio(genero)),
+        fechaNacimiento: Value(fechaNacimiento),
+        nivelEducativo: Value(limpio(nivelEducativo)),
+        aniosExperiencia: Value(aniosExperiencia),
+        personasHogar: Value(personasHogar),
+        organizacion: Value(limpio(organizacion)),
+        notas: Value(limpio(notas)),
+        // La autorizacion de tratamiento se copia de la visita en la que se
+        // pidio, con su fecha. No se puede apagar desde aca: si en una visita
+        // anterior el productor autorizo, esa autorizacion existio.
+        consentimientoDatos: visita.consienteUsoDatos
+            ? const Value(true)
+            : const Value.absent(),
+        fechaConsentimiento:
+            visita.consienteUsoDatos && productor.fechaConsentimiento == null
+                ? Value(visita.inicio)
+                : const Value.absent(),
+        datosCompletadosEn: Value(DateTime.now()),
+        sincronizado: const Value(false),
+      ),
+    );
+
+    await encolarVisita(visitaId);
+  }
+
+  /// Registra la foto de perfil del agricultor y la encola.
+  ///
+  /// Prioridad 220: despues de las fotos de la conversacion (200) y antes del
+  /// informe. Una etiqueta de insumo mal leida cuesta un diagnostico; el
+  /// retrato se vuelve a tomar en la proxima visita.
+  ///
+  /// La anterior se borra del telefono: la foto de perfil es una, y dejar la
+  /// vieja en disco solo ocupa un espacio que en el piloto se llena con audio.
+  Future<void> registrarFotoAgricultor({
+    required String visitaId,
+    required String archivoPath,
+  }) async {
+    final productor = await productorDeVisita(visitaId);
+    if (productor == null) {
+      throw StateError('La visita $visitaId no tiene productor.');
+    }
+
+    final bytes = await File(archivoPath).length();
+    final anterior = productor.fotoPath;
+
+    await (_db.update(_db.productores)
+          ..where((p) => p.id.equals(productor.id)))
+        .write(
+      ProductoresCompanion(
+        fotoPath: Value(archivoPath),
+        // El enlace viejo apunta a la foto vieja: dejarlo haria que Airtable
+        // se siguiera trayendo el retrato que se acaba de reemplazar.
+        enlaceFoto: const Value(null),
+        sincronizado: const Value(false),
+      ),
+    );
+
+    await _db.encolar(
+      id: 'foto-agricultor-${productor.id}',
+      entidad: 'productor',
+      entidadId: visitaId,
+      operacion: 'upload_foto_agricultor',
+      archivoPath: archivoPath,
+      bytesTotales: bytes,
+      prioridad: 220,
+    );
+
+    if (anterior != null && anterior != archivoPath) {
+      try {
+        final vieja = File(anterior);
+        if (await vieja.exists()) await vieja.delete();
+      } catch (_) {
+        // Una foto que no se puede borrar no puede impedir guardar la nueva.
+      }
+    }
+  }
+
+  Future<void> registrarEnlaceFotoAgricultor(String archivoPath, String url) =>
+      (_db.update(_db.productores)
+            ..where((p) => p.fotoPath.equals(archivoPath)))
+          .write(ProductoresCompanion(enlaceFoto: Value(url)));
+
+  /// Carpeta de la foto de perfil, dentro de la visita donde se toma.
+  Future<Directory> carpetaPerfil(String visitaId) async {
+    final dir = Directory(
+      p.join((await _carpetaDeVisita(visitaId)).path, 'perfil'),
+    );
+    await dir.create(recursive: true);
+    return dir;
   }
 
   /// Registra un tramo de grabacion y lo encola con prioridad 0: el audio es
@@ -648,6 +1094,70 @@ class VisitaRepository {
     return (await informesDeVisita(visitaId)).first;
   }
 
+  /// Guarda el PDF en disco y lo encola para el bucket.
+  ///
+  /// El PDF se guarda aunque el markdown ya este en Airtable: regenerarlo
+  /// meses despues con otra version del renderizador daria otro papel, y el
+  /// documento que respalda lo acordado en la finca es el que el productor
+  /// tiene en la mano.
+  ///
+  /// El nombre lleva la version porque las versiones no se borran: sin eso, el
+  /// informe regenerado sobreescribiria en el bucket el que ya se entrego.
+  ///
+  /// Idempotente: si ya se habia guardado, reescribe el mismo archivo y
+  /// `encolar` reemplaza el item por id en vez de duplicarlo.
+  Future<String> guardarPdfInforme(String informeId, List<int> bytes) async {
+    final informe = await (_db.select(_db.informes)
+          ..where((i) => i.id.equals(informeId)))
+        .getSingle();
+
+    final carpeta = Directory(
+      p.join((await _carpetaDeVisita(informe.visitaId)).path, 'informes'),
+    );
+    await carpeta.create(recursive: true);
+
+    final ruta = p.join(
+      carpeta.path,
+      'informe-${informe.version.toString().padLeft(2, '0')}.pdf',
+    );
+    await File(ruta).writeAsBytes(bytes, flush: true);
+
+    await (_db.update(_db.informes)..where((i) => i.id.equals(informeId)))
+        .write(InformesCompanion(pdfPath: Value(ruta)));
+
+    // Prioridad 300: detras del audio (0) y de las fotos (200). El audio es
+    // irrecuperable y las fotos casi; el PDF se puede volver a armar desde el
+    // markdown mientras el telefono viva, asi que es lo ultimo que merece la
+    // ventana de red de una vereda.
+    //
+    // Id derivado del informe y no un UUID nuevo: entregar dos veces el mismo
+    // informe actualiza el item en vez de encolar dos subidas del mismo byte.
+    await _db.encolar(
+      id: 'informe-pdf-$informeId',
+      entidad: 'informe',
+      entidadId: informe.visitaId,
+      operacion: 'upload_informe',
+      archivoPath: ruta,
+      bytesTotales: bytes.length,
+      prioridad: 300,
+    );
+    return ruta;
+  }
+
+  /// La version del informe, que es el `orden` con el que se nombra en el
+  /// bucket. Se consulta por la ruta porque es lo unico que lleva el item de
+  /// la cola, igual que el audio y las fotos.
+  Future<int?> versionDeInformePorPdf(String pdfPath) async {
+    final informe = await (_db.select(_db.informes)
+          ..where((i) => i.pdfPath.equals(pdfPath)))
+        .getSingleOrNull();
+    return informe?.version;
+  }
+
+  Future<void> registrarEnlaceInforme(String pdfPath, String url) =>
+      (_db.update(_db.informes)..where((i) => i.pdfPath.equals(pdfPath)))
+          .write(InformesCompanion(enlacePdf: Value(url)));
+
   /// Los informes de una visita, el mas nuevo primero.
   Future<List<Informe>> informesDeVisita(String visitaId) =>
       (_db.select(_db.informes)
@@ -834,7 +1344,35 @@ class VisitaRepository {
         'productor': {
           'nombre_completo': productor.nombreCompleto,
           if (productor.documento != null) 'documento': productor.documento,
+          if (productor.tipoDocumento != null)
+            'tipo_documento': productor.tipoDocumento,
           if (productor.telefono != null) 'telefono': productor.telefono,
+          if (productor.telefonoAlterno != null)
+            'telefono_alterno': productor.telefonoAlterno,
+          if (productor.genero != null) 'genero': productor.genero,
+          if (productor.fechaNacimiento != null)
+            'fecha_nacimiento':
+                productor.fechaNacimiento!.toIso8601String().split('T').first,
+          if (productor.nivelEducativo != null)
+            'nivel_educativo': productor.nivelEducativo,
+          if (productor.aniosExperiencia != null)
+            'anios_experiencia': productor.aniosExperiencia,
+          if (productor.personasHogar != null)
+            'personas_hogar': productor.personasHogar,
+          if (productor.organizacion != null)
+            'organizacion': productor.organizacion,
+          if (productor.notas != null) 'notas': productor.notas,
+          'consentimiento_datos': productor.consentimientoDatos,
+          if (productor.fechaConsentimiento != null)
+            'fecha_consentimiento': productor.fechaConsentimiento!
+                .toIso8601String()
+                .split('T')
+                .first,
+          // Va solo si la foto ya subio. El retrato sube por su propio item de
+          // la cola, asi que puede quedar pendiente cuando la visita ya
+          // sincronizo; el upsert es idempotente y el enlace llega despues.
+          if (productor.enlaceFoto != null)
+            'enlace_foto': productor.enlaceFoto,
           if (productor.codigoProductor != null)
             'codigo_productor': productor.codigoProductor,
         },
@@ -858,6 +1396,7 @@ class VisitaRepository {
       if (v.temasPendientes != null) 'temas_pendientes': v.temasPendientes,
       if (v.notasPruebaCampo != null) 'notas_prueba_campo': v.notasPruebaCampo,
       'completitud_pct': v.completitudPct,
+      'trazados': await _trazadosDeVisita(visitaId),
       'informes': [
         for (final i in await informesDeVisita(v.id))
           {
@@ -869,6 +1408,10 @@ class VisitaRepository {
             'generado_en': i.generadoEn.toIso8601String(),
             'entregado': i.entregado,
             if (i.medioEntrega != null) 'medio_entrega': i.medioEntrega,
+            // Puede ir vacio: el PDF sube por su propio item de la cola y
+            // puede quedar pendiente cuando la visita ya se sincronizo. El
+            // upsert es idempotente, asi que el enlace llega en el reintento.
+            if (i.enlacePdf != null) 'enlace_pdf': i.enlacePdf,
           },
       ],
       'grabaciones': [
@@ -928,6 +1471,55 @@ class VisitaRepository {
           },
       ],
     };
+  }
+
+  /// Los poligonos de lote y los recorridos, como los manda `POST /v1/visitas`.
+  ///
+  /// Se arma aca y no en `TrazadoRepository` para no cerrar un ciclo: el repo
+  /// de trazados ya depende de este para poder poner la ficha de la visita en
+  /// el KML.
+  ///
+  /// Los puntos viajan todos, sin diezmar. Un recorrido de 40 minutos son
+  /// cientos de coordenadas y el JSON crece, pero submuestrear en el cliente
+  /// destruye la unica copia del lindero: lo que se manda es lo que se camino.
+  Future<List<Map<String, dynamic>>> _trazadosDeVisita(String visitaId) async {
+    final salida = <Map<String, dynamic>>[];
+
+    for (final t in await _db.trazadosDeVisita(visitaId)) {
+      final puntos = await _db.puntosDeTrazado(t.id);
+      salida.add({
+        'id': t.id,
+        'nombre': t.nombre,
+        'tipo': t.tipo.airtable,
+        'modo_captura': t.modoCaptura.airtable,
+        if (t.etiqueta != null) 'etiqueta': t.etiqueta,
+        if (t.notas != null) 'notas': t.notas,
+        if (t.intervaloSeg != null) 'intervalo_seg': t.intervaloSeg,
+        if (t.distanciaMinM != null) 'distancia_min_m': t.distanciaMinM,
+        if (t.precisionMaxM != null) 'precision_max_m': t.precisionMaxM,
+        'cerrado': t.cerrado,
+        if (t.areaM2 != null) 'area_m2': t.areaM2,
+        if (t.areaM2 != null) 'area_ha': t.areaM2! / 10000,
+        if (t.perimetroM != null) 'perimetro_m': t.perimetroM,
+        'creado_en': t.creadoEn.toIso8601String(),
+        'puntos': [
+          for (final p in puntos)
+            {
+              'id': p.id,
+              'orden': p.orden,
+              'latitud': p.latitud,
+              'longitud': p.longitud,
+              if (p.altitud != null) 'altitud': p.altitud,
+              if (p.precisionM != null) 'precision_m': p.precisionM,
+              'capturado_en': p.capturadoEn.toIso8601String(),
+              'automatico': p.automatico,
+              if (p.nota != null) 'nota': p.nota,
+            },
+        ],
+      });
+    }
+
+    return salida;
   }
 
   /// Posicion de un archivo dentro de su visita, contando desde 1.
@@ -1052,8 +1644,41 @@ class VisitaRepository {
       await (_db.delete(_db.informes)
             ..where((i) => i.visitaId.isIn(visitaIds)))
           .go();
+      // Los puntos antes que los trazados, y los dos antes que la visita: la
+      // cadena de claves foraneas es visita -> trazado -> punto.
+      final trazadosDeEsas = await (_db.select(_db.trazados)
+            ..where((t) => t.visitaId.isIn(visitaIds)))
+          .get();
+      final idsTrazados = [for (final t in trazadosDeEsas) t.id];
+      if (idsTrazados.isNotEmpty) {
+        await (_db.delete(_db.puntosTrazado)
+              ..where((p) => p.trazadoId.isIn(idsTrazados)))
+            .go();
+      }
+      await (_db.delete(_db.trazados)
+            ..where((t) => t.visitaId.isIn(visitaIds)))
+          .go();
       await (_db.delete(_db.visitas)..where((v) => v.id.isIn(visitaIds))).go();
     });
+
+    // La foto de perfil vive dentro de la carpeta de la visita donde se tomo,
+    // asi que el barrido de mas abajo se la lleva. El productor NO se borra
+    // —es permanente y puede tener otras visitas—, pero se le quita la
+    // referencia: una ruta que apunta a un archivo que ya no esta le deja al
+    // visitador un recuadro roto donde estaba la cara del agricultor.
+    for (final id in visitaIds) {
+      // Se busca por el UUID y no por la ruta armada: el separador de
+      // directorios no es el mismo en el telefono que donde corren las
+      // pruebas, y el UUID de la visita ya es inconfundible.
+      await (_db.update(_db.productores)
+            ..where((p) => p.fotoPath.contains(id)))
+          .write(
+        const ProductoresCompanion(
+          fotoPath: Value(null),
+          enlaceFoto: Value(null),
+        ),
+      );
+    }
 
     // Los archivos van despues de la transaccion: borrar en disco no se puede
     // deshacer, asi que si la transaccion falla se conservan los archivos de

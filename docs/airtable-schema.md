@@ -31,7 +31,7 @@ PRODUCTOR -> FINCA -> VISITA -> GRABACION + EVIDENCIA -> HALLAZGOS (IA)
 | Diagnosticos | `tblIY5Q8oxYZq97LK` | Interpretación por dimensión |
 | Indicadores | `tbliSmnsSjXtqPbVV` | Línea base comparable entre visitas |
 | Oportunidades | `tblDOQaOgzprlEZB4` | Recomendaciones e intervenciones |
-| Informes | `tblczDOcHeq9taOQ9` | Entregables (PDF) |
+| Informes | `tblczDOcHeq9taOQ9` | Entregables (PDF en el bucket) |
 | Unidades | `tbl8JhwAVnNvVxAuB` | Factores de conversión a kilogramos |
 
 ## Decisiones de modelado
@@ -76,6 +76,52 @@ como tabla propia — es la base para proponer sustitución por bioinsumos.
 **6. Idempotencia offline.** `Visitas.Codigo de visita` es el UUID que genera la app
 antes de tener red. Al sincronizar, el backend busca por ese código y hace upsert:
 reintentar una sincronización nunca duplica la visita.
+
+**7. La identidad del agricultor NO sale de la conversación.** Nadie dice su
+número de cédula hablando de su finca. `Productores` se llena desde el módulo
+«El agricultor» de la visita —documento y tipo, teléfonos, foto de perfil, y de
+forma opcional género, nacimiento, educación, experiencia, hogar y asociación— y
+se llena una sola vez en la vida del productor: la segunda visita ya lo
+encuentra con ficha. Todo lo demás (cultivos, suelos, riego, insumos) sigue
+saliendo del audio y viviendo en `Hallazgos`.
+
+`Documento` es el campo que sostiene el upsert: el backend busca por
+`Documento` → `Codigo productor` → `Nombre completo`, y si cae al nombre, dos
+personas homónimas de la misma vereda terminan compartiendo fichas y fincas.
+Cuando el productor ya existe se **actualiza**, no se deja igual: la ficha casi
+nunca se completa en la primera visita.
+
+`Productores.Foto` es un adjunto que Airtable trae de una URL del bucket. La
+foto se guarda bajo el prefijo de la visita donde se tomó
+(`visitas/<codigo>/fotos/perfil.jpg`), no bajo el productor: si el agricultor
+revoca el consentimiento, borrar la visita tiene que llevarse su retrato.
+
+`Productores.Consentimiento de datos` es la autorización de la **persona** (Ley
+1581/2012) y se copia de la visita en la que se pidió, con su fecha. Los tres
+consentimientos de `Visitas` son distintos y se piden en cada visita: grabar y
+fotografiar son permisos del momento. La autorización solo se escribe cuando es
+un sí — una visita en la que el productor no autorizó no puede borrar la
+autorización que dio en otra.
+
+**7b. El nombre del agricultor se reconoce, no se vuelve a escribir.**
+`GET /v1/productores` devuelve la ficha de los productores ya registrados y la
+app la guarda en su base local. Al crear la visita, el campo del nombre sugiere
+los que coinciden y, si el visitador reconoce a uno, la visita se cuelga de esa
+ficha (`Tipo de visita = Seguimiento`) en vez de crear una persona nueva. Sin
+esto, «Pedro Gomez», «pedro gomez» y «don Pedro» son tres `Productores` con
+tres `Fincas` y ninguna historia en comun.
+
+Es una **ayuda, no un requisito**: se busca contra el espejo local, asi que
+funciona sin senal, y cuando el agricultor no esta en ninguna lista se escribe
+el nombre y la visita arranca igual. El endpoint cayendose no puede impedir un
+registro — una finca no deja de existir porque la vereda no tenga cobertura.
+
+Al mezclar el directorio con lo que ya tiene el telefono la regla es **rellenar,
+no pisar**: lo que el visitador acaba de teclear en la finca puede ser mas nuevo
+que Airtable y todavia no haber subido. Solo mandan desde Airtable las llaves de
+identidad (`Codigo productor`, el record id) y el nombre canonico, y solo cuando
+la persona se reconocio por documento o por record id — nunca por nombre, que es
+justo lo que el documento existe para desempatar.
 
 ## Contrato de la IA (estructuración)
 
@@ -323,6 +369,72 @@ cita que respalda un dato, y ahí se cae toda la procedencia.
 
 Credenciales del bucket **solo en el backend**. La app sube contra un endpoint del
 backend, nunca contra S3 directo.
+
+### El PDF del informe: la excepcion, con URL prefirmada
+
+El informe lleva las fotos embebidas a resolución completa y pesa **más que el
+cuerpo máximo del host** (4,5 MB en Vercel, límite de infraestructura que no se
+configura), así que no cabe por `POST /v1/archivos` como el audio y las fotos.
+
+La app pide `POST /v1/archivos/firma` y el backend devuelve un PUT prefirmado
+contra `visitas/<uuid>/informes/informe-NN.pdf`. No rompe la regla de arriba: una
+URL firmada no es una llave, es un permiso que vence a los 15 min y que autoriza
+**una sola ruta** — la arma el backend, nunca el cliente, porque si el teléfono
+pudiera elegirla podría escribir sobre el audio de otra visita.
+
+Se archiva el PDF que se compartió, no uno regenerado en el servidor: el documento
+que respalda lo acordado en la finca es el que el productor tiene en la mano, y un
+renderizador que cambia en seis meses daría otro papel. El `NN` es la versión del
+informe, porque las versiones no se borran — sin eso, regenerar sobreescribiría en
+el bucket el informe que ya se entregó.
+
+`Informes.Enlace del PDF` (url) es la fuente de verdad; `Informes.PDF` (adjunto) es
+respaldo, por el mismo tope de 5 MB. Puede llegar vacío en el primer upsert: el PDF
+va por su propio ítem de la cola (prioridad 300, detrás del audio y las fotos) y la
+visita se vuelve a encolar cuando termina de subir.
+
+Como la clave empieza por la visita, `borrar_visita` barre el informe junto con el
+audio y las fotos: `Marcada para eliminacion` sigue cumpliéndose completa.
+
+## Trazados: capturados en la app, todavia no en Airtable
+
+Desde la version del croquis, una visita puede llevar **poligonos de lote y
+recorridos** caminados con el GPS del telefono. Es lo que reemplaza el «seran
+unas diez hectareas» de la conversación por una medida: un área dicha no
+calcula una dosis ni compara dos visitas.
+
+Dónde vive hoy:
+
+- **En el teléfono**, en `Trazados` y `PuntosTrazado` (SQLite, esquema v6). Es
+  la fuente de verdad.
+- **En el KML** que exporta la pantalla del trazado y que se comparte por
+  WhatsApp o correo. Abre en Google Earth y en QGIS.
+- **En el `.zip`** de la visita, como `trazados.kml`, con cada vértice y su
+  precisión.
+- **En el payload** de `POST /v1/visitas`, ya tipado (`TrazadoPayload`).
+
+Lo que falta: **el backend NO los escribe en Airtable todavía.** Hacen falta dos
+tablas y no se inventan desde el código — escribir en un campo que no existe
+hace que Airtable rechace el registro **entero**, y se perdería la
+sincronización de la visita completa, no solo del polígono.
+
+Cuando se creen, el contrato ya está definido por el payload:
+
+| Tabla | Campos |
+| --- | --- |
+| `Trazados` | `Id` (texto, UUID del teléfono, llave de idempotencia), `Visita` (link), `Nombre`, `Tipo` (Poligono/Ruta/Punto), `Modo de captura` (Manual/Automatico/Mixto), `Etiqueta`, `Notas`, `Cerrado` (casilla), `Area (ha)`, `Perimetro (m)`, `Intervalo (s)`, `Distancia minima (m)`, `Precision maxima (m)`, `Creado en` |
+| `Puntos de trazado` | `Id`, `Trazado` (link), `Orden`, `Latitud`, `Longitud`, `Altitud`, `Precision (m)`, `Capturado en`, `Automatico` (casilla), `Nota` |
+
+Dos decisiones del modelo que conviene no deshacer:
+
+**1. Cada punto guarda su precisión y si lo puso el dedo o el reloj.** Sin esa
+huella no se puede decidir, tres meses después, si un lindero raro fue un error
+del visitador o un salto del GPS bajo los árboles — y un área que nadie puede
+auditar no sirve para calcular nada.
+
+**2. Los puntos no se diezman al subir.** Un recorrido de 40 minutos son
+cientos de coordenadas y el JSON crece, pero submuestrear en el cliente destruye
+la única copia del lindero: lo que se manda es lo que se caminó.
 
 ## Vistas que conviene crear a mano en Airtable
 

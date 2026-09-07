@@ -8,6 +8,13 @@ escuchar la cita que respalda un dato — y ahi se cae toda la procedencia.
 Las credenciales solo existen aca. La app sube contra el backend, nunca contra
 S3 directo: una llave de bucket dentro de un APK que anda en el bolsillo de
 alguien es una llave publica.
+
+La excepcion es el PDF del informe, que sube con una URL prefirmada (ver
+`firmar_subida`). No rompe la regla: una URL firmada no es una llave, es un
+permiso que vence y que solo sirve para UNA ruta. El informe lleva las fotos
+embebidas y pesa mas que el cuerpo maximo que admite el host, asi que no puede
+pasar por el backend; y no queremos regenerarlo aca, porque el documento que
+respalda lo acordado es el que el productor tiene en la mano.
 """
 
 import mimetypes
@@ -19,7 +26,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import HTTPException
 
 from ..config import Settings
-from ..schemas_visita import ArchivoSubido
+from ..schemas_visita import ArchivoSubido, SubidaFirmada
 
 # Extensiones que se aceptan, con su tipo. Se decide aca y no por lo que diga
 # el cliente: el Content-Type que manda un cliente es un dato, no una garantia,
@@ -33,6 +40,10 @@ _TIPOS = {
     ".jpeg": "image/jpeg",
     ".png": "image/png",
     ".webp": "image/webp",
+    # El informe que se le entrega al agricultor. Se archiva el PDF exacto que
+    # se compartio, no uno regenerado: el documento que respalda lo acordado
+    # en la finca es el que el productor tiene en la mano.
+    ".pdf": "application/pdf",
 }
 
 
@@ -83,7 +94,7 @@ def _tipo(nombre: str) -> str:
     return adivinado or "application/octet-stream"
 
 
-_PREFIJO = {"audio": "tramo", "fotos": "foto"}
+_PREFIJO = {"audio": "tramo", "fotos": "foto", "informes": "informe"}
 
 
 def nombre_ordenado(categoria: str, nombre: str, orden: int | None) -> str:
@@ -200,12 +211,83 @@ def subir(
     )
 
 
+# Cuanto vive la URL firmada. Quince minutos: el telefono la pide y sube en
+# seguida, pero en una vereda con una barra la subida de un PDF con fotos puede
+# arrastrarse. El plazo cubre el reintento inmediato sin dejar tirado un permiso
+# de escritura que sirva manana.
+_VENCIMIENTO_FIRMA = 15 * 60
+
+
+def firmar_subida(
+    settings: Settings,
+    codigo_visita: str,
+    categoria: str,
+    nombre: str,
+    orden: int | None = None,
+) -> SubidaFirmada:
+    """Firma un PUT para que el telefono suba directo al bucket.
+
+    Es para el PDF del informe: lleva las fotos embebidas a resolucion completa
+    y pesa mas que el cuerpo maximo del host (4,5 MB en Vercel, que es limite
+    de infraestructura y no se configura), asi que no cabe por `/v1/archivos`.
+
+    La clave la arma el backend, nunca el cliente: la firma autoriza esa ruta y
+    solo esa. Si el telefono pudiera elegirla, podria escribir sobre el audio de
+    otra visita — y el `Content-Type` va dentro de la firma por lo mismo, para
+    que el objeto no quede como `application/octet-stream` y el navegador lo
+    descargue en vez de abrirlo.
+    """
+    if not configurado(settings):
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "El bucket no esta configurado: faltan BUCKET_NAME, "
+                "BUCKET_ACCESS_KEY o BUCKET_SECRET_KEY en el backend."
+            ),
+        )
+
+    clave = clave_de(codigo_visita, categoria, nombre, orden)
+    tipo = _tipo(nombre)
+    cliente = _cliente(
+        settings.bucket_endpoint,
+        settings.bucket_access_key,
+        settings.bucket_secret_key,
+        settings.bucket_region,
+    )
+
+    try:
+        firmada = cliente.generate_presigned_url(
+            "put_object",
+            Params={
+                "Bucket": settings.bucket_name,
+                "Key": clave,
+                "ContentType": tipo,
+            },
+            ExpiresIn=_VENCIMIENTO_FIRMA,
+        )
+    except (BotoCoreError, ClientError) as exc:
+        raise HTTPException(
+            status_code=502, detail=f"El bucket no dio la firma: {exc}"
+        ) from exc
+
+    return SubidaFirmada(
+        url_firmada=firmada,
+        url_publica=url_publica(settings, clave),
+        clave=clave,
+        content_type=tipo,
+        vence_en=_VENCIMIENTO_FIRMA,
+    )
+
+
 def borrar_visita(settings: Settings, codigo_visita: str) -> int:
-    """Borra todo el audio y las fotos de una visita revocada.
+    """Borra el audio, las fotos y el informe de una visita revocada.
 
     Existe para poder cumplir `Marcada para eliminacion` de verdad: el
     productor que revoca el consentimiento tiene derecho a que el audio
     desaparezca, no a que se le quite un enlace de una tabla.
+
+    Barre por prefijo, asi que cubre las categorias que existan hoy y las que
+    se agreguen: por eso la visita va como primer segmento de la clave.
     """
     if not configurado(settings):
         return 0

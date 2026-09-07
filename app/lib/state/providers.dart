@@ -6,6 +6,7 @@ import '../core/api_client.dart';
 import '../data/db/app_database.dart';
 import '../data/exportador_visita.dart';
 import '../data/semilla.dart';
+import '../data/trazado_repository.dart';
 import '../data/visita_repository.dart';
 
 final dbProvider = Provider<AppDatabase>((ref) {
@@ -18,6 +19,13 @@ final repoProvider =
     Provider<VisitaRepository>((ref) => VisitaRepository(ref.watch(dbProvider)));
 
 final apiProvider = Provider<ApiClient>((ref) => ApiClient());
+
+/// Los poligonos de lote y los recorridos. Depende del repo de visitas porque
+/// el KML lleva la ficha de la visita (productor, finca, vereda): un archivo
+/// que solo tenga coordenadas no se puede archivar ni entender despues.
+final trazadoRepoProvider = Provider<TrazadoRepository>(
+  (ref) => TrazadoRepository(ref.watch(dbProvider), ref.watch(repoProvider)),
+);
 
 final exportadorProvider = Provider<ExportadorVisitas>(
   (ref) => ExportadorVisitas(ref.watch(dbProvider), ref.watch(repoProvider)),
@@ -65,6 +73,13 @@ final veredasProvider = FutureProvider<List<Vereda>>((ref) async {
   return (db.select(db.veredas)
         ..orderBy([(v) => OrderingTerm(expression: v.vereda)]))
       .get();
+});
+
+/// El agricultor de una visita. Stream y no future: la ficha se completa
+/// desde otra pantalla, y al volver la tarjeta tiene que estar actualizada.
+final productorDeVisitaProvider =
+    StreamProvider.family<Productor?, String>((ref, visitaId) {
+  return ref.watch(repoProvider).observarProductorDeVisita(visitaId);
 });
 
 /// Obligatorios que faltan y que SI se le pueden preguntar al agricultor.

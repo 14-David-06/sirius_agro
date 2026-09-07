@@ -96,10 +96,19 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
                         },
                       ),
                       const SizedBox(height: 28),
+                      // Antes que la evidencia y el terreno: es la unica
+                      // seccion que depende de que la persona este enfrente.
+                      // Un dato de identidad no se completa desde la oficina.
+                      const TituloSeccion('El agricultor'),
+                      SeccionAgricultor(visitaId: visitaId, visita: visita),
+                      const SizedBox(height: 28),
                       const TituloSeccion('Evidencia'),
                       SeccionFotos(visitaId: visitaId, visita: visita),
                       const SizedBox(height: 10),
                       SeccionProcesar(visitaId: visitaId),
+                      const SizedBox(height: 28),
+                      const TituloSeccion('El terreno'),
+                      SeccionTrazados(visitaId: visitaId),
                       const SizedBox(height: 28),
                       const TituloSeccion('Entregable'),
                       SeccionInforme(visitaId: visitaId),

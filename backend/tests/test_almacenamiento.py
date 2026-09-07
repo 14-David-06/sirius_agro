@@ -156,3 +156,67 @@ class TestNombreOrdenado:
             alm.clave_de("uuid-1", "fotos", "foto-1788370464996.jpg", 3)
             == "visitas/uuid-1/fotos/foto-03.jpg"
         )
+
+
+class TestFirmarSubida:
+    """El PDF del informe sube directo al bucket con una URL prefirmada: lleva
+    las fotos embebidas y no cabe en el cuerpo maximo del host."""
+
+    def test_firma_un_put_para_la_clave_del_informe(self):
+        alm._cliente.cache_clear()
+        firmada = alm.firmar_subida(
+            _s(), codigo_visita="uuid-1", categoria="informes", nombre="x.pdf", orden=1
+        )
+        assert firmada.clave == "visitas/uuid-1/informes/informe-01.pdf"
+        assert "visitas/uuid-1/informes/informe-01.pdf" in firmada.url_firmada
+        assert firmada.url_firmada.startswith("https://")
+
+    def test_la_firma_lleva_el_content_type(self):
+        """Va dentro de la firma: sin esto el objeto queda octet-stream y el
+        navegador lo descarga en vez de abrirlo."""
+        alm._cliente.cache_clear()
+        firmada = alm.firmar_subida(
+            _s(), codigo_visita="uuid-1", categoria="informes", nombre="x.pdf", orden=1
+        )
+        assert firmada.content_type == "application/pdf"
+        assert "Content-Type" in firmada.url_firmada or "content-type" in firmada.url_firmada
+
+    def test_la_url_publica_no_es_la_firmada(self):
+        """La firmada vence: guardarla seria guardar un enlace que manana no
+        sirve, y Airtable va a buscar el archivo mucho despues."""
+        alm._cliente.cache_clear()
+        firmada = alm.firmar_subida(
+            _s(), codigo_visita="uuid-1", categoria="informes", nombre="x.pdf", orden=1
+        )
+        assert "X-Amz-Signature" not in firmada.url_publica
+        assert firmada.url_publica.endswith(firmada.clave)
+
+    def test_sin_bucket_configurado_lo_dice(self):
+        with pytest.raises(HTTPException) as exc:
+            alm.firmar_subida(
+                _s(bucket_name=""),
+                codigo_visita="uuid-1",
+                categoria="informes",
+                nombre="x.pdf",
+            )
+        assert exc.value.status_code == 500
+        assert "BUCKET_NAME" in exc.value.detail
+
+
+class TestEndpointDeFirma:
+    def test_el_endpoint_rechaza_otras_categorias(self, client, auth):
+        """La clave la arma el backend: si el cliente pudiera elegirla, podria
+        escribir sobre el audio de otra visita."""
+        r = client.post(
+            "/v1/archivos/firma",
+            data={"codigo_visita": "uuid-1", "nombre": "x.m4a", "categoria": "audio"},
+            headers=auth,
+        )
+        assert r.status_code == 400
+
+    def test_el_endpoint_exige_la_llave(self, client):
+        r = client.post(
+            "/v1/archivos/firma",
+            data={"codigo_visita": "uuid-1", "nombre": "x.pdf"},
+        )
+        assert r.status_code in (401, 403)

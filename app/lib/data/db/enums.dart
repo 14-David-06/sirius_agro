@@ -74,6 +74,45 @@ enum FuenteHallazgo {
   final String airtable;
 }
 
+/// Que figura es un trazado. Manda sobre como sale al KML y sobre si tiene
+/// sentido calcularle area.
+enum TipoTrazado {
+  /// El lote. Cierra el anillo y tiene area.
+  poligono('Poligono'),
+
+  /// El recorrido: la ronda por el cultivo, el lindero caminado, el camino de
+  /// acceso. Tiene largo, no area.
+  ruta('Ruta'),
+
+  /// Un punto suelto: la bocatoma, el arbol enfermo, donde se saco la muestra
+  /// de suelo.
+  punto('Punto');
+
+  const TipoTrazado(this.airtable);
+  final String airtable;
+
+  bool get esPoligono => this == TipoTrazado.poligono;
+}
+
+/// Como se estan poniendo los puntos. Es del visitador, no de la app: la
+/// funcion entera existe para que el decida que captura y como.
+enum ModoCaptura {
+  /// Un punto por cada toque. Es el modo de un lindero con esquinas: se camina
+  /// hasta el mojon y se marca ahi.
+  manual('Manual'),
+
+  /// Un punto cada tantos segundos mientras se camina. Es el modo de un
+  /// contorno curvo, donde marcar a mano daria un poligono de seis lados.
+  automatico('Automatico'),
+
+  /// Empezo automatico y se le agregaron puntos a mano, o al contrario. Se
+  /// registra porque cambia como se lee el trazado despues.
+  mixto('Mixto');
+
+  const ModoCaptura(this.airtable);
+  final String airtable;
+}
+
 enum EstadoSync {
   pendiente('Pendiente'),
   enCurso('En curso'),
@@ -141,4 +180,16 @@ class EstadoSyncConverter extends _AirtableConverter<EstadoSync> {
   const EstadoSyncConverter()
       : super(EstadoSync.values, _airtable, EstadoSync.pendiente);
   static String _airtable(EstadoSync v) => v.airtable;
+}
+
+class TipoTrazadoConverter extends _AirtableConverter<TipoTrazado> {
+  const TipoTrazadoConverter()
+      : super(TipoTrazado.values, _airtable, TipoTrazado.poligono);
+  static String _airtable(TipoTrazado v) => v.airtable;
+}
+
+class ModoCapturaConverter extends _AirtableConverter<ModoCaptura> {
+  const ModoCapturaConverter()
+      : super(ModoCaptura.values, _airtable, ModoCaptura.manual);
+  static String _airtable(ModoCaptura v) => v.airtable;
 }

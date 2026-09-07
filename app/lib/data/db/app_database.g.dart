@@ -2962,6 +2962,17 @@ class $ProductoresTable extends Productores
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _tipoDocumentoMeta = const VerificationMeta(
+    'tipoDocumento',
+  );
+  @override
+  late final GeneratedColumn<String> tipoDocumento = GeneratedColumn<String>(
+    'tipo_documento',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _telefonoMeta = const VerificationMeta(
     'telefono',
   );
@@ -2973,6 +2984,160 @@ class $ProductoresTable extends Productores
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _telefonoAlternoMeta = const VerificationMeta(
+    'telefonoAlterno',
+  );
+  @override
+  late final GeneratedColumn<String> telefonoAlterno = GeneratedColumn<String>(
+    'telefono_alterno',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _generoMeta = const VerificationMeta('genero');
+  @override
+  late final GeneratedColumn<String> genero = GeneratedColumn<String>(
+    'genero',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fechaNacimientoMeta = const VerificationMeta(
+    'fechaNacimiento',
+  );
+  @override
+  late final GeneratedColumn<DateTime> fechaNacimiento =
+      GeneratedColumn<DateTime>(
+        'fecha_nacimiento',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _nivelEducativoMeta = const VerificationMeta(
+    'nivelEducativo',
+  );
+  @override
+  late final GeneratedColumn<String> nivelEducativo = GeneratedColumn<String>(
+    'nivel_educativo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _aniosExperienciaMeta = const VerificationMeta(
+    'aniosExperiencia',
+  );
+  @override
+  late final GeneratedColumn<int> aniosExperiencia = GeneratedColumn<int>(
+    'anios_experiencia',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _personasHogarMeta = const VerificationMeta(
+    'personasHogar',
+  );
+  @override
+  late final GeneratedColumn<int> personasHogar = GeneratedColumn<int>(
+    'personas_hogar',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _organizacionMeta = const VerificationMeta(
+    'organizacion',
+  );
+  @override
+  late final GeneratedColumn<String> organizacion = GeneratedColumn<String>(
+    'organizacion',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notasMeta = const VerificationMeta('notas');
+  @override
+  late final GeneratedColumn<String> notas = GeneratedColumn<String>(
+    'notas',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fotoPathMeta = const VerificationMeta(
+    'fotoPath',
+  );
+  @override
+  late final GeneratedColumn<String> fotoPath = GeneratedColumn<String>(
+    'foto_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _enlaceFotoMeta = const VerificationMeta(
+    'enlaceFoto',
+  );
+  @override
+  late final GeneratedColumn<String> enlaceFoto = GeneratedColumn<String>(
+    'enlace_foto',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fotoRemotaMeta = const VerificationMeta(
+    'fotoRemota',
+  );
+  @override
+  late final GeneratedColumn<String> fotoRemota = GeneratedColumn<String>(
+    'foto_remota',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _consentimientoDatosMeta =
+      const VerificationMeta('consentimientoDatos');
+  @override
+  late final GeneratedColumn<bool> consentimientoDatos = GeneratedColumn<bool>(
+    'consentimiento_datos',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("consentimiento_datos" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _fechaConsentimientoMeta =
+      const VerificationMeta('fechaConsentimiento');
+  @override
+  late final GeneratedColumn<DateTime> fechaConsentimiento =
+      GeneratedColumn<DateTime>(
+        'fecha_consentimiento',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _datosCompletadosEnMeta =
+      const VerificationMeta('datosCompletadosEn');
+  @override
+  late final GeneratedColumn<DateTime> datosCompletadosEn =
+      GeneratedColumn<DateTime>(
+        'datos_completados_en',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _codigoProductorMeta = const VerificationMeta(
     'codigoProductor',
   );
@@ -3015,7 +3180,22 @@ class $ProductoresTable extends Productores
     id,
     nombreCompleto,
     documento,
+    tipoDocumento,
     telefono,
+    telefonoAlterno,
+    genero,
+    fechaNacimiento,
+    nivelEducativo,
+    aniosExperiencia,
+    personasHogar,
+    organizacion,
+    notas,
+    fotoPath,
+    enlaceFoto,
+    fotoRemota,
+    consentimientoDatos,
+    fechaConsentimiento,
+    datosCompletadosEn,
     codigoProductor,
     remoteId,
     sincronizado,
@@ -3054,10 +3234,130 @@ class $ProductoresTable extends Productores
         documento.isAcceptableOrUnknown(data['documento']!, _documentoMeta),
       );
     }
+    if (data.containsKey('tipo_documento')) {
+      context.handle(
+        _tipoDocumentoMeta,
+        tipoDocumento.isAcceptableOrUnknown(
+          data['tipo_documento']!,
+          _tipoDocumentoMeta,
+        ),
+      );
+    }
     if (data.containsKey('telefono')) {
       context.handle(
         _telefonoMeta,
         telefono.isAcceptableOrUnknown(data['telefono']!, _telefonoMeta),
+      );
+    }
+    if (data.containsKey('telefono_alterno')) {
+      context.handle(
+        _telefonoAlternoMeta,
+        telefonoAlterno.isAcceptableOrUnknown(
+          data['telefono_alterno']!,
+          _telefonoAlternoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('genero')) {
+      context.handle(
+        _generoMeta,
+        genero.isAcceptableOrUnknown(data['genero']!, _generoMeta),
+      );
+    }
+    if (data.containsKey('fecha_nacimiento')) {
+      context.handle(
+        _fechaNacimientoMeta,
+        fechaNacimiento.isAcceptableOrUnknown(
+          data['fecha_nacimiento']!,
+          _fechaNacimientoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('nivel_educativo')) {
+      context.handle(
+        _nivelEducativoMeta,
+        nivelEducativo.isAcceptableOrUnknown(
+          data['nivel_educativo']!,
+          _nivelEducativoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('anios_experiencia')) {
+      context.handle(
+        _aniosExperienciaMeta,
+        aniosExperiencia.isAcceptableOrUnknown(
+          data['anios_experiencia']!,
+          _aniosExperienciaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('personas_hogar')) {
+      context.handle(
+        _personasHogarMeta,
+        personasHogar.isAcceptableOrUnknown(
+          data['personas_hogar']!,
+          _personasHogarMeta,
+        ),
+      );
+    }
+    if (data.containsKey('organizacion')) {
+      context.handle(
+        _organizacionMeta,
+        organizacion.isAcceptableOrUnknown(
+          data['organizacion']!,
+          _organizacionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notas')) {
+      context.handle(
+        _notasMeta,
+        notas.isAcceptableOrUnknown(data['notas']!, _notasMeta),
+      );
+    }
+    if (data.containsKey('foto_path')) {
+      context.handle(
+        _fotoPathMeta,
+        fotoPath.isAcceptableOrUnknown(data['foto_path']!, _fotoPathMeta),
+      );
+    }
+    if (data.containsKey('enlace_foto')) {
+      context.handle(
+        _enlaceFotoMeta,
+        enlaceFoto.isAcceptableOrUnknown(data['enlace_foto']!, _enlaceFotoMeta),
+      );
+    }
+    if (data.containsKey('foto_remota')) {
+      context.handle(
+        _fotoRemotaMeta,
+        fotoRemota.isAcceptableOrUnknown(data['foto_remota']!, _fotoRemotaMeta),
+      );
+    }
+    if (data.containsKey('consentimiento_datos')) {
+      context.handle(
+        _consentimientoDatosMeta,
+        consentimientoDatos.isAcceptableOrUnknown(
+          data['consentimiento_datos']!,
+          _consentimientoDatosMeta,
+        ),
+      );
+    }
+    if (data.containsKey('fecha_consentimiento')) {
+      context.handle(
+        _fechaConsentimientoMeta,
+        fechaConsentimiento.isAcceptableOrUnknown(
+          data['fecha_consentimiento']!,
+          _fechaConsentimientoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('datos_completados_en')) {
+      context.handle(
+        _datosCompletadosEnMeta,
+        datosCompletadosEn.isAcceptableOrUnknown(
+          data['datos_completados_en']!,
+          _datosCompletadosEnMeta,
+        ),
       );
     }
     if (data.containsKey('codigo_productor')) {
@@ -3105,9 +3405,69 @@ class $ProductoresTable extends Productores
         DriftSqlType.string,
         data['${effectivePrefix}documento'],
       ),
+      tipoDocumento: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tipo_documento'],
+      ),
       telefono: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}telefono'],
+      ),
+      telefonoAlterno: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}telefono_alterno'],
+      ),
+      genero: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}genero'],
+      ),
+      fechaNacimiento: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fecha_nacimiento'],
+      ),
+      nivelEducativo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nivel_educativo'],
+      ),
+      aniosExperiencia: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}anios_experiencia'],
+      ),
+      personasHogar: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}personas_hogar'],
+      ),
+      organizacion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}organizacion'],
+      ),
+      notas: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notas'],
+      ),
+      fotoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}foto_path'],
+      ),
+      enlaceFoto: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}enlace_foto'],
+      ),
+      fotoRemota: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}foto_remota'],
+      ),
+      consentimientoDatos: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}consentimiento_datos'],
+      )!,
+      fechaConsentimiento: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fecha_consentimiento'],
+      ),
+      datosCompletadosEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}datos_completados_en'],
       ),
       codigoProductor: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -3134,7 +3494,50 @@ class Productor extends DataClass implements Insertable<Productor> {
   final String id;
   final String nombreCompleto;
   final String? documento;
+
+  /// CC | CE | TI | NIT | Pasaporte | Sin documento. Texto y no enum porque
+  /// son las opciones del select de Airtable y viajan tal cual.
+  final String? tipoDocumento;
   final String? telefono;
+  final String? telefonoAlterno;
+  final String? genero;
+  final DateTime? fechaNacimiento;
+  final String? nivelEducativo;
+  final int? aniosExperiencia;
+  final int? personasHogar;
+
+  /// Vacio significa que no pertenece a ninguna: el backend deriva de aqui la
+  /// casilla `Pertenece a organizacion`, para no pedir dos veces lo mismo.
+  final String? organizacion;
+  final String? notas;
+
+  /// La foto de perfil, en disco. Se guarda dentro de la carpeta de la visita
+  /// donde se tomo: si esa visita se elimina por revocacion, la foto de la
+  /// persona se va con el prefijo, que es exactamente lo que pidio.
+  final String? fotoPath;
+
+  /// URL de la foto en el bucket. Nula hasta que la cola la sube; es lo que
+  /// Airtable usa para traerse el adjunto de `Productores.Foto`.
+  final String? enlaceFoto;
+
+  /// Miniatura de la foto que ya esta en Airtable, para reconocer al
+  /// agricultor en el directorio antes de crearlo de nuevo.
+  ///
+  /// Es de Airtable y Airtable la rota cada pocas horas, asi que se muestra
+  /// mientras sirva y su ausencia no significa nada: la foto de verdad es
+  /// [fotoPath] en el telefono y [enlaceFoto] en el bucket.
+  final String? fotoRemota;
+
+  /// Autorizacion de tratamiento de datos (Ley 1581/2012). Va aqui y no solo
+  /// en la visita porque la autorizacion es DE LA PERSONA: el permiso de
+  /// grabar y de fotografiar se pide en cada visita, pero que sus datos se
+  /// puedan tratar se autoriza una vez y queda con ella.
+  final bool consentimientoDatos;
+  final DateTime? fechaConsentimiento;
+
+  /// Cuando alguien completo la ficha. Null = solo tiene el nombre con el que
+  /// nacio, y el modulo de la visita lo va a decir.
+  final DateTime? datosCompletadosEn;
 
   /// Consecutivo BU-0001. Lo asigna el BACKEND al sincronizar, no la app:
   /// dos telefonos offline generarian el mismo numero.
@@ -3145,7 +3548,22 @@ class Productor extends DataClass implements Insertable<Productor> {
     required this.id,
     required this.nombreCompleto,
     this.documento,
+    this.tipoDocumento,
     this.telefono,
+    this.telefonoAlterno,
+    this.genero,
+    this.fechaNacimiento,
+    this.nivelEducativo,
+    this.aniosExperiencia,
+    this.personasHogar,
+    this.organizacion,
+    this.notas,
+    this.fotoPath,
+    this.enlaceFoto,
+    this.fotoRemota,
+    required this.consentimientoDatos,
+    this.fechaConsentimiento,
+    this.datosCompletadosEn,
     this.codigoProductor,
     this.remoteId,
     required this.sincronizado,
@@ -3158,8 +3576,51 @@ class Productor extends DataClass implements Insertable<Productor> {
     if (!nullToAbsent || documento != null) {
       map['documento'] = Variable<String>(documento);
     }
+    if (!nullToAbsent || tipoDocumento != null) {
+      map['tipo_documento'] = Variable<String>(tipoDocumento);
+    }
     if (!nullToAbsent || telefono != null) {
       map['telefono'] = Variable<String>(telefono);
+    }
+    if (!nullToAbsent || telefonoAlterno != null) {
+      map['telefono_alterno'] = Variable<String>(telefonoAlterno);
+    }
+    if (!nullToAbsent || genero != null) {
+      map['genero'] = Variable<String>(genero);
+    }
+    if (!nullToAbsent || fechaNacimiento != null) {
+      map['fecha_nacimiento'] = Variable<DateTime>(fechaNacimiento);
+    }
+    if (!nullToAbsent || nivelEducativo != null) {
+      map['nivel_educativo'] = Variable<String>(nivelEducativo);
+    }
+    if (!nullToAbsent || aniosExperiencia != null) {
+      map['anios_experiencia'] = Variable<int>(aniosExperiencia);
+    }
+    if (!nullToAbsent || personasHogar != null) {
+      map['personas_hogar'] = Variable<int>(personasHogar);
+    }
+    if (!nullToAbsent || organizacion != null) {
+      map['organizacion'] = Variable<String>(organizacion);
+    }
+    if (!nullToAbsent || notas != null) {
+      map['notas'] = Variable<String>(notas);
+    }
+    if (!nullToAbsent || fotoPath != null) {
+      map['foto_path'] = Variable<String>(fotoPath);
+    }
+    if (!nullToAbsent || enlaceFoto != null) {
+      map['enlace_foto'] = Variable<String>(enlaceFoto);
+    }
+    if (!nullToAbsent || fotoRemota != null) {
+      map['foto_remota'] = Variable<String>(fotoRemota);
+    }
+    map['consentimiento_datos'] = Variable<bool>(consentimientoDatos);
+    if (!nullToAbsent || fechaConsentimiento != null) {
+      map['fecha_consentimiento'] = Variable<DateTime>(fechaConsentimiento);
+    }
+    if (!nullToAbsent || datosCompletadosEn != null) {
+      map['datos_completados_en'] = Variable<DateTime>(datosCompletadosEn);
     }
     if (!nullToAbsent || codigoProductor != null) {
       map['codigo_productor'] = Variable<String>(codigoProductor);
@@ -3178,9 +3639,52 @@ class Productor extends DataClass implements Insertable<Productor> {
       documento: documento == null && nullToAbsent
           ? const Value.absent()
           : Value(documento),
+      tipoDocumento: tipoDocumento == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tipoDocumento),
       telefono: telefono == null && nullToAbsent
           ? const Value.absent()
           : Value(telefono),
+      telefonoAlterno: telefonoAlterno == null && nullToAbsent
+          ? const Value.absent()
+          : Value(telefonoAlterno),
+      genero: genero == null && nullToAbsent
+          ? const Value.absent()
+          : Value(genero),
+      fechaNacimiento: fechaNacimiento == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fechaNacimiento),
+      nivelEducativo: nivelEducativo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nivelEducativo),
+      aniosExperiencia: aniosExperiencia == null && nullToAbsent
+          ? const Value.absent()
+          : Value(aniosExperiencia),
+      personasHogar: personasHogar == null && nullToAbsent
+          ? const Value.absent()
+          : Value(personasHogar),
+      organizacion: organizacion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(organizacion),
+      notas: notas == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notas),
+      fotoPath: fotoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fotoPath),
+      enlaceFoto: enlaceFoto == null && nullToAbsent
+          ? const Value.absent()
+          : Value(enlaceFoto),
+      fotoRemota: fotoRemota == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fotoRemota),
+      consentimientoDatos: Value(consentimientoDatos),
+      fechaConsentimiento: fechaConsentimiento == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fechaConsentimiento),
+      datosCompletadosEn: datosCompletadosEn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(datosCompletadosEn),
       codigoProductor: codigoProductor == null && nullToAbsent
           ? const Value.absent()
           : Value(codigoProductor),
@@ -3200,7 +3704,28 @@ class Productor extends DataClass implements Insertable<Productor> {
       id: serializer.fromJson<String>(json['id']),
       nombreCompleto: serializer.fromJson<String>(json['nombreCompleto']),
       documento: serializer.fromJson<String?>(json['documento']),
+      tipoDocumento: serializer.fromJson<String?>(json['tipoDocumento']),
       telefono: serializer.fromJson<String?>(json['telefono']),
+      telefonoAlterno: serializer.fromJson<String?>(json['telefonoAlterno']),
+      genero: serializer.fromJson<String?>(json['genero']),
+      fechaNacimiento: serializer.fromJson<DateTime?>(json['fechaNacimiento']),
+      nivelEducativo: serializer.fromJson<String?>(json['nivelEducativo']),
+      aniosExperiencia: serializer.fromJson<int?>(json['aniosExperiencia']),
+      personasHogar: serializer.fromJson<int?>(json['personasHogar']),
+      organizacion: serializer.fromJson<String?>(json['organizacion']),
+      notas: serializer.fromJson<String?>(json['notas']),
+      fotoPath: serializer.fromJson<String?>(json['fotoPath']),
+      enlaceFoto: serializer.fromJson<String?>(json['enlaceFoto']),
+      fotoRemota: serializer.fromJson<String?>(json['fotoRemota']),
+      consentimientoDatos: serializer.fromJson<bool>(
+        json['consentimientoDatos'],
+      ),
+      fechaConsentimiento: serializer.fromJson<DateTime?>(
+        json['fechaConsentimiento'],
+      ),
+      datosCompletadosEn: serializer.fromJson<DateTime?>(
+        json['datosCompletadosEn'],
+      ),
       codigoProductor: serializer.fromJson<String?>(json['codigoProductor']),
       remoteId: serializer.fromJson<String?>(json['remoteId']),
       sincronizado: serializer.fromJson<bool>(json['sincronizado']),
@@ -3213,7 +3738,22 @@ class Productor extends DataClass implements Insertable<Productor> {
       'id': serializer.toJson<String>(id),
       'nombreCompleto': serializer.toJson<String>(nombreCompleto),
       'documento': serializer.toJson<String?>(documento),
+      'tipoDocumento': serializer.toJson<String?>(tipoDocumento),
       'telefono': serializer.toJson<String?>(telefono),
+      'telefonoAlterno': serializer.toJson<String?>(telefonoAlterno),
+      'genero': serializer.toJson<String?>(genero),
+      'fechaNacimiento': serializer.toJson<DateTime?>(fechaNacimiento),
+      'nivelEducativo': serializer.toJson<String?>(nivelEducativo),
+      'aniosExperiencia': serializer.toJson<int?>(aniosExperiencia),
+      'personasHogar': serializer.toJson<int?>(personasHogar),
+      'organizacion': serializer.toJson<String?>(organizacion),
+      'notas': serializer.toJson<String?>(notas),
+      'fotoPath': serializer.toJson<String?>(fotoPath),
+      'enlaceFoto': serializer.toJson<String?>(enlaceFoto),
+      'fotoRemota': serializer.toJson<String?>(fotoRemota),
+      'consentimientoDatos': serializer.toJson<bool>(consentimientoDatos),
+      'fechaConsentimiento': serializer.toJson<DateTime?>(fechaConsentimiento),
+      'datosCompletadosEn': serializer.toJson<DateTime?>(datosCompletadosEn),
       'codigoProductor': serializer.toJson<String?>(codigoProductor),
       'remoteId': serializer.toJson<String?>(remoteId),
       'sincronizado': serializer.toJson<bool>(sincronizado),
@@ -3224,7 +3764,22 @@ class Productor extends DataClass implements Insertable<Productor> {
     String? id,
     String? nombreCompleto,
     Value<String?> documento = const Value.absent(),
+    Value<String?> tipoDocumento = const Value.absent(),
     Value<String?> telefono = const Value.absent(),
+    Value<String?> telefonoAlterno = const Value.absent(),
+    Value<String?> genero = const Value.absent(),
+    Value<DateTime?> fechaNacimiento = const Value.absent(),
+    Value<String?> nivelEducativo = const Value.absent(),
+    Value<int?> aniosExperiencia = const Value.absent(),
+    Value<int?> personasHogar = const Value.absent(),
+    Value<String?> organizacion = const Value.absent(),
+    Value<String?> notas = const Value.absent(),
+    Value<String?> fotoPath = const Value.absent(),
+    Value<String?> enlaceFoto = const Value.absent(),
+    Value<String?> fotoRemota = const Value.absent(),
+    bool? consentimientoDatos,
+    Value<DateTime?> fechaConsentimiento = const Value.absent(),
+    Value<DateTime?> datosCompletadosEn = const Value.absent(),
     Value<String?> codigoProductor = const Value.absent(),
     Value<String?> remoteId = const Value.absent(),
     bool? sincronizado,
@@ -3232,7 +3787,38 @@ class Productor extends DataClass implements Insertable<Productor> {
     id: id ?? this.id,
     nombreCompleto: nombreCompleto ?? this.nombreCompleto,
     documento: documento.present ? documento.value : this.documento,
+    tipoDocumento: tipoDocumento.present
+        ? tipoDocumento.value
+        : this.tipoDocumento,
     telefono: telefono.present ? telefono.value : this.telefono,
+    telefonoAlterno: telefonoAlterno.present
+        ? telefonoAlterno.value
+        : this.telefonoAlterno,
+    genero: genero.present ? genero.value : this.genero,
+    fechaNacimiento: fechaNacimiento.present
+        ? fechaNacimiento.value
+        : this.fechaNacimiento,
+    nivelEducativo: nivelEducativo.present
+        ? nivelEducativo.value
+        : this.nivelEducativo,
+    aniosExperiencia: aniosExperiencia.present
+        ? aniosExperiencia.value
+        : this.aniosExperiencia,
+    personasHogar: personasHogar.present
+        ? personasHogar.value
+        : this.personasHogar,
+    organizacion: organizacion.present ? organizacion.value : this.organizacion,
+    notas: notas.present ? notas.value : this.notas,
+    fotoPath: fotoPath.present ? fotoPath.value : this.fotoPath,
+    enlaceFoto: enlaceFoto.present ? enlaceFoto.value : this.enlaceFoto,
+    fotoRemota: fotoRemota.present ? fotoRemota.value : this.fotoRemota,
+    consentimientoDatos: consentimientoDatos ?? this.consentimientoDatos,
+    fechaConsentimiento: fechaConsentimiento.present
+        ? fechaConsentimiento.value
+        : this.fechaConsentimiento,
+    datosCompletadosEn: datosCompletadosEn.present
+        ? datosCompletadosEn.value
+        : this.datosCompletadosEn,
     codigoProductor: codigoProductor.present
         ? codigoProductor.value
         : this.codigoProductor,
@@ -3246,7 +3832,46 @@ class Productor extends DataClass implements Insertable<Productor> {
           ? data.nombreCompleto.value
           : this.nombreCompleto,
       documento: data.documento.present ? data.documento.value : this.documento,
+      tipoDocumento: data.tipoDocumento.present
+          ? data.tipoDocumento.value
+          : this.tipoDocumento,
       telefono: data.telefono.present ? data.telefono.value : this.telefono,
+      telefonoAlterno: data.telefonoAlterno.present
+          ? data.telefonoAlterno.value
+          : this.telefonoAlterno,
+      genero: data.genero.present ? data.genero.value : this.genero,
+      fechaNacimiento: data.fechaNacimiento.present
+          ? data.fechaNacimiento.value
+          : this.fechaNacimiento,
+      nivelEducativo: data.nivelEducativo.present
+          ? data.nivelEducativo.value
+          : this.nivelEducativo,
+      aniosExperiencia: data.aniosExperiencia.present
+          ? data.aniosExperiencia.value
+          : this.aniosExperiencia,
+      personasHogar: data.personasHogar.present
+          ? data.personasHogar.value
+          : this.personasHogar,
+      organizacion: data.organizacion.present
+          ? data.organizacion.value
+          : this.organizacion,
+      notas: data.notas.present ? data.notas.value : this.notas,
+      fotoPath: data.fotoPath.present ? data.fotoPath.value : this.fotoPath,
+      enlaceFoto: data.enlaceFoto.present
+          ? data.enlaceFoto.value
+          : this.enlaceFoto,
+      fotoRemota: data.fotoRemota.present
+          ? data.fotoRemota.value
+          : this.fotoRemota,
+      consentimientoDatos: data.consentimientoDatos.present
+          ? data.consentimientoDatos.value
+          : this.consentimientoDatos,
+      fechaConsentimiento: data.fechaConsentimiento.present
+          ? data.fechaConsentimiento.value
+          : this.fechaConsentimiento,
+      datosCompletadosEn: data.datosCompletadosEn.present
+          ? data.datosCompletadosEn.value
+          : this.datosCompletadosEn,
       codigoProductor: data.codigoProductor.present
           ? data.codigoProductor.value
           : this.codigoProductor,
@@ -3263,7 +3888,22 @@ class Productor extends DataClass implements Insertable<Productor> {
           ..write('id: $id, ')
           ..write('nombreCompleto: $nombreCompleto, ')
           ..write('documento: $documento, ')
+          ..write('tipoDocumento: $tipoDocumento, ')
           ..write('telefono: $telefono, ')
+          ..write('telefonoAlterno: $telefonoAlterno, ')
+          ..write('genero: $genero, ')
+          ..write('fechaNacimiento: $fechaNacimiento, ')
+          ..write('nivelEducativo: $nivelEducativo, ')
+          ..write('aniosExperiencia: $aniosExperiencia, ')
+          ..write('personasHogar: $personasHogar, ')
+          ..write('organizacion: $organizacion, ')
+          ..write('notas: $notas, ')
+          ..write('fotoPath: $fotoPath, ')
+          ..write('enlaceFoto: $enlaceFoto, ')
+          ..write('fotoRemota: $fotoRemota, ')
+          ..write('consentimientoDatos: $consentimientoDatos, ')
+          ..write('fechaConsentimiento: $fechaConsentimiento, ')
+          ..write('datosCompletadosEn: $datosCompletadosEn, ')
           ..write('codigoProductor: $codigoProductor, ')
           ..write('remoteId: $remoteId, ')
           ..write('sincronizado: $sincronizado')
@@ -3272,15 +3912,30 @@ class Productor extends DataClass implements Insertable<Productor> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     nombreCompleto,
     documento,
+    tipoDocumento,
     telefono,
+    telefonoAlterno,
+    genero,
+    fechaNacimiento,
+    nivelEducativo,
+    aniosExperiencia,
+    personasHogar,
+    organizacion,
+    notas,
+    fotoPath,
+    enlaceFoto,
+    fotoRemota,
+    consentimientoDatos,
+    fechaConsentimiento,
+    datosCompletadosEn,
     codigoProductor,
     remoteId,
     sincronizado,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3288,7 +3943,22 @@ class Productor extends DataClass implements Insertable<Productor> {
           other.id == this.id &&
           other.nombreCompleto == this.nombreCompleto &&
           other.documento == this.documento &&
+          other.tipoDocumento == this.tipoDocumento &&
           other.telefono == this.telefono &&
+          other.telefonoAlterno == this.telefonoAlterno &&
+          other.genero == this.genero &&
+          other.fechaNacimiento == this.fechaNacimiento &&
+          other.nivelEducativo == this.nivelEducativo &&
+          other.aniosExperiencia == this.aniosExperiencia &&
+          other.personasHogar == this.personasHogar &&
+          other.organizacion == this.organizacion &&
+          other.notas == this.notas &&
+          other.fotoPath == this.fotoPath &&
+          other.enlaceFoto == this.enlaceFoto &&
+          other.fotoRemota == this.fotoRemota &&
+          other.consentimientoDatos == this.consentimientoDatos &&
+          other.fechaConsentimiento == this.fechaConsentimiento &&
+          other.datosCompletadosEn == this.datosCompletadosEn &&
           other.codigoProductor == this.codigoProductor &&
           other.remoteId == this.remoteId &&
           other.sincronizado == this.sincronizado);
@@ -3298,7 +3968,22 @@ class ProductoresCompanion extends UpdateCompanion<Productor> {
   final Value<String> id;
   final Value<String> nombreCompleto;
   final Value<String?> documento;
+  final Value<String?> tipoDocumento;
   final Value<String?> telefono;
+  final Value<String?> telefonoAlterno;
+  final Value<String?> genero;
+  final Value<DateTime?> fechaNacimiento;
+  final Value<String?> nivelEducativo;
+  final Value<int?> aniosExperiencia;
+  final Value<int?> personasHogar;
+  final Value<String?> organizacion;
+  final Value<String?> notas;
+  final Value<String?> fotoPath;
+  final Value<String?> enlaceFoto;
+  final Value<String?> fotoRemota;
+  final Value<bool> consentimientoDatos;
+  final Value<DateTime?> fechaConsentimiento;
+  final Value<DateTime?> datosCompletadosEn;
   final Value<String?> codigoProductor;
   final Value<String?> remoteId;
   final Value<bool> sincronizado;
@@ -3307,7 +3992,22 @@ class ProductoresCompanion extends UpdateCompanion<Productor> {
     this.id = const Value.absent(),
     this.nombreCompleto = const Value.absent(),
     this.documento = const Value.absent(),
+    this.tipoDocumento = const Value.absent(),
     this.telefono = const Value.absent(),
+    this.telefonoAlterno = const Value.absent(),
+    this.genero = const Value.absent(),
+    this.fechaNacimiento = const Value.absent(),
+    this.nivelEducativo = const Value.absent(),
+    this.aniosExperiencia = const Value.absent(),
+    this.personasHogar = const Value.absent(),
+    this.organizacion = const Value.absent(),
+    this.notas = const Value.absent(),
+    this.fotoPath = const Value.absent(),
+    this.enlaceFoto = const Value.absent(),
+    this.fotoRemota = const Value.absent(),
+    this.consentimientoDatos = const Value.absent(),
+    this.fechaConsentimiento = const Value.absent(),
+    this.datosCompletadosEn = const Value.absent(),
     this.codigoProductor = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.sincronizado = const Value.absent(),
@@ -3317,7 +4017,22 @@ class ProductoresCompanion extends UpdateCompanion<Productor> {
     required String id,
     required String nombreCompleto,
     this.documento = const Value.absent(),
+    this.tipoDocumento = const Value.absent(),
     this.telefono = const Value.absent(),
+    this.telefonoAlterno = const Value.absent(),
+    this.genero = const Value.absent(),
+    this.fechaNacimiento = const Value.absent(),
+    this.nivelEducativo = const Value.absent(),
+    this.aniosExperiencia = const Value.absent(),
+    this.personasHogar = const Value.absent(),
+    this.organizacion = const Value.absent(),
+    this.notas = const Value.absent(),
+    this.fotoPath = const Value.absent(),
+    this.enlaceFoto = const Value.absent(),
+    this.fotoRemota = const Value.absent(),
+    this.consentimientoDatos = const Value.absent(),
+    this.fechaConsentimiento = const Value.absent(),
+    this.datosCompletadosEn = const Value.absent(),
     this.codigoProductor = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.sincronizado = const Value.absent(),
@@ -3328,7 +4043,22 @@ class ProductoresCompanion extends UpdateCompanion<Productor> {
     Expression<String>? id,
     Expression<String>? nombreCompleto,
     Expression<String>? documento,
+    Expression<String>? tipoDocumento,
     Expression<String>? telefono,
+    Expression<String>? telefonoAlterno,
+    Expression<String>? genero,
+    Expression<DateTime>? fechaNacimiento,
+    Expression<String>? nivelEducativo,
+    Expression<int>? aniosExperiencia,
+    Expression<int>? personasHogar,
+    Expression<String>? organizacion,
+    Expression<String>? notas,
+    Expression<String>? fotoPath,
+    Expression<String>? enlaceFoto,
+    Expression<String>? fotoRemota,
+    Expression<bool>? consentimientoDatos,
+    Expression<DateTime>? fechaConsentimiento,
+    Expression<DateTime>? datosCompletadosEn,
     Expression<String>? codigoProductor,
     Expression<String>? remoteId,
     Expression<bool>? sincronizado,
@@ -3338,7 +4068,25 @@ class ProductoresCompanion extends UpdateCompanion<Productor> {
       if (id != null) 'id': id,
       if (nombreCompleto != null) 'nombre_completo': nombreCompleto,
       if (documento != null) 'documento': documento,
+      if (tipoDocumento != null) 'tipo_documento': tipoDocumento,
       if (telefono != null) 'telefono': telefono,
+      if (telefonoAlterno != null) 'telefono_alterno': telefonoAlterno,
+      if (genero != null) 'genero': genero,
+      if (fechaNacimiento != null) 'fecha_nacimiento': fechaNacimiento,
+      if (nivelEducativo != null) 'nivel_educativo': nivelEducativo,
+      if (aniosExperiencia != null) 'anios_experiencia': aniosExperiencia,
+      if (personasHogar != null) 'personas_hogar': personasHogar,
+      if (organizacion != null) 'organizacion': organizacion,
+      if (notas != null) 'notas': notas,
+      if (fotoPath != null) 'foto_path': fotoPath,
+      if (enlaceFoto != null) 'enlace_foto': enlaceFoto,
+      if (fotoRemota != null) 'foto_remota': fotoRemota,
+      if (consentimientoDatos != null)
+        'consentimiento_datos': consentimientoDatos,
+      if (fechaConsentimiento != null)
+        'fecha_consentimiento': fechaConsentimiento,
+      if (datosCompletadosEn != null)
+        'datos_completados_en': datosCompletadosEn,
       if (codigoProductor != null) 'codigo_productor': codigoProductor,
       if (remoteId != null) 'remote_id': remoteId,
       if (sincronizado != null) 'sincronizado': sincronizado,
@@ -3350,7 +4098,22 @@ class ProductoresCompanion extends UpdateCompanion<Productor> {
     Value<String>? id,
     Value<String>? nombreCompleto,
     Value<String?>? documento,
+    Value<String?>? tipoDocumento,
     Value<String?>? telefono,
+    Value<String?>? telefonoAlterno,
+    Value<String?>? genero,
+    Value<DateTime?>? fechaNacimiento,
+    Value<String?>? nivelEducativo,
+    Value<int?>? aniosExperiencia,
+    Value<int?>? personasHogar,
+    Value<String?>? organizacion,
+    Value<String?>? notas,
+    Value<String?>? fotoPath,
+    Value<String?>? enlaceFoto,
+    Value<String?>? fotoRemota,
+    Value<bool>? consentimientoDatos,
+    Value<DateTime?>? fechaConsentimiento,
+    Value<DateTime?>? datosCompletadosEn,
     Value<String?>? codigoProductor,
     Value<String?>? remoteId,
     Value<bool>? sincronizado,
@@ -3360,7 +4123,22 @@ class ProductoresCompanion extends UpdateCompanion<Productor> {
       id: id ?? this.id,
       nombreCompleto: nombreCompleto ?? this.nombreCompleto,
       documento: documento ?? this.documento,
+      tipoDocumento: tipoDocumento ?? this.tipoDocumento,
       telefono: telefono ?? this.telefono,
+      telefonoAlterno: telefonoAlterno ?? this.telefonoAlterno,
+      genero: genero ?? this.genero,
+      fechaNacimiento: fechaNacimiento ?? this.fechaNacimiento,
+      nivelEducativo: nivelEducativo ?? this.nivelEducativo,
+      aniosExperiencia: aniosExperiencia ?? this.aniosExperiencia,
+      personasHogar: personasHogar ?? this.personasHogar,
+      organizacion: organizacion ?? this.organizacion,
+      notas: notas ?? this.notas,
+      fotoPath: fotoPath ?? this.fotoPath,
+      enlaceFoto: enlaceFoto ?? this.enlaceFoto,
+      fotoRemota: fotoRemota ?? this.fotoRemota,
+      consentimientoDatos: consentimientoDatos ?? this.consentimientoDatos,
+      fechaConsentimiento: fechaConsentimiento ?? this.fechaConsentimiento,
+      datosCompletadosEn: datosCompletadosEn ?? this.datosCompletadosEn,
       codigoProductor: codigoProductor ?? this.codigoProductor,
       remoteId: remoteId ?? this.remoteId,
       sincronizado: sincronizado ?? this.sincronizado,
@@ -3380,8 +4158,57 @@ class ProductoresCompanion extends UpdateCompanion<Productor> {
     if (documento.present) {
       map['documento'] = Variable<String>(documento.value);
     }
+    if (tipoDocumento.present) {
+      map['tipo_documento'] = Variable<String>(tipoDocumento.value);
+    }
     if (telefono.present) {
       map['telefono'] = Variable<String>(telefono.value);
+    }
+    if (telefonoAlterno.present) {
+      map['telefono_alterno'] = Variable<String>(telefonoAlterno.value);
+    }
+    if (genero.present) {
+      map['genero'] = Variable<String>(genero.value);
+    }
+    if (fechaNacimiento.present) {
+      map['fecha_nacimiento'] = Variable<DateTime>(fechaNacimiento.value);
+    }
+    if (nivelEducativo.present) {
+      map['nivel_educativo'] = Variable<String>(nivelEducativo.value);
+    }
+    if (aniosExperiencia.present) {
+      map['anios_experiencia'] = Variable<int>(aniosExperiencia.value);
+    }
+    if (personasHogar.present) {
+      map['personas_hogar'] = Variable<int>(personasHogar.value);
+    }
+    if (organizacion.present) {
+      map['organizacion'] = Variable<String>(organizacion.value);
+    }
+    if (notas.present) {
+      map['notas'] = Variable<String>(notas.value);
+    }
+    if (fotoPath.present) {
+      map['foto_path'] = Variable<String>(fotoPath.value);
+    }
+    if (enlaceFoto.present) {
+      map['enlace_foto'] = Variable<String>(enlaceFoto.value);
+    }
+    if (fotoRemota.present) {
+      map['foto_remota'] = Variable<String>(fotoRemota.value);
+    }
+    if (consentimientoDatos.present) {
+      map['consentimiento_datos'] = Variable<bool>(consentimientoDatos.value);
+    }
+    if (fechaConsentimiento.present) {
+      map['fecha_consentimiento'] = Variable<DateTime>(
+        fechaConsentimiento.value,
+      );
+    }
+    if (datosCompletadosEn.present) {
+      map['datos_completados_en'] = Variable<DateTime>(
+        datosCompletadosEn.value,
+      );
     }
     if (codigoProductor.present) {
       map['codigo_productor'] = Variable<String>(codigoProductor.value);
@@ -3404,7 +4231,22 @@ class ProductoresCompanion extends UpdateCompanion<Productor> {
           ..write('id: $id, ')
           ..write('nombreCompleto: $nombreCompleto, ')
           ..write('documento: $documento, ')
+          ..write('tipoDocumento: $tipoDocumento, ')
           ..write('telefono: $telefono, ')
+          ..write('telefonoAlterno: $telefonoAlterno, ')
+          ..write('genero: $genero, ')
+          ..write('fechaNacimiento: $fechaNacimiento, ')
+          ..write('nivelEducativo: $nivelEducativo, ')
+          ..write('aniosExperiencia: $aniosExperiencia, ')
+          ..write('personasHogar: $personasHogar, ')
+          ..write('organizacion: $organizacion, ')
+          ..write('notas: $notas, ')
+          ..write('fotoPath: $fotoPath, ')
+          ..write('enlaceFoto: $enlaceFoto, ')
+          ..write('fotoRemota: $fotoRemota, ')
+          ..write('consentimientoDatos: $consentimientoDatos, ')
+          ..write('fechaConsentimiento: $fechaConsentimiento, ')
+          ..write('datosCompletadosEn: $datosCompletadosEn, ')
           ..write('codigoProductor: $codigoProductor, ')
           ..write('remoteId: $remoteId, ')
           ..write('sincronizado: $sincronizado, ')
@@ -8303,6 +9145,28 @@ class $InformesTable extends Informes with TableInfo<$InformesTable, Informe> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _pdfPathMeta = const VerificationMeta(
+    'pdfPath',
+  );
+  @override
+  late final GeneratedColumn<String> pdfPath = GeneratedColumn<String>(
+    'pdf_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _enlacePdfMeta = const VerificationMeta(
+    'enlacePdf',
+  );
+  @override
+  late final GeneratedColumn<String> enlacePdf = GeneratedColumn<String>(
+    'enlace_pdf',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _remoteIdMeta = const VerificationMeta(
     'remoteId',
   );
@@ -8341,6 +9205,8 @@ class $InformesTable extends Informes with TableInfo<$InformesTable, Informe> {
     modelo,
     entregado,
     medioEntrega,
+    pdfPath,
+    enlacePdf,
     remoteId,
     sincronizado,
   ];
@@ -8426,6 +9292,18 @@ class $InformesTable extends Informes with TableInfo<$InformesTable, Informe> {
         ),
       );
     }
+    if (data.containsKey('pdf_path')) {
+      context.handle(
+        _pdfPathMeta,
+        pdfPath.isAcceptableOrUnknown(data['pdf_path']!, _pdfPathMeta),
+      );
+    }
+    if (data.containsKey('enlace_pdf')) {
+      context.handle(
+        _enlacePdfMeta,
+        enlacePdf.isAcceptableOrUnknown(data['enlace_pdf']!, _enlacePdfMeta),
+      );
+    }
     if (data.containsKey('remote_id')) {
       context.handle(
         _remoteIdMeta,
@@ -8490,6 +9368,14 @@ class $InformesTable extends Informes with TableInfo<$InformesTable, Informe> {
         DriftSqlType.string,
         data['${effectivePrefix}medio_entrega'],
       ),
+      pdfPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pdf_path'],
+      ),
+      enlacePdf: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}enlace_pdf'],
+      ),
       remoteId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remote_id'],
@@ -8524,6 +9410,16 @@ class Informe extends DataClass implements Insertable<Informe> {
   final String? modelo;
   final bool entregado;
   final String? medioEntrega;
+
+  /// El PDF armado, en disco. Se guarda el archivo y no solo el markdown
+  /// porque es el documento que el productor tiene en la mano: regenerarlo
+  /// meses despues con otra version del renderizador daria otro papel, y el
+  /// que respalda lo acordado es este.
+  final String? pdfPath;
+
+  /// URL del PDF en el bucket. Nula hasta que la cola lo sube: el PDF va por
+  /// su propio item y puede quedar pendiente cuando la visita ya subio.
+  final String? enlacePdf;
   final String? remoteId;
   final bool sincronizado;
   const Informe({
@@ -8537,6 +9433,8 @@ class Informe extends DataClass implements Insertable<Informe> {
     this.modelo,
     required this.entregado,
     this.medioEntrega,
+    this.pdfPath,
+    this.enlacePdf,
     this.remoteId,
     required this.sincronizado,
   });
@@ -8556,6 +9454,12 @@ class Informe extends DataClass implements Insertable<Informe> {
     map['entregado'] = Variable<bool>(entregado);
     if (!nullToAbsent || medioEntrega != null) {
       map['medio_entrega'] = Variable<String>(medioEntrega);
+    }
+    if (!nullToAbsent || pdfPath != null) {
+      map['pdf_path'] = Variable<String>(pdfPath);
+    }
+    if (!nullToAbsent || enlacePdf != null) {
+      map['enlace_pdf'] = Variable<String>(enlacePdf);
     }
     if (!nullToAbsent || remoteId != null) {
       map['remote_id'] = Variable<String>(remoteId);
@@ -8580,6 +9484,12 @@ class Informe extends DataClass implements Insertable<Informe> {
       medioEntrega: medioEntrega == null && nullToAbsent
           ? const Value.absent()
           : Value(medioEntrega),
+      pdfPath: pdfPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pdfPath),
+      enlacePdf: enlacePdf == null && nullToAbsent
+          ? const Value.absent()
+          : Value(enlacePdf),
       remoteId: remoteId == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteId),
@@ -8603,6 +9513,8 @@ class Informe extends DataClass implements Insertable<Informe> {
       modelo: serializer.fromJson<String?>(json['modelo']),
       entregado: serializer.fromJson<bool>(json['entregado']),
       medioEntrega: serializer.fromJson<String?>(json['medioEntrega']),
+      pdfPath: serializer.fromJson<String?>(json['pdfPath']),
+      enlacePdf: serializer.fromJson<String?>(json['enlacePdf']),
       remoteId: serializer.fromJson<String?>(json['remoteId']),
       sincronizado: serializer.fromJson<bool>(json['sincronizado']),
     );
@@ -8621,6 +9533,8 @@ class Informe extends DataClass implements Insertable<Informe> {
       'modelo': serializer.toJson<String?>(modelo),
       'entregado': serializer.toJson<bool>(entregado),
       'medioEntrega': serializer.toJson<String?>(medioEntrega),
+      'pdfPath': serializer.toJson<String?>(pdfPath),
+      'enlacePdf': serializer.toJson<String?>(enlacePdf),
       'remoteId': serializer.toJson<String?>(remoteId),
       'sincronizado': serializer.toJson<bool>(sincronizado),
     };
@@ -8637,6 +9551,8 @@ class Informe extends DataClass implements Insertable<Informe> {
     Value<String?> modelo = const Value.absent(),
     bool? entregado,
     Value<String?> medioEntrega = const Value.absent(),
+    Value<String?> pdfPath = const Value.absent(),
+    Value<String?> enlacePdf = const Value.absent(),
     Value<String?> remoteId = const Value.absent(),
     bool? sincronizado,
   }) => Informe(
@@ -8650,6 +9566,8 @@ class Informe extends DataClass implements Insertable<Informe> {
     modelo: modelo.present ? modelo.value : this.modelo,
     entregado: entregado ?? this.entregado,
     medioEntrega: medioEntrega.present ? medioEntrega.value : this.medioEntrega,
+    pdfPath: pdfPath.present ? pdfPath.value : this.pdfPath,
+    enlacePdf: enlacePdf.present ? enlacePdf.value : this.enlacePdf,
     remoteId: remoteId.present ? remoteId.value : this.remoteId,
     sincronizado: sincronizado ?? this.sincronizado,
   );
@@ -8669,6 +9587,8 @@ class Informe extends DataClass implements Insertable<Informe> {
       medioEntrega: data.medioEntrega.present
           ? data.medioEntrega.value
           : this.medioEntrega,
+      pdfPath: data.pdfPath.present ? data.pdfPath.value : this.pdfPath,
+      enlacePdf: data.enlacePdf.present ? data.enlacePdf.value : this.enlacePdf,
       remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
       sincronizado: data.sincronizado.present
           ? data.sincronizado.value
@@ -8689,6 +9609,8 @@ class Informe extends DataClass implements Insertable<Informe> {
           ..write('modelo: $modelo, ')
           ..write('entregado: $entregado, ')
           ..write('medioEntrega: $medioEntrega, ')
+          ..write('pdfPath: $pdfPath, ')
+          ..write('enlacePdf: $enlacePdf, ')
           ..write('remoteId: $remoteId, ')
           ..write('sincronizado: $sincronizado')
           ..write(')'))
@@ -8707,6 +9629,8 @@ class Informe extends DataClass implements Insertable<Informe> {
     modelo,
     entregado,
     medioEntrega,
+    pdfPath,
+    enlacePdf,
     remoteId,
     sincronizado,
   );
@@ -8724,6 +9648,8 @@ class Informe extends DataClass implements Insertable<Informe> {
           other.modelo == this.modelo &&
           other.entregado == this.entregado &&
           other.medioEntrega == this.medioEntrega &&
+          other.pdfPath == this.pdfPath &&
+          other.enlacePdf == this.enlacePdf &&
           other.remoteId == this.remoteId &&
           other.sincronizado == this.sincronizado);
 }
@@ -8739,6 +9665,8 @@ class InformesCompanion extends UpdateCompanion<Informe> {
   final Value<String?> modelo;
   final Value<bool> entregado;
   final Value<String?> medioEntrega;
+  final Value<String?> pdfPath;
+  final Value<String?> enlacePdf;
   final Value<String?> remoteId;
   final Value<bool> sincronizado;
   final Value<int> rowid;
@@ -8753,6 +9681,8 @@ class InformesCompanion extends UpdateCompanion<Informe> {
     this.modelo = const Value.absent(),
     this.entregado = const Value.absent(),
     this.medioEntrega = const Value.absent(),
+    this.pdfPath = const Value.absent(),
+    this.enlacePdf = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.sincronizado = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -8768,6 +9698,8 @@ class InformesCompanion extends UpdateCompanion<Informe> {
     this.modelo = const Value.absent(),
     this.entregado = const Value.absent(),
     this.medioEntrega = const Value.absent(),
+    this.pdfPath = const Value.absent(),
+    this.enlacePdf = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.sincronizado = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -8787,6 +9719,8 @@ class InformesCompanion extends UpdateCompanion<Informe> {
     Expression<String>? modelo,
     Expression<bool>? entregado,
     Expression<String>? medioEntrega,
+    Expression<String>? pdfPath,
+    Expression<String>? enlacePdf,
     Expression<String>? remoteId,
     Expression<bool>? sincronizado,
     Expression<int>? rowid,
@@ -8802,6 +9736,8 @@ class InformesCompanion extends UpdateCompanion<Informe> {
       if (modelo != null) 'modelo': modelo,
       if (entregado != null) 'entregado': entregado,
       if (medioEntrega != null) 'medio_entrega': medioEntrega,
+      if (pdfPath != null) 'pdf_path': pdfPath,
+      if (enlacePdf != null) 'enlace_pdf': enlacePdf,
       if (remoteId != null) 'remote_id': remoteId,
       if (sincronizado != null) 'sincronizado': sincronizado,
       if (rowid != null) 'rowid': rowid,
@@ -8819,6 +9755,8 @@ class InformesCompanion extends UpdateCompanion<Informe> {
     Value<String?>? modelo,
     Value<bool>? entregado,
     Value<String?>? medioEntrega,
+    Value<String?>? pdfPath,
+    Value<String?>? enlacePdf,
     Value<String?>? remoteId,
     Value<bool>? sincronizado,
     Value<int>? rowid,
@@ -8834,6 +9772,8 @@ class InformesCompanion extends UpdateCompanion<Informe> {
       modelo: modelo ?? this.modelo,
       entregado: entregado ?? this.entregado,
       medioEntrega: medioEntrega ?? this.medioEntrega,
+      pdfPath: pdfPath ?? this.pdfPath,
+      enlacePdf: enlacePdf ?? this.enlacePdf,
       remoteId: remoteId ?? this.remoteId,
       sincronizado: sincronizado ?? this.sincronizado,
       rowid: rowid ?? this.rowid,
@@ -8873,6 +9813,12 @@ class InformesCompanion extends UpdateCompanion<Informe> {
     if (medioEntrega.present) {
       map['medio_entrega'] = Variable<String>(medioEntrega.value);
     }
+    if (pdfPath.present) {
+      map['pdf_path'] = Variable<String>(pdfPath.value);
+    }
+    if (enlacePdf.present) {
+      map['enlace_pdf'] = Variable<String>(enlacePdf.value);
+    }
     if (remoteId.present) {
       map['remote_id'] = Variable<String>(remoteId.value);
     }
@@ -8898,8 +9844,1639 @@ class InformesCompanion extends UpdateCompanion<Informe> {
           ..write('modelo: $modelo, ')
           ..write('entregado: $entregado, ')
           ..write('medioEntrega: $medioEntrega, ')
+          ..write('pdfPath: $pdfPath, ')
+          ..write('enlacePdf: $enlacePdf, ')
           ..write('remoteId: $remoteId, ')
           ..write('sincronizado: $sincronizado, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TrazadosTable extends Trazados with TableInfo<$TrazadosTable, Trazado> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TrazadosTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _visitaIdMeta = const VerificationMeta(
+    'visitaId',
+  );
+  @override
+  late final GeneratedColumn<String> visitaId = GeneratedColumn<String>(
+    'visita_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nombreMeta = const VerificationMeta('nombre');
+  @override
+  late final GeneratedColumn<String> nombre = GeneratedColumn<String>(
+    'nombre',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<TipoTrazado, String> tipo =
+      GeneratedColumn<String>(
+        'tipo',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('Poligono'),
+      ).withConverter<TipoTrazado>($TrazadosTable.$convertertipo);
+  @override
+  late final GeneratedColumnWithTypeConverter<ModoCaptura, String> modoCaptura =
+      GeneratedColumn<String>(
+        'modo_captura',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('Manual'),
+      ).withConverter<ModoCaptura>($TrazadosTable.$convertermodoCaptura);
+  static const VerificationMeta _etiquetaMeta = const VerificationMeta(
+    'etiqueta',
+  );
+  @override
+  late final GeneratedColumn<String> etiqueta = GeneratedColumn<String>(
+    'etiqueta',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notasMeta = const VerificationMeta('notas');
+  @override
+  late final GeneratedColumn<String> notas = GeneratedColumn<String>(
+    'notas',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _intervaloSegMeta = const VerificationMeta(
+    'intervaloSeg',
+  );
+  @override
+  late final GeneratedColumn<int> intervaloSeg = GeneratedColumn<int>(
+    'intervalo_seg',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _distanciaMinMMeta = const VerificationMeta(
+    'distanciaMinM',
+  );
+  @override
+  late final GeneratedColumn<double> distanciaMinM = GeneratedColumn<double>(
+    'distancia_min_m',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _precisionMaxMMeta = const VerificationMeta(
+    'precisionMaxM',
+  );
+  @override
+  late final GeneratedColumn<double> precisionMaxM = GeneratedColumn<double>(
+    'precision_max_m',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cerradoMeta = const VerificationMeta(
+    'cerrado',
+  );
+  @override
+  late final GeneratedColumn<bool> cerrado = GeneratedColumn<bool>(
+    'cerrado',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("cerrado" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _areaM2Meta = const VerificationMeta('areaM2');
+  @override
+  late final GeneratedColumn<double> areaM2 = GeneratedColumn<double>(
+    'area_m2',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _perimetroMMeta = const VerificationMeta(
+    'perimetroM',
+  );
+  @override
+  late final GeneratedColumn<double> perimetroM = GeneratedColumn<double>(
+    'perimetro_m',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _creadoEnMeta = const VerificationMeta(
+    'creadoEn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> creadoEn = GeneratedColumn<DateTime>(
+    'creado_en',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actualizadoEnMeta = const VerificationMeta(
+    'actualizadoEn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> actualizadoEn =
+      GeneratedColumn<DateTime>(
+        'actualizado_en',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  @override
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sincronizadoMeta = const VerificationMeta(
+    'sincronizado',
+  );
+  @override
+  late final GeneratedColumn<bool> sincronizado = GeneratedColumn<bool>(
+    'sincronizado',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sincronizado" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    visitaId,
+    nombre,
+    tipo,
+    modoCaptura,
+    etiqueta,
+    notas,
+    intervaloSeg,
+    distanciaMinM,
+    precisionMaxM,
+    cerrado,
+    areaM2,
+    perimetroM,
+    creadoEn,
+    actualizadoEn,
+    remoteId,
+    sincronizado,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'trazados';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Trazado> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('visita_id')) {
+      context.handle(
+        _visitaIdMeta,
+        visitaId.isAcceptableOrUnknown(data['visita_id']!, _visitaIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visitaIdMeta);
+    }
+    if (data.containsKey('nombre')) {
+      context.handle(
+        _nombreMeta,
+        nombre.isAcceptableOrUnknown(data['nombre']!, _nombreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nombreMeta);
+    }
+    if (data.containsKey('etiqueta')) {
+      context.handle(
+        _etiquetaMeta,
+        etiqueta.isAcceptableOrUnknown(data['etiqueta']!, _etiquetaMeta),
+      );
+    }
+    if (data.containsKey('notas')) {
+      context.handle(
+        _notasMeta,
+        notas.isAcceptableOrUnknown(data['notas']!, _notasMeta),
+      );
+    }
+    if (data.containsKey('intervalo_seg')) {
+      context.handle(
+        _intervaloSegMeta,
+        intervaloSeg.isAcceptableOrUnknown(
+          data['intervalo_seg']!,
+          _intervaloSegMeta,
+        ),
+      );
+    }
+    if (data.containsKey('distancia_min_m')) {
+      context.handle(
+        _distanciaMinMMeta,
+        distanciaMinM.isAcceptableOrUnknown(
+          data['distancia_min_m']!,
+          _distanciaMinMMeta,
+        ),
+      );
+    }
+    if (data.containsKey('precision_max_m')) {
+      context.handle(
+        _precisionMaxMMeta,
+        precisionMaxM.isAcceptableOrUnknown(
+          data['precision_max_m']!,
+          _precisionMaxMMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cerrado')) {
+      context.handle(
+        _cerradoMeta,
+        cerrado.isAcceptableOrUnknown(data['cerrado']!, _cerradoMeta),
+      );
+    }
+    if (data.containsKey('area_m2')) {
+      context.handle(
+        _areaM2Meta,
+        areaM2.isAcceptableOrUnknown(data['area_m2']!, _areaM2Meta),
+      );
+    }
+    if (data.containsKey('perimetro_m')) {
+      context.handle(
+        _perimetroMMeta,
+        perimetroM.isAcceptableOrUnknown(data['perimetro_m']!, _perimetroMMeta),
+      );
+    }
+    if (data.containsKey('creado_en')) {
+      context.handle(
+        _creadoEnMeta,
+        creadoEn.isAcceptableOrUnknown(data['creado_en']!, _creadoEnMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_creadoEnMeta);
+    }
+    if (data.containsKey('actualizado_en')) {
+      context.handle(
+        _actualizadoEnMeta,
+        actualizadoEn.isAcceptableOrUnknown(
+          data['actualizado_en']!,
+          _actualizadoEnMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
+    }
+    if (data.containsKey('sincronizado')) {
+      context.handle(
+        _sincronizadoMeta,
+        sincronizado.isAcceptableOrUnknown(
+          data['sincronizado']!,
+          _sincronizadoMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Trazado map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Trazado(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      visitaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visita_id'],
+      )!,
+      nombre: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nombre'],
+      )!,
+      tipo: $TrazadosTable.$convertertipo.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}tipo'],
+        )!,
+      ),
+      modoCaptura: $TrazadosTable.$convertermodoCaptura.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}modo_captura'],
+        )!,
+      ),
+      etiqueta: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}etiqueta'],
+      ),
+      notas: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notas'],
+      ),
+      intervaloSeg: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}intervalo_seg'],
+      ),
+      distanciaMinM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}distancia_min_m'],
+      ),
+      precisionMaxM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}precision_max_m'],
+      ),
+      cerrado: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}cerrado'],
+      )!,
+      areaM2: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}area_m2'],
+      ),
+      perimetroM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}perimetro_m'],
+      ),
+      creadoEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}creado_en'],
+      )!,
+      actualizadoEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}actualizado_en'],
+      ),
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
+      ),
+      sincronizado: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sincronizado'],
+      )!,
+    );
+  }
+
+  @override
+  $TrazadosTable createAlias(String alias) {
+    return $TrazadosTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<TipoTrazado, String> $convertertipo =
+      const TipoTrazadoConverter();
+  static TypeConverter<ModoCaptura, String> $convertermodoCaptura =
+      const ModoCapturaConverter();
+}
+
+class Trazado extends DataClass implements Insertable<Trazado> {
+  final String id;
+  final String visitaId;
+
+  /// Como lo llama el visitador: «Lote de arriba», «lindero con el vecino».
+  final String nombre;
+  final TipoTrazado tipo;
+  final ModoCaptura modoCaptura;
+
+  /// Que hay sembrado ahi. Texto libre a proposito: el cultivo tambien sale de
+  /// la conversacion, y obligar a elegir de una lista en el potrero es como
+  /// volver a la encuesta.
+  final String? etiqueta;
+  final String? notas;
+
+  /// Cada cuantos segundos se pone un punto en modo automatico. null o 0
+  /// significa que este trazado no captura solo.
+  final int? intervaloSeg;
+
+  /// Si el punto nuevo esta a menos de esto del anterior, no se guarda. Es lo
+  /// que evita que estar parado hablando dos minutos deje cuarenta puntos
+  /// encimados que le inventan forma al lote.
+  final double? distanciaMinM;
+
+  /// Se rechaza el punto cuya precision reportada sea peor que esto. Un punto
+  /// con 60 m de error mueve un lindero mas de lo que mide el lote.
+  final double? precisionMaxM;
+
+  /// El anillo se cierra. Lo decide el visitador: mientras sea false, el
+  /// trazado sale al KML como linea, porque un poligono que nadie cerro no es
+  /// un lote — es un recorrido a medias.
+  final bool cerrado;
+
+  /// Recalculadas en cada cambio de puntos. Se persisten para que la lista de
+  /// trazados no tenga que recorrer todos los puntos de todos los lotes para
+  /// mostrar un area.
+  final double? areaM2;
+  final double? perimetroM;
+  final DateTime creadoEn;
+  final DateTime? actualizadoEn;
+  final String? remoteId;
+  final bool sincronizado;
+  const Trazado({
+    required this.id,
+    required this.visitaId,
+    required this.nombre,
+    required this.tipo,
+    required this.modoCaptura,
+    this.etiqueta,
+    this.notas,
+    this.intervaloSeg,
+    this.distanciaMinM,
+    this.precisionMaxM,
+    required this.cerrado,
+    this.areaM2,
+    this.perimetroM,
+    required this.creadoEn,
+    this.actualizadoEn,
+    this.remoteId,
+    required this.sincronizado,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['visita_id'] = Variable<String>(visitaId);
+    map['nombre'] = Variable<String>(nombre);
+    {
+      map['tipo'] = Variable<String>($TrazadosTable.$convertertipo.toSql(tipo));
+    }
+    {
+      map['modo_captura'] = Variable<String>(
+        $TrazadosTable.$convertermodoCaptura.toSql(modoCaptura),
+      );
+    }
+    if (!nullToAbsent || etiqueta != null) {
+      map['etiqueta'] = Variable<String>(etiqueta);
+    }
+    if (!nullToAbsent || notas != null) {
+      map['notas'] = Variable<String>(notas);
+    }
+    if (!nullToAbsent || intervaloSeg != null) {
+      map['intervalo_seg'] = Variable<int>(intervaloSeg);
+    }
+    if (!nullToAbsent || distanciaMinM != null) {
+      map['distancia_min_m'] = Variable<double>(distanciaMinM);
+    }
+    if (!nullToAbsent || precisionMaxM != null) {
+      map['precision_max_m'] = Variable<double>(precisionMaxM);
+    }
+    map['cerrado'] = Variable<bool>(cerrado);
+    if (!nullToAbsent || areaM2 != null) {
+      map['area_m2'] = Variable<double>(areaM2);
+    }
+    if (!nullToAbsent || perimetroM != null) {
+      map['perimetro_m'] = Variable<double>(perimetroM);
+    }
+    map['creado_en'] = Variable<DateTime>(creadoEn);
+    if (!nullToAbsent || actualizadoEn != null) {
+      map['actualizado_en'] = Variable<DateTime>(actualizadoEn);
+    }
+    if (!nullToAbsent || remoteId != null) {
+      map['remote_id'] = Variable<String>(remoteId);
+    }
+    map['sincronizado'] = Variable<bool>(sincronizado);
+    return map;
+  }
+
+  TrazadosCompanion toCompanion(bool nullToAbsent) {
+    return TrazadosCompanion(
+      id: Value(id),
+      visitaId: Value(visitaId),
+      nombre: Value(nombre),
+      tipo: Value(tipo),
+      modoCaptura: Value(modoCaptura),
+      etiqueta: etiqueta == null && nullToAbsent
+          ? const Value.absent()
+          : Value(etiqueta),
+      notas: notas == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notas),
+      intervaloSeg: intervaloSeg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(intervaloSeg),
+      distanciaMinM: distanciaMinM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distanciaMinM),
+      precisionMaxM: precisionMaxM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(precisionMaxM),
+      cerrado: Value(cerrado),
+      areaM2: areaM2 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(areaM2),
+      perimetroM: perimetroM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(perimetroM),
+      creadoEn: Value(creadoEn),
+      actualizadoEn: actualizadoEn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(actualizadoEn),
+      remoteId: remoteId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteId),
+      sincronizado: Value(sincronizado),
+    );
+  }
+
+  factory Trazado.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Trazado(
+      id: serializer.fromJson<String>(json['id']),
+      visitaId: serializer.fromJson<String>(json['visitaId']),
+      nombre: serializer.fromJson<String>(json['nombre']),
+      tipo: serializer.fromJson<TipoTrazado>(json['tipo']),
+      modoCaptura: serializer.fromJson<ModoCaptura>(json['modoCaptura']),
+      etiqueta: serializer.fromJson<String?>(json['etiqueta']),
+      notas: serializer.fromJson<String?>(json['notas']),
+      intervaloSeg: serializer.fromJson<int?>(json['intervaloSeg']),
+      distanciaMinM: serializer.fromJson<double?>(json['distanciaMinM']),
+      precisionMaxM: serializer.fromJson<double?>(json['precisionMaxM']),
+      cerrado: serializer.fromJson<bool>(json['cerrado']),
+      areaM2: serializer.fromJson<double?>(json['areaM2']),
+      perimetroM: serializer.fromJson<double?>(json['perimetroM']),
+      creadoEn: serializer.fromJson<DateTime>(json['creadoEn']),
+      actualizadoEn: serializer.fromJson<DateTime?>(json['actualizadoEn']),
+      remoteId: serializer.fromJson<String?>(json['remoteId']),
+      sincronizado: serializer.fromJson<bool>(json['sincronizado']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'visitaId': serializer.toJson<String>(visitaId),
+      'nombre': serializer.toJson<String>(nombre),
+      'tipo': serializer.toJson<TipoTrazado>(tipo),
+      'modoCaptura': serializer.toJson<ModoCaptura>(modoCaptura),
+      'etiqueta': serializer.toJson<String?>(etiqueta),
+      'notas': serializer.toJson<String?>(notas),
+      'intervaloSeg': serializer.toJson<int?>(intervaloSeg),
+      'distanciaMinM': serializer.toJson<double?>(distanciaMinM),
+      'precisionMaxM': serializer.toJson<double?>(precisionMaxM),
+      'cerrado': serializer.toJson<bool>(cerrado),
+      'areaM2': serializer.toJson<double?>(areaM2),
+      'perimetroM': serializer.toJson<double?>(perimetroM),
+      'creadoEn': serializer.toJson<DateTime>(creadoEn),
+      'actualizadoEn': serializer.toJson<DateTime?>(actualizadoEn),
+      'remoteId': serializer.toJson<String?>(remoteId),
+      'sincronizado': serializer.toJson<bool>(sincronizado),
+    };
+  }
+
+  Trazado copyWith({
+    String? id,
+    String? visitaId,
+    String? nombre,
+    TipoTrazado? tipo,
+    ModoCaptura? modoCaptura,
+    Value<String?> etiqueta = const Value.absent(),
+    Value<String?> notas = const Value.absent(),
+    Value<int?> intervaloSeg = const Value.absent(),
+    Value<double?> distanciaMinM = const Value.absent(),
+    Value<double?> precisionMaxM = const Value.absent(),
+    bool? cerrado,
+    Value<double?> areaM2 = const Value.absent(),
+    Value<double?> perimetroM = const Value.absent(),
+    DateTime? creadoEn,
+    Value<DateTime?> actualizadoEn = const Value.absent(),
+    Value<String?> remoteId = const Value.absent(),
+    bool? sincronizado,
+  }) => Trazado(
+    id: id ?? this.id,
+    visitaId: visitaId ?? this.visitaId,
+    nombre: nombre ?? this.nombre,
+    tipo: tipo ?? this.tipo,
+    modoCaptura: modoCaptura ?? this.modoCaptura,
+    etiqueta: etiqueta.present ? etiqueta.value : this.etiqueta,
+    notas: notas.present ? notas.value : this.notas,
+    intervaloSeg: intervaloSeg.present ? intervaloSeg.value : this.intervaloSeg,
+    distanciaMinM: distanciaMinM.present
+        ? distanciaMinM.value
+        : this.distanciaMinM,
+    precisionMaxM: precisionMaxM.present
+        ? precisionMaxM.value
+        : this.precisionMaxM,
+    cerrado: cerrado ?? this.cerrado,
+    areaM2: areaM2.present ? areaM2.value : this.areaM2,
+    perimetroM: perimetroM.present ? perimetroM.value : this.perimetroM,
+    creadoEn: creadoEn ?? this.creadoEn,
+    actualizadoEn: actualizadoEn.present
+        ? actualizadoEn.value
+        : this.actualizadoEn,
+    remoteId: remoteId.present ? remoteId.value : this.remoteId,
+    sincronizado: sincronizado ?? this.sincronizado,
+  );
+  Trazado copyWithCompanion(TrazadosCompanion data) {
+    return Trazado(
+      id: data.id.present ? data.id.value : this.id,
+      visitaId: data.visitaId.present ? data.visitaId.value : this.visitaId,
+      nombre: data.nombre.present ? data.nombre.value : this.nombre,
+      tipo: data.tipo.present ? data.tipo.value : this.tipo,
+      modoCaptura: data.modoCaptura.present
+          ? data.modoCaptura.value
+          : this.modoCaptura,
+      etiqueta: data.etiqueta.present ? data.etiqueta.value : this.etiqueta,
+      notas: data.notas.present ? data.notas.value : this.notas,
+      intervaloSeg: data.intervaloSeg.present
+          ? data.intervaloSeg.value
+          : this.intervaloSeg,
+      distanciaMinM: data.distanciaMinM.present
+          ? data.distanciaMinM.value
+          : this.distanciaMinM,
+      precisionMaxM: data.precisionMaxM.present
+          ? data.precisionMaxM.value
+          : this.precisionMaxM,
+      cerrado: data.cerrado.present ? data.cerrado.value : this.cerrado,
+      areaM2: data.areaM2.present ? data.areaM2.value : this.areaM2,
+      perimetroM: data.perimetroM.present
+          ? data.perimetroM.value
+          : this.perimetroM,
+      creadoEn: data.creadoEn.present ? data.creadoEn.value : this.creadoEn,
+      actualizadoEn: data.actualizadoEn.present
+          ? data.actualizadoEn.value
+          : this.actualizadoEn,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
+      sincronizado: data.sincronizado.present
+          ? data.sincronizado.value
+          : this.sincronizado,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Trazado(')
+          ..write('id: $id, ')
+          ..write('visitaId: $visitaId, ')
+          ..write('nombre: $nombre, ')
+          ..write('tipo: $tipo, ')
+          ..write('modoCaptura: $modoCaptura, ')
+          ..write('etiqueta: $etiqueta, ')
+          ..write('notas: $notas, ')
+          ..write('intervaloSeg: $intervaloSeg, ')
+          ..write('distanciaMinM: $distanciaMinM, ')
+          ..write('precisionMaxM: $precisionMaxM, ')
+          ..write('cerrado: $cerrado, ')
+          ..write('areaM2: $areaM2, ')
+          ..write('perimetroM: $perimetroM, ')
+          ..write('creadoEn: $creadoEn, ')
+          ..write('actualizadoEn: $actualizadoEn, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('sincronizado: $sincronizado')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    visitaId,
+    nombre,
+    tipo,
+    modoCaptura,
+    etiqueta,
+    notas,
+    intervaloSeg,
+    distanciaMinM,
+    precisionMaxM,
+    cerrado,
+    areaM2,
+    perimetroM,
+    creadoEn,
+    actualizadoEn,
+    remoteId,
+    sincronizado,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Trazado &&
+          other.id == this.id &&
+          other.visitaId == this.visitaId &&
+          other.nombre == this.nombre &&
+          other.tipo == this.tipo &&
+          other.modoCaptura == this.modoCaptura &&
+          other.etiqueta == this.etiqueta &&
+          other.notas == this.notas &&
+          other.intervaloSeg == this.intervaloSeg &&
+          other.distanciaMinM == this.distanciaMinM &&
+          other.precisionMaxM == this.precisionMaxM &&
+          other.cerrado == this.cerrado &&
+          other.areaM2 == this.areaM2 &&
+          other.perimetroM == this.perimetroM &&
+          other.creadoEn == this.creadoEn &&
+          other.actualizadoEn == this.actualizadoEn &&
+          other.remoteId == this.remoteId &&
+          other.sincronizado == this.sincronizado);
+}
+
+class TrazadosCompanion extends UpdateCompanion<Trazado> {
+  final Value<String> id;
+  final Value<String> visitaId;
+  final Value<String> nombre;
+  final Value<TipoTrazado> tipo;
+  final Value<ModoCaptura> modoCaptura;
+  final Value<String?> etiqueta;
+  final Value<String?> notas;
+  final Value<int?> intervaloSeg;
+  final Value<double?> distanciaMinM;
+  final Value<double?> precisionMaxM;
+  final Value<bool> cerrado;
+  final Value<double?> areaM2;
+  final Value<double?> perimetroM;
+  final Value<DateTime> creadoEn;
+  final Value<DateTime?> actualizadoEn;
+  final Value<String?> remoteId;
+  final Value<bool> sincronizado;
+  final Value<int> rowid;
+  const TrazadosCompanion({
+    this.id = const Value.absent(),
+    this.visitaId = const Value.absent(),
+    this.nombre = const Value.absent(),
+    this.tipo = const Value.absent(),
+    this.modoCaptura = const Value.absent(),
+    this.etiqueta = const Value.absent(),
+    this.notas = const Value.absent(),
+    this.intervaloSeg = const Value.absent(),
+    this.distanciaMinM = const Value.absent(),
+    this.precisionMaxM = const Value.absent(),
+    this.cerrado = const Value.absent(),
+    this.areaM2 = const Value.absent(),
+    this.perimetroM = const Value.absent(),
+    this.creadoEn = const Value.absent(),
+    this.actualizadoEn = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.sincronizado = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TrazadosCompanion.insert({
+    required String id,
+    required String visitaId,
+    required String nombre,
+    this.tipo = const Value.absent(),
+    this.modoCaptura = const Value.absent(),
+    this.etiqueta = const Value.absent(),
+    this.notas = const Value.absent(),
+    this.intervaloSeg = const Value.absent(),
+    this.distanciaMinM = const Value.absent(),
+    this.precisionMaxM = const Value.absent(),
+    this.cerrado = const Value.absent(),
+    this.areaM2 = const Value.absent(),
+    this.perimetroM = const Value.absent(),
+    required DateTime creadoEn,
+    this.actualizadoEn = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.sincronizado = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       visitaId = Value(visitaId),
+       nombre = Value(nombre),
+       creadoEn = Value(creadoEn);
+  static Insertable<Trazado> custom({
+    Expression<String>? id,
+    Expression<String>? visitaId,
+    Expression<String>? nombre,
+    Expression<String>? tipo,
+    Expression<String>? modoCaptura,
+    Expression<String>? etiqueta,
+    Expression<String>? notas,
+    Expression<int>? intervaloSeg,
+    Expression<double>? distanciaMinM,
+    Expression<double>? precisionMaxM,
+    Expression<bool>? cerrado,
+    Expression<double>? areaM2,
+    Expression<double>? perimetroM,
+    Expression<DateTime>? creadoEn,
+    Expression<DateTime>? actualizadoEn,
+    Expression<String>? remoteId,
+    Expression<bool>? sincronizado,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (visitaId != null) 'visita_id': visitaId,
+      if (nombre != null) 'nombre': nombre,
+      if (tipo != null) 'tipo': tipo,
+      if (modoCaptura != null) 'modo_captura': modoCaptura,
+      if (etiqueta != null) 'etiqueta': etiqueta,
+      if (notas != null) 'notas': notas,
+      if (intervaloSeg != null) 'intervalo_seg': intervaloSeg,
+      if (distanciaMinM != null) 'distancia_min_m': distanciaMinM,
+      if (precisionMaxM != null) 'precision_max_m': precisionMaxM,
+      if (cerrado != null) 'cerrado': cerrado,
+      if (areaM2 != null) 'area_m2': areaM2,
+      if (perimetroM != null) 'perimetro_m': perimetroM,
+      if (creadoEn != null) 'creado_en': creadoEn,
+      if (actualizadoEn != null) 'actualizado_en': actualizadoEn,
+      if (remoteId != null) 'remote_id': remoteId,
+      if (sincronizado != null) 'sincronizado': sincronizado,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TrazadosCompanion copyWith({
+    Value<String>? id,
+    Value<String>? visitaId,
+    Value<String>? nombre,
+    Value<TipoTrazado>? tipo,
+    Value<ModoCaptura>? modoCaptura,
+    Value<String?>? etiqueta,
+    Value<String?>? notas,
+    Value<int?>? intervaloSeg,
+    Value<double?>? distanciaMinM,
+    Value<double?>? precisionMaxM,
+    Value<bool>? cerrado,
+    Value<double?>? areaM2,
+    Value<double?>? perimetroM,
+    Value<DateTime>? creadoEn,
+    Value<DateTime?>? actualizadoEn,
+    Value<String?>? remoteId,
+    Value<bool>? sincronizado,
+    Value<int>? rowid,
+  }) {
+    return TrazadosCompanion(
+      id: id ?? this.id,
+      visitaId: visitaId ?? this.visitaId,
+      nombre: nombre ?? this.nombre,
+      tipo: tipo ?? this.tipo,
+      modoCaptura: modoCaptura ?? this.modoCaptura,
+      etiqueta: etiqueta ?? this.etiqueta,
+      notas: notas ?? this.notas,
+      intervaloSeg: intervaloSeg ?? this.intervaloSeg,
+      distanciaMinM: distanciaMinM ?? this.distanciaMinM,
+      precisionMaxM: precisionMaxM ?? this.precisionMaxM,
+      cerrado: cerrado ?? this.cerrado,
+      areaM2: areaM2 ?? this.areaM2,
+      perimetroM: perimetroM ?? this.perimetroM,
+      creadoEn: creadoEn ?? this.creadoEn,
+      actualizadoEn: actualizadoEn ?? this.actualizadoEn,
+      remoteId: remoteId ?? this.remoteId,
+      sincronizado: sincronizado ?? this.sincronizado,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (visitaId.present) {
+      map['visita_id'] = Variable<String>(visitaId.value);
+    }
+    if (nombre.present) {
+      map['nombre'] = Variable<String>(nombre.value);
+    }
+    if (tipo.present) {
+      map['tipo'] = Variable<String>(
+        $TrazadosTable.$convertertipo.toSql(tipo.value),
+      );
+    }
+    if (modoCaptura.present) {
+      map['modo_captura'] = Variable<String>(
+        $TrazadosTable.$convertermodoCaptura.toSql(modoCaptura.value),
+      );
+    }
+    if (etiqueta.present) {
+      map['etiqueta'] = Variable<String>(etiqueta.value);
+    }
+    if (notas.present) {
+      map['notas'] = Variable<String>(notas.value);
+    }
+    if (intervaloSeg.present) {
+      map['intervalo_seg'] = Variable<int>(intervaloSeg.value);
+    }
+    if (distanciaMinM.present) {
+      map['distancia_min_m'] = Variable<double>(distanciaMinM.value);
+    }
+    if (precisionMaxM.present) {
+      map['precision_max_m'] = Variable<double>(precisionMaxM.value);
+    }
+    if (cerrado.present) {
+      map['cerrado'] = Variable<bool>(cerrado.value);
+    }
+    if (areaM2.present) {
+      map['area_m2'] = Variable<double>(areaM2.value);
+    }
+    if (perimetroM.present) {
+      map['perimetro_m'] = Variable<double>(perimetroM.value);
+    }
+    if (creadoEn.present) {
+      map['creado_en'] = Variable<DateTime>(creadoEn.value);
+    }
+    if (actualizadoEn.present) {
+      map['actualizado_en'] = Variable<DateTime>(actualizadoEn.value);
+    }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
+    }
+    if (sincronizado.present) {
+      map['sincronizado'] = Variable<bool>(sincronizado.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrazadosCompanion(')
+          ..write('id: $id, ')
+          ..write('visitaId: $visitaId, ')
+          ..write('nombre: $nombre, ')
+          ..write('tipo: $tipo, ')
+          ..write('modoCaptura: $modoCaptura, ')
+          ..write('etiqueta: $etiqueta, ')
+          ..write('notas: $notas, ')
+          ..write('intervaloSeg: $intervaloSeg, ')
+          ..write('distanciaMinM: $distanciaMinM, ')
+          ..write('precisionMaxM: $precisionMaxM, ')
+          ..write('cerrado: $cerrado, ')
+          ..write('areaM2: $areaM2, ')
+          ..write('perimetroM: $perimetroM, ')
+          ..write('creadoEn: $creadoEn, ')
+          ..write('actualizadoEn: $actualizadoEn, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('sincronizado: $sincronizado, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PuntosTrazadoTable extends PuntosTrazado
+    with TableInfo<$PuntosTrazadoTable, PuntoTrazado> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PuntosTrazadoTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _trazadoIdMeta = const VerificationMeta(
+    'trazadoId',
+  );
+  @override
+  late final GeneratedColumn<String> trazadoId = GeneratedColumn<String>(
+    'trazado_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ordenMeta = const VerificationMeta('orden');
+  @override
+  late final GeneratedColumn<int> orden = GeneratedColumn<int>(
+    'orden',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _latitudMeta = const VerificationMeta(
+    'latitud',
+  );
+  @override
+  late final GeneratedColumn<double> latitud = GeneratedColumn<double>(
+    'latitud',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _longitudMeta = const VerificationMeta(
+    'longitud',
+  );
+  @override
+  late final GeneratedColumn<double> longitud = GeneratedColumn<double>(
+    'longitud',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _altitudMeta = const VerificationMeta(
+    'altitud',
+  );
+  @override
+  late final GeneratedColumn<double> altitud = GeneratedColumn<double>(
+    'altitud',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _precisionMMeta = const VerificationMeta(
+    'precisionM',
+  );
+  @override
+  late final GeneratedColumn<double> precisionM = GeneratedColumn<double>(
+    'precision_m',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _capturadoEnMeta = const VerificationMeta(
+    'capturadoEn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> capturadoEn = GeneratedColumn<DateTime>(
+    'capturado_en',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _automaticoMeta = const VerificationMeta(
+    'automatico',
+  );
+  @override
+  late final GeneratedColumn<bool> automatico = GeneratedColumn<bool>(
+    'automatico',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("automatico" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _notaMeta = const VerificationMeta('nota');
+  @override
+  late final GeneratedColumn<String> nota = GeneratedColumn<String>(
+    'nota',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    trazadoId,
+    orden,
+    latitud,
+    longitud,
+    altitud,
+    precisionM,
+    capturadoEn,
+    automatico,
+    nota,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'puntos_trazado';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PuntoTrazado> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('trazado_id')) {
+      context.handle(
+        _trazadoIdMeta,
+        trazadoId.isAcceptableOrUnknown(data['trazado_id']!, _trazadoIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trazadoIdMeta);
+    }
+    if (data.containsKey('orden')) {
+      context.handle(
+        _ordenMeta,
+        orden.isAcceptableOrUnknown(data['orden']!, _ordenMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ordenMeta);
+    }
+    if (data.containsKey('latitud')) {
+      context.handle(
+        _latitudMeta,
+        latitud.isAcceptableOrUnknown(data['latitud']!, _latitudMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_latitudMeta);
+    }
+    if (data.containsKey('longitud')) {
+      context.handle(
+        _longitudMeta,
+        longitud.isAcceptableOrUnknown(data['longitud']!, _longitudMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_longitudMeta);
+    }
+    if (data.containsKey('altitud')) {
+      context.handle(
+        _altitudMeta,
+        altitud.isAcceptableOrUnknown(data['altitud']!, _altitudMeta),
+      );
+    }
+    if (data.containsKey('precision_m')) {
+      context.handle(
+        _precisionMMeta,
+        precisionM.isAcceptableOrUnknown(data['precision_m']!, _precisionMMeta),
+      );
+    }
+    if (data.containsKey('capturado_en')) {
+      context.handle(
+        _capturadoEnMeta,
+        capturadoEn.isAcceptableOrUnknown(
+          data['capturado_en']!,
+          _capturadoEnMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_capturadoEnMeta);
+    }
+    if (data.containsKey('automatico')) {
+      context.handle(
+        _automaticoMeta,
+        automatico.isAcceptableOrUnknown(data['automatico']!, _automaticoMeta),
+      );
+    }
+    if (data.containsKey('nota')) {
+      context.handle(
+        _notaMeta,
+        nota.isAcceptableOrUnknown(data['nota']!, _notaMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PuntoTrazado map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PuntoTrazado(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      trazadoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trazado_id'],
+      )!,
+      orden: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}orden'],
+      )!,
+      latitud: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitud'],
+      )!,
+      longitud: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitud'],
+      )!,
+      altitud: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}altitud'],
+      ),
+      precisionM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}precision_m'],
+      ),
+      capturadoEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}capturado_en'],
+      )!,
+      automatico: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}automatico'],
+      )!,
+      nota: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nota'],
+      ),
+    );
+  }
+
+  @override
+  $PuntosTrazadoTable createAlias(String alias) {
+    return $PuntosTrazadoTable(attachedDatabase, alias);
+  }
+}
+
+class PuntoTrazado extends DataClass implements Insertable<PuntoTrazado> {
+  final String id;
+  final String trazadoId;
+
+  /// Posicion en el anillo. El orden ES la geometria: dos puntos intercambiados
+  /// convierten un lote en un ocho.
+  final int orden;
+  final double latitud;
+  final double longitud;
+  final double? altitud;
+
+  /// Radio de error que reporto el GPS, en metros.
+  final double? precisionM;
+  final DateTime capturadoEn;
+
+  /// false = lo marco el visitador con el boton. true = lo puso el reloj.
+  final bool automatico;
+  final String? nota;
+  const PuntoTrazado({
+    required this.id,
+    required this.trazadoId,
+    required this.orden,
+    required this.latitud,
+    required this.longitud,
+    this.altitud,
+    this.precisionM,
+    required this.capturadoEn,
+    required this.automatico,
+    this.nota,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['trazado_id'] = Variable<String>(trazadoId);
+    map['orden'] = Variable<int>(orden);
+    map['latitud'] = Variable<double>(latitud);
+    map['longitud'] = Variable<double>(longitud);
+    if (!nullToAbsent || altitud != null) {
+      map['altitud'] = Variable<double>(altitud);
+    }
+    if (!nullToAbsent || precisionM != null) {
+      map['precision_m'] = Variable<double>(precisionM);
+    }
+    map['capturado_en'] = Variable<DateTime>(capturadoEn);
+    map['automatico'] = Variable<bool>(automatico);
+    if (!nullToAbsent || nota != null) {
+      map['nota'] = Variable<String>(nota);
+    }
+    return map;
+  }
+
+  PuntosTrazadoCompanion toCompanion(bool nullToAbsent) {
+    return PuntosTrazadoCompanion(
+      id: Value(id),
+      trazadoId: Value(trazadoId),
+      orden: Value(orden),
+      latitud: Value(latitud),
+      longitud: Value(longitud),
+      altitud: altitud == null && nullToAbsent
+          ? const Value.absent()
+          : Value(altitud),
+      precisionM: precisionM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(precisionM),
+      capturadoEn: Value(capturadoEn),
+      automatico: Value(automatico),
+      nota: nota == null && nullToAbsent ? const Value.absent() : Value(nota),
+    );
+  }
+
+  factory PuntoTrazado.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PuntoTrazado(
+      id: serializer.fromJson<String>(json['id']),
+      trazadoId: serializer.fromJson<String>(json['trazadoId']),
+      orden: serializer.fromJson<int>(json['orden']),
+      latitud: serializer.fromJson<double>(json['latitud']),
+      longitud: serializer.fromJson<double>(json['longitud']),
+      altitud: serializer.fromJson<double?>(json['altitud']),
+      precisionM: serializer.fromJson<double?>(json['precisionM']),
+      capturadoEn: serializer.fromJson<DateTime>(json['capturadoEn']),
+      automatico: serializer.fromJson<bool>(json['automatico']),
+      nota: serializer.fromJson<String?>(json['nota']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'trazadoId': serializer.toJson<String>(trazadoId),
+      'orden': serializer.toJson<int>(orden),
+      'latitud': serializer.toJson<double>(latitud),
+      'longitud': serializer.toJson<double>(longitud),
+      'altitud': serializer.toJson<double?>(altitud),
+      'precisionM': serializer.toJson<double?>(precisionM),
+      'capturadoEn': serializer.toJson<DateTime>(capturadoEn),
+      'automatico': serializer.toJson<bool>(automatico),
+      'nota': serializer.toJson<String?>(nota),
+    };
+  }
+
+  PuntoTrazado copyWith({
+    String? id,
+    String? trazadoId,
+    int? orden,
+    double? latitud,
+    double? longitud,
+    Value<double?> altitud = const Value.absent(),
+    Value<double?> precisionM = const Value.absent(),
+    DateTime? capturadoEn,
+    bool? automatico,
+    Value<String?> nota = const Value.absent(),
+  }) => PuntoTrazado(
+    id: id ?? this.id,
+    trazadoId: trazadoId ?? this.trazadoId,
+    orden: orden ?? this.orden,
+    latitud: latitud ?? this.latitud,
+    longitud: longitud ?? this.longitud,
+    altitud: altitud.present ? altitud.value : this.altitud,
+    precisionM: precisionM.present ? precisionM.value : this.precisionM,
+    capturadoEn: capturadoEn ?? this.capturadoEn,
+    automatico: automatico ?? this.automatico,
+    nota: nota.present ? nota.value : this.nota,
+  );
+  PuntoTrazado copyWithCompanion(PuntosTrazadoCompanion data) {
+    return PuntoTrazado(
+      id: data.id.present ? data.id.value : this.id,
+      trazadoId: data.trazadoId.present ? data.trazadoId.value : this.trazadoId,
+      orden: data.orden.present ? data.orden.value : this.orden,
+      latitud: data.latitud.present ? data.latitud.value : this.latitud,
+      longitud: data.longitud.present ? data.longitud.value : this.longitud,
+      altitud: data.altitud.present ? data.altitud.value : this.altitud,
+      precisionM: data.precisionM.present
+          ? data.precisionM.value
+          : this.precisionM,
+      capturadoEn: data.capturadoEn.present
+          ? data.capturadoEn.value
+          : this.capturadoEn,
+      automatico: data.automatico.present
+          ? data.automatico.value
+          : this.automatico,
+      nota: data.nota.present ? data.nota.value : this.nota,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PuntoTrazado(')
+          ..write('id: $id, ')
+          ..write('trazadoId: $trazadoId, ')
+          ..write('orden: $orden, ')
+          ..write('latitud: $latitud, ')
+          ..write('longitud: $longitud, ')
+          ..write('altitud: $altitud, ')
+          ..write('precisionM: $precisionM, ')
+          ..write('capturadoEn: $capturadoEn, ')
+          ..write('automatico: $automatico, ')
+          ..write('nota: $nota')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    trazadoId,
+    orden,
+    latitud,
+    longitud,
+    altitud,
+    precisionM,
+    capturadoEn,
+    automatico,
+    nota,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PuntoTrazado &&
+          other.id == this.id &&
+          other.trazadoId == this.trazadoId &&
+          other.orden == this.orden &&
+          other.latitud == this.latitud &&
+          other.longitud == this.longitud &&
+          other.altitud == this.altitud &&
+          other.precisionM == this.precisionM &&
+          other.capturadoEn == this.capturadoEn &&
+          other.automatico == this.automatico &&
+          other.nota == this.nota);
+}
+
+class PuntosTrazadoCompanion extends UpdateCompanion<PuntoTrazado> {
+  final Value<String> id;
+  final Value<String> trazadoId;
+  final Value<int> orden;
+  final Value<double> latitud;
+  final Value<double> longitud;
+  final Value<double?> altitud;
+  final Value<double?> precisionM;
+  final Value<DateTime> capturadoEn;
+  final Value<bool> automatico;
+  final Value<String?> nota;
+  final Value<int> rowid;
+  const PuntosTrazadoCompanion({
+    this.id = const Value.absent(),
+    this.trazadoId = const Value.absent(),
+    this.orden = const Value.absent(),
+    this.latitud = const Value.absent(),
+    this.longitud = const Value.absent(),
+    this.altitud = const Value.absent(),
+    this.precisionM = const Value.absent(),
+    this.capturadoEn = const Value.absent(),
+    this.automatico = const Value.absent(),
+    this.nota = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PuntosTrazadoCompanion.insert({
+    required String id,
+    required String trazadoId,
+    required int orden,
+    required double latitud,
+    required double longitud,
+    this.altitud = const Value.absent(),
+    this.precisionM = const Value.absent(),
+    required DateTime capturadoEn,
+    this.automatico = const Value.absent(),
+    this.nota = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       trazadoId = Value(trazadoId),
+       orden = Value(orden),
+       latitud = Value(latitud),
+       longitud = Value(longitud),
+       capturadoEn = Value(capturadoEn);
+  static Insertable<PuntoTrazado> custom({
+    Expression<String>? id,
+    Expression<String>? trazadoId,
+    Expression<int>? orden,
+    Expression<double>? latitud,
+    Expression<double>? longitud,
+    Expression<double>? altitud,
+    Expression<double>? precisionM,
+    Expression<DateTime>? capturadoEn,
+    Expression<bool>? automatico,
+    Expression<String>? nota,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (trazadoId != null) 'trazado_id': trazadoId,
+      if (orden != null) 'orden': orden,
+      if (latitud != null) 'latitud': latitud,
+      if (longitud != null) 'longitud': longitud,
+      if (altitud != null) 'altitud': altitud,
+      if (precisionM != null) 'precision_m': precisionM,
+      if (capturadoEn != null) 'capturado_en': capturadoEn,
+      if (automatico != null) 'automatico': automatico,
+      if (nota != null) 'nota': nota,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PuntosTrazadoCompanion copyWith({
+    Value<String>? id,
+    Value<String>? trazadoId,
+    Value<int>? orden,
+    Value<double>? latitud,
+    Value<double>? longitud,
+    Value<double?>? altitud,
+    Value<double?>? precisionM,
+    Value<DateTime>? capturadoEn,
+    Value<bool>? automatico,
+    Value<String?>? nota,
+    Value<int>? rowid,
+  }) {
+    return PuntosTrazadoCompanion(
+      id: id ?? this.id,
+      trazadoId: trazadoId ?? this.trazadoId,
+      orden: orden ?? this.orden,
+      latitud: latitud ?? this.latitud,
+      longitud: longitud ?? this.longitud,
+      altitud: altitud ?? this.altitud,
+      precisionM: precisionM ?? this.precisionM,
+      capturadoEn: capturadoEn ?? this.capturadoEn,
+      automatico: automatico ?? this.automatico,
+      nota: nota ?? this.nota,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (trazadoId.present) {
+      map['trazado_id'] = Variable<String>(trazadoId.value);
+    }
+    if (orden.present) {
+      map['orden'] = Variable<int>(orden.value);
+    }
+    if (latitud.present) {
+      map['latitud'] = Variable<double>(latitud.value);
+    }
+    if (longitud.present) {
+      map['longitud'] = Variable<double>(longitud.value);
+    }
+    if (altitud.present) {
+      map['altitud'] = Variable<double>(altitud.value);
+    }
+    if (precisionM.present) {
+      map['precision_m'] = Variable<double>(precisionM.value);
+    }
+    if (capturadoEn.present) {
+      map['capturado_en'] = Variable<DateTime>(capturadoEn.value);
+    }
+    if (automatico.present) {
+      map['automatico'] = Variable<bool>(automatico.value);
+    }
+    if (nota.present) {
+      map['nota'] = Variable<String>(nota.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PuntosTrazadoCompanion(')
+          ..write('id: $id, ')
+          ..write('trazadoId: $trazadoId, ')
+          ..write('orden: $orden, ')
+          ..write('latitud: $latitud, ')
+          ..write('longitud: $longitud, ')
+          ..write('altitud: $altitud, ')
+          ..write('precisionM: $precisionM, ')
+          ..write('capturadoEn: $capturadoEn, ')
+          ..write('automatico: $automatico, ')
+          ..write('nota: $nota, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -9285,7 +11862,7 @@ class SyncItem extends DataClass implements Insertable<SyncItem> {
   final String entidad;
   final String entidadId;
 
-  /// upsert | upload_audio | upload_foto
+  /// upsert | upload_audio | upload_foto | upload_informe
   final String operacion;
   final String? payload;
   final String? archivoPath;
@@ -9759,6 +12336,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $EvidenciasTable evidencias = $EvidenciasTable(this);
   late final $HallazgosTable hallazgos = $HallazgosTable(this);
   late final $InformesTable informes = $InformesTable(this);
+  late final $TrazadosTable trazados = $TrazadosTable(this);
+  late final $PuntosTrazadoTable puntosTrazado = $PuntosTrazadoTable(this);
   late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -9778,6 +12357,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     evidencias,
     hallazgos,
     informes,
+    trazados,
+    puntosTrazado,
     syncQueue,
   ];
 }
@@ -11268,7 +13849,22 @@ typedef $$ProductoresTableCreateCompanionBuilder =
       required String id,
       required String nombreCompleto,
       Value<String?> documento,
+      Value<String?> tipoDocumento,
       Value<String?> telefono,
+      Value<String?> telefonoAlterno,
+      Value<String?> genero,
+      Value<DateTime?> fechaNacimiento,
+      Value<String?> nivelEducativo,
+      Value<int?> aniosExperiencia,
+      Value<int?> personasHogar,
+      Value<String?> organizacion,
+      Value<String?> notas,
+      Value<String?> fotoPath,
+      Value<String?> enlaceFoto,
+      Value<String?> fotoRemota,
+      Value<bool> consentimientoDatos,
+      Value<DateTime?> fechaConsentimiento,
+      Value<DateTime?> datosCompletadosEn,
       Value<String?> codigoProductor,
       Value<String?> remoteId,
       Value<bool> sincronizado,
@@ -11279,7 +13875,22 @@ typedef $$ProductoresTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> nombreCompleto,
       Value<String?> documento,
+      Value<String?> tipoDocumento,
       Value<String?> telefono,
+      Value<String?> telefonoAlterno,
+      Value<String?> genero,
+      Value<DateTime?> fechaNacimiento,
+      Value<String?> nivelEducativo,
+      Value<int?> aniosExperiencia,
+      Value<int?> personasHogar,
+      Value<String?> organizacion,
+      Value<String?> notas,
+      Value<String?> fotoPath,
+      Value<String?> enlaceFoto,
+      Value<String?> fotoRemota,
+      Value<bool> consentimientoDatos,
+      Value<DateTime?> fechaConsentimiento,
+      Value<DateTime?> datosCompletadosEn,
       Value<String?> codigoProductor,
       Value<String?> remoteId,
       Value<bool> sincronizado,
@@ -11310,8 +13921,83 @@ class $$ProductoresTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get tipoDocumento => $composableBuilder(
+    column: $table.tipoDocumento,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get telefono => $composableBuilder(
     column: $table.telefono,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get telefonoAlterno => $composableBuilder(
+    column: $table.telefonoAlterno,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get genero => $composableBuilder(
+    column: $table.genero,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get fechaNacimiento => $composableBuilder(
+    column: $table.fechaNacimiento,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nivelEducativo => $composableBuilder(
+    column: $table.nivelEducativo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get aniosExperiencia => $composableBuilder(
+    column: $table.aniosExperiencia,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get personasHogar => $composableBuilder(
+    column: $table.personasHogar,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get organizacion => $composableBuilder(
+    column: $table.organizacion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notas => $composableBuilder(
+    column: $table.notas,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fotoPath => $composableBuilder(
+    column: $table.fotoPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get enlaceFoto => $composableBuilder(
+    column: $table.enlaceFoto,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fotoRemota => $composableBuilder(
+    column: $table.fotoRemota,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get consentimientoDatos => $composableBuilder(
+    column: $table.consentimientoDatos,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get fechaConsentimiento => $composableBuilder(
+    column: $table.fechaConsentimiento,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get datosCompletadosEn => $composableBuilder(
+    column: $table.datosCompletadosEn,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11355,8 +14041,83 @@ class $$ProductoresTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get tipoDocumento => $composableBuilder(
+    column: $table.tipoDocumento,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get telefono => $composableBuilder(
     column: $table.telefono,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get telefonoAlterno => $composableBuilder(
+    column: $table.telefonoAlterno,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get genero => $composableBuilder(
+    column: $table.genero,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get fechaNacimiento => $composableBuilder(
+    column: $table.fechaNacimiento,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nivelEducativo => $composableBuilder(
+    column: $table.nivelEducativo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get aniosExperiencia => $composableBuilder(
+    column: $table.aniosExperiencia,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get personasHogar => $composableBuilder(
+    column: $table.personasHogar,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get organizacion => $composableBuilder(
+    column: $table.organizacion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notas => $composableBuilder(
+    column: $table.notas,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fotoPath => $composableBuilder(
+    column: $table.fotoPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get enlaceFoto => $composableBuilder(
+    column: $table.enlaceFoto,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fotoRemota => $composableBuilder(
+    column: $table.fotoRemota,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get consentimientoDatos => $composableBuilder(
+    column: $table.consentimientoDatos,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get fechaConsentimiento => $composableBuilder(
+    column: $table.fechaConsentimiento,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get datosCompletadosEn => $composableBuilder(
+    column: $table.datosCompletadosEn,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -11396,8 +14157,77 @@ class $$ProductoresTableAnnotationComposer
   GeneratedColumn<String> get documento =>
       $composableBuilder(column: $table.documento, builder: (column) => column);
 
+  GeneratedColumn<String> get tipoDocumento => $composableBuilder(
+    column: $table.tipoDocumento,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get telefono =>
       $composableBuilder(column: $table.telefono, builder: (column) => column);
+
+  GeneratedColumn<String> get telefonoAlterno => $composableBuilder(
+    column: $table.telefonoAlterno,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get genero =>
+      $composableBuilder(column: $table.genero, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get fechaNacimiento => $composableBuilder(
+    column: $table.fechaNacimiento,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get nivelEducativo => $composableBuilder(
+    column: $table.nivelEducativo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get aniosExperiencia => $composableBuilder(
+    column: $table.aniosExperiencia,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get personasHogar => $composableBuilder(
+    column: $table.personasHogar,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get organizacion => $composableBuilder(
+    column: $table.organizacion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notas =>
+      $composableBuilder(column: $table.notas, builder: (column) => column);
+
+  GeneratedColumn<String> get fotoPath =>
+      $composableBuilder(column: $table.fotoPath, builder: (column) => column);
+
+  GeneratedColumn<String> get enlaceFoto => $composableBuilder(
+    column: $table.enlaceFoto,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fotoRemota => $composableBuilder(
+    column: $table.fotoRemota,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get consentimientoDatos => $composableBuilder(
+    column: $table.consentimientoDatos,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get fechaConsentimiento => $composableBuilder(
+    column: $table.fechaConsentimiento,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get datosCompletadosEn => $composableBuilder(
+    column: $table.datosCompletadosEn,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get codigoProductor => $composableBuilder(
     column: $table.codigoProductor,
@@ -11447,7 +14277,22 @@ class $$ProductoresTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> nombreCompleto = const Value.absent(),
                 Value<String?> documento = const Value.absent(),
+                Value<String?> tipoDocumento = const Value.absent(),
                 Value<String?> telefono = const Value.absent(),
+                Value<String?> telefonoAlterno = const Value.absent(),
+                Value<String?> genero = const Value.absent(),
+                Value<DateTime?> fechaNacimiento = const Value.absent(),
+                Value<String?> nivelEducativo = const Value.absent(),
+                Value<int?> aniosExperiencia = const Value.absent(),
+                Value<int?> personasHogar = const Value.absent(),
+                Value<String?> organizacion = const Value.absent(),
+                Value<String?> notas = const Value.absent(),
+                Value<String?> fotoPath = const Value.absent(),
+                Value<String?> enlaceFoto = const Value.absent(),
+                Value<String?> fotoRemota = const Value.absent(),
+                Value<bool> consentimientoDatos = const Value.absent(),
+                Value<DateTime?> fechaConsentimiento = const Value.absent(),
+                Value<DateTime?> datosCompletadosEn = const Value.absent(),
                 Value<String?> codigoProductor = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<bool> sincronizado = const Value.absent(),
@@ -11456,7 +14301,22 @@ class $$ProductoresTableTableManager
                 id: id,
                 nombreCompleto: nombreCompleto,
                 documento: documento,
+                tipoDocumento: tipoDocumento,
                 telefono: telefono,
+                telefonoAlterno: telefonoAlterno,
+                genero: genero,
+                fechaNacimiento: fechaNacimiento,
+                nivelEducativo: nivelEducativo,
+                aniosExperiencia: aniosExperiencia,
+                personasHogar: personasHogar,
+                organizacion: organizacion,
+                notas: notas,
+                fotoPath: fotoPath,
+                enlaceFoto: enlaceFoto,
+                fotoRemota: fotoRemota,
+                consentimientoDatos: consentimientoDatos,
+                fechaConsentimiento: fechaConsentimiento,
+                datosCompletadosEn: datosCompletadosEn,
                 codigoProductor: codigoProductor,
                 remoteId: remoteId,
                 sincronizado: sincronizado,
@@ -11467,7 +14327,22 @@ class $$ProductoresTableTableManager
                 required String id,
                 required String nombreCompleto,
                 Value<String?> documento = const Value.absent(),
+                Value<String?> tipoDocumento = const Value.absent(),
                 Value<String?> telefono = const Value.absent(),
+                Value<String?> telefonoAlterno = const Value.absent(),
+                Value<String?> genero = const Value.absent(),
+                Value<DateTime?> fechaNacimiento = const Value.absent(),
+                Value<String?> nivelEducativo = const Value.absent(),
+                Value<int?> aniosExperiencia = const Value.absent(),
+                Value<int?> personasHogar = const Value.absent(),
+                Value<String?> organizacion = const Value.absent(),
+                Value<String?> notas = const Value.absent(),
+                Value<String?> fotoPath = const Value.absent(),
+                Value<String?> enlaceFoto = const Value.absent(),
+                Value<String?> fotoRemota = const Value.absent(),
+                Value<bool> consentimientoDatos = const Value.absent(),
+                Value<DateTime?> fechaConsentimiento = const Value.absent(),
+                Value<DateTime?> datosCompletadosEn = const Value.absent(),
                 Value<String?> codigoProductor = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<bool> sincronizado = const Value.absent(),
@@ -11476,7 +14351,22 @@ class $$ProductoresTableTableManager
                 id: id,
                 nombreCompleto: nombreCompleto,
                 documento: documento,
+                tipoDocumento: tipoDocumento,
                 telefono: telefono,
+                telefonoAlterno: telefonoAlterno,
+                genero: genero,
+                fechaNacimiento: fechaNacimiento,
+                nivelEducativo: nivelEducativo,
+                aniosExperiencia: aniosExperiencia,
+                personasHogar: personasHogar,
+                organizacion: organizacion,
+                notas: notas,
+                fotoPath: fotoPath,
+                enlaceFoto: enlaceFoto,
+                fotoRemota: fotoRemota,
+                consentimientoDatos: consentimientoDatos,
+                fechaConsentimiento: fechaConsentimiento,
+                datosCompletadosEn: datosCompletadosEn,
                 codigoProductor: codigoProductor,
                 remoteId: remoteId,
                 sincronizado: sincronizado,
@@ -13614,6 +16504,8 @@ typedef $$InformesTableCreateCompanionBuilder =
       Value<String?> modelo,
       Value<bool> entregado,
       Value<String?> medioEntrega,
+      Value<String?> pdfPath,
+      Value<String?> enlacePdf,
       Value<String?> remoteId,
       Value<bool> sincronizado,
       Value<int> rowid,
@@ -13630,6 +16522,8 @@ typedef $$InformesTableUpdateCompanionBuilder =
       Value<String?> modelo,
       Value<bool> entregado,
       Value<String?> medioEntrega,
+      Value<String?> pdfPath,
+      Value<String?> enlacePdf,
       Value<String?> remoteId,
       Value<bool> sincronizado,
       Value<int> rowid,
@@ -13691,6 +16585,16 @@ class $$InformesTableFilterComposer
 
   ColumnFilters<String> get medioEntrega => $composableBuilder(
     column: $table.medioEntrega,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pdfPath => $composableBuilder(
+    column: $table.pdfPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get enlacePdf => $composableBuilder(
+    column: $table.enlacePdf,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13764,6 +16668,16 @@ class $$InformesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get pdfPath => $composableBuilder(
+    column: $table.pdfPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get enlacePdf => $composableBuilder(
+    column: $table.enlacePdf,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnOrderings(column),
@@ -13818,6 +16732,12 @@ class $$InformesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get pdfPath =>
+      $composableBuilder(column: $table.pdfPath, builder: (column) => column);
+
+  GeneratedColumn<String> get enlacePdf =>
+      $composableBuilder(column: $table.enlacePdf, builder: (column) => column);
+
   GeneratedColumn<String> get remoteId =>
       $composableBuilder(column: $table.remoteId, builder: (column) => column);
 
@@ -13865,6 +16785,8 @@ class $$InformesTableTableManager
                 Value<String?> modelo = const Value.absent(),
                 Value<bool> entregado = const Value.absent(),
                 Value<String?> medioEntrega = const Value.absent(),
+                Value<String?> pdfPath = const Value.absent(),
+                Value<String?> enlacePdf = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<bool> sincronizado = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -13879,6 +16801,8 @@ class $$InformesTableTableManager
                 modelo: modelo,
                 entregado: entregado,
                 medioEntrega: medioEntrega,
+                pdfPath: pdfPath,
+                enlacePdf: enlacePdf,
                 remoteId: remoteId,
                 sincronizado: sincronizado,
                 rowid: rowid,
@@ -13895,6 +16819,8 @@ class $$InformesTableTableManager
                 Value<String?> modelo = const Value.absent(),
                 Value<bool> entregado = const Value.absent(),
                 Value<String?> medioEntrega = const Value.absent(),
+                Value<String?> pdfPath = const Value.absent(),
+                Value<String?> enlacePdf = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<bool> sincronizado = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -13909,6 +16835,8 @@ class $$InformesTableTableManager
                 modelo: modelo,
                 entregado: entregado,
                 medioEntrega: medioEntrega,
+                pdfPath: pdfPath,
+                enlacePdf: enlacePdf,
                 remoteId: remoteId,
                 sincronizado: sincronizado,
                 rowid: rowid,
@@ -13933,6 +16861,746 @@ typedef $$InformesTableProcessedTableManager =
       $$InformesTableUpdateCompanionBuilder,
       (Informe, BaseReferences<_$AppDatabase, $InformesTable, Informe>),
       Informe,
+      PrefetchHooks Function()
+    >;
+typedef $$TrazadosTableCreateCompanionBuilder =
+    TrazadosCompanion Function({
+      required String id,
+      required String visitaId,
+      required String nombre,
+      Value<TipoTrazado> tipo,
+      Value<ModoCaptura> modoCaptura,
+      Value<String?> etiqueta,
+      Value<String?> notas,
+      Value<int?> intervaloSeg,
+      Value<double?> distanciaMinM,
+      Value<double?> precisionMaxM,
+      Value<bool> cerrado,
+      Value<double?> areaM2,
+      Value<double?> perimetroM,
+      required DateTime creadoEn,
+      Value<DateTime?> actualizadoEn,
+      Value<String?> remoteId,
+      Value<bool> sincronizado,
+      Value<int> rowid,
+    });
+typedef $$TrazadosTableUpdateCompanionBuilder =
+    TrazadosCompanion Function({
+      Value<String> id,
+      Value<String> visitaId,
+      Value<String> nombre,
+      Value<TipoTrazado> tipo,
+      Value<ModoCaptura> modoCaptura,
+      Value<String?> etiqueta,
+      Value<String?> notas,
+      Value<int?> intervaloSeg,
+      Value<double?> distanciaMinM,
+      Value<double?> precisionMaxM,
+      Value<bool> cerrado,
+      Value<double?> areaM2,
+      Value<double?> perimetroM,
+      Value<DateTime> creadoEn,
+      Value<DateTime?> actualizadoEn,
+      Value<String?> remoteId,
+      Value<bool> sincronizado,
+      Value<int> rowid,
+    });
+
+class $$TrazadosTableFilterComposer
+    extends Composer<_$AppDatabase, $TrazadosTable> {
+  $$TrazadosTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visitaId => $composableBuilder(
+    column: $table.visitaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nombre => $composableBuilder(
+    column: $table.nombre,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TipoTrazado, TipoTrazado, String> get tipo =>
+      $composableBuilder(
+        column: $table.tipo,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<ModoCaptura, ModoCaptura, String>
+  get modoCaptura => $composableBuilder(
+    column: $table.modoCaptura,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get etiqueta => $composableBuilder(
+    column: $table.etiqueta,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notas => $composableBuilder(
+    column: $table.notas,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get intervaloSeg => $composableBuilder(
+    column: $table.intervaloSeg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get distanciaMinM => $composableBuilder(
+    column: $table.distanciaMinM,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get precisionMaxM => $composableBuilder(
+    column: $table.precisionMaxM,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get cerrado => $composableBuilder(
+    column: $table.cerrado,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get areaM2 => $composableBuilder(
+    column: $table.areaM2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get perimetroM => $composableBuilder(
+    column: $table.perimetroM,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get creadoEn => $composableBuilder(
+    column: $table.creadoEn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get actualizadoEn => $composableBuilder(
+    column: $table.actualizadoEn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sincronizado => $composableBuilder(
+    column: $table.sincronizado,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TrazadosTableOrderingComposer
+    extends Composer<_$AppDatabase, $TrazadosTable> {
+  $$TrazadosTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visitaId => $composableBuilder(
+    column: $table.visitaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nombre => $composableBuilder(
+    column: $table.nombre,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tipo => $composableBuilder(
+    column: $table.tipo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modoCaptura => $composableBuilder(
+    column: $table.modoCaptura,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get etiqueta => $composableBuilder(
+    column: $table.etiqueta,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notas => $composableBuilder(
+    column: $table.notas,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get intervaloSeg => $composableBuilder(
+    column: $table.intervaloSeg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get distanciaMinM => $composableBuilder(
+    column: $table.distanciaMinM,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get precisionMaxM => $composableBuilder(
+    column: $table.precisionMaxM,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get cerrado => $composableBuilder(
+    column: $table.cerrado,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get areaM2 => $composableBuilder(
+    column: $table.areaM2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get perimetroM => $composableBuilder(
+    column: $table.perimetroM,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get creadoEn => $composableBuilder(
+    column: $table.creadoEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get actualizadoEn => $composableBuilder(
+    column: $table.actualizadoEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get sincronizado => $composableBuilder(
+    column: $table.sincronizado,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TrazadosTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TrazadosTable> {
+  $$TrazadosTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get visitaId =>
+      $composableBuilder(column: $table.visitaId, builder: (column) => column);
+
+  GeneratedColumn<String> get nombre =>
+      $composableBuilder(column: $table.nombre, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TipoTrazado, String> get tipo =>
+      $composableBuilder(column: $table.tipo, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<ModoCaptura, String> get modoCaptura =>
+      $composableBuilder(
+        column: $table.modoCaptura,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get etiqueta =>
+      $composableBuilder(column: $table.etiqueta, builder: (column) => column);
+
+  GeneratedColumn<String> get notas =>
+      $composableBuilder(column: $table.notas, builder: (column) => column);
+
+  GeneratedColumn<int> get intervaloSeg => $composableBuilder(
+    column: $table.intervaloSeg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get distanciaMinM => $composableBuilder(
+    column: $table.distanciaMinM,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get precisionMaxM => $composableBuilder(
+    column: $table.precisionMaxM,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get cerrado =>
+      $composableBuilder(column: $table.cerrado, builder: (column) => column);
+
+  GeneratedColumn<double> get areaM2 =>
+      $composableBuilder(column: $table.areaM2, builder: (column) => column);
+
+  GeneratedColumn<double> get perimetroM => $composableBuilder(
+    column: $table.perimetroM,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get creadoEn =>
+      $composableBuilder(column: $table.creadoEn, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get actualizadoEn => $composableBuilder(
+    column: $table.actualizadoEn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
+  GeneratedColumn<bool> get sincronizado => $composableBuilder(
+    column: $table.sincronizado,
+    builder: (column) => column,
+  );
+}
+
+class $$TrazadosTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TrazadosTable,
+          Trazado,
+          $$TrazadosTableFilterComposer,
+          $$TrazadosTableOrderingComposer,
+          $$TrazadosTableAnnotationComposer,
+          $$TrazadosTableCreateCompanionBuilder,
+          $$TrazadosTableUpdateCompanionBuilder,
+          (Trazado, BaseReferences<_$AppDatabase, $TrazadosTable, Trazado>),
+          Trazado,
+          PrefetchHooks Function()
+        > {
+  $$TrazadosTableTableManager(_$AppDatabase db, $TrazadosTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TrazadosTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TrazadosTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TrazadosTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> visitaId = const Value.absent(),
+                Value<String> nombre = const Value.absent(),
+                Value<TipoTrazado> tipo = const Value.absent(),
+                Value<ModoCaptura> modoCaptura = const Value.absent(),
+                Value<String?> etiqueta = const Value.absent(),
+                Value<String?> notas = const Value.absent(),
+                Value<int?> intervaloSeg = const Value.absent(),
+                Value<double?> distanciaMinM = const Value.absent(),
+                Value<double?> precisionMaxM = const Value.absent(),
+                Value<bool> cerrado = const Value.absent(),
+                Value<double?> areaM2 = const Value.absent(),
+                Value<double?> perimetroM = const Value.absent(),
+                Value<DateTime> creadoEn = const Value.absent(),
+                Value<DateTime?> actualizadoEn = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
+                Value<bool> sincronizado = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TrazadosCompanion(
+                id: id,
+                visitaId: visitaId,
+                nombre: nombre,
+                tipo: tipo,
+                modoCaptura: modoCaptura,
+                etiqueta: etiqueta,
+                notas: notas,
+                intervaloSeg: intervaloSeg,
+                distanciaMinM: distanciaMinM,
+                precisionMaxM: precisionMaxM,
+                cerrado: cerrado,
+                areaM2: areaM2,
+                perimetroM: perimetroM,
+                creadoEn: creadoEn,
+                actualizadoEn: actualizadoEn,
+                remoteId: remoteId,
+                sincronizado: sincronizado,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String visitaId,
+                required String nombre,
+                Value<TipoTrazado> tipo = const Value.absent(),
+                Value<ModoCaptura> modoCaptura = const Value.absent(),
+                Value<String?> etiqueta = const Value.absent(),
+                Value<String?> notas = const Value.absent(),
+                Value<int?> intervaloSeg = const Value.absent(),
+                Value<double?> distanciaMinM = const Value.absent(),
+                Value<double?> precisionMaxM = const Value.absent(),
+                Value<bool> cerrado = const Value.absent(),
+                Value<double?> areaM2 = const Value.absent(),
+                Value<double?> perimetroM = const Value.absent(),
+                required DateTime creadoEn,
+                Value<DateTime?> actualizadoEn = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
+                Value<bool> sincronizado = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TrazadosCompanion.insert(
+                id: id,
+                visitaId: visitaId,
+                nombre: nombre,
+                tipo: tipo,
+                modoCaptura: modoCaptura,
+                etiqueta: etiqueta,
+                notas: notas,
+                intervaloSeg: intervaloSeg,
+                distanciaMinM: distanciaMinM,
+                precisionMaxM: precisionMaxM,
+                cerrado: cerrado,
+                areaM2: areaM2,
+                perimetroM: perimetroM,
+                creadoEn: creadoEn,
+                actualizadoEn: actualizadoEn,
+                remoteId: remoteId,
+                sincronizado: sincronizado,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TrazadosTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TrazadosTable,
+      Trazado,
+      $$TrazadosTableFilterComposer,
+      $$TrazadosTableOrderingComposer,
+      $$TrazadosTableAnnotationComposer,
+      $$TrazadosTableCreateCompanionBuilder,
+      $$TrazadosTableUpdateCompanionBuilder,
+      (Trazado, BaseReferences<_$AppDatabase, $TrazadosTable, Trazado>),
+      Trazado,
+      PrefetchHooks Function()
+    >;
+typedef $$PuntosTrazadoTableCreateCompanionBuilder =
+    PuntosTrazadoCompanion Function({
+      required String id,
+      required String trazadoId,
+      required int orden,
+      required double latitud,
+      required double longitud,
+      Value<double?> altitud,
+      Value<double?> precisionM,
+      required DateTime capturadoEn,
+      Value<bool> automatico,
+      Value<String?> nota,
+      Value<int> rowid,
+    });
+typedef $$PuntosTrazadoTableUpdateCompanionBuilder =
+    PuntosTrazadoCompanion Function({
+      Value<String> id,
+      Value<String> trazadoId,
+      Value<int> orden,
+      Value<double> latitud,
+      Value<double> longitud,
+      Value<double?> altitud,
+      Value<double?> precisionM,
+      Value<DateTime> capturadoEn,
+      Value<bool> automatico,
+      Value<String?> nota,
+      Value<int> rowid,
+    });
+
+class $$PuntosTrazadoTableFilterComposer
+    extends Composer<_$AppDatabase, $PuntosTrazadoTable> {
+  $$PuntosTrazadoTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trazadoId => $composableBuilder(
+    column: $table.trazadoId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get orden => $composableBuilder(
+    column: $table.orden,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitud => $composableBuilder(
+    column: $table.latitud,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitud => $composableBuilder(
+    column: $table.longitud,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get altitud => $composableBuilder(
+    column: $table.altitud,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get precisionM => $composableBuilder(
+    column: $table.precisionM,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get capturadoEn => $composableBuilder(
+    column: $table.capturadoEn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get automatico => $composableBuilder(
+    column: $table.automatico,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nota => $composableBuilder(
+    column: $table.nota,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PuntosTrazadoTableOrderingComposer
+    extends Composer<_$AppDatabase, $PuntosTrazadoTable> {
+  $$PuntosTrazadoTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get trazadoId => $composableBuilder(
+    column: $table.trazadoId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get orden => $composableBuilder(
+    column: $table.orden,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitud => $composableBuilder(
+    column: $table.latitud,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitud => $composableBuilder(
+    column: $table.longitud,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get altitud => $composableBuilder(
+    column: $table.altitud,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get precisionM => $composableBuilder(
+    column: $table.precisionM,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get capturadoEn => $composableBuilder(
+    column: $table.capturadoEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get automatico => $composableBuilder(
+    column: $table.automatico,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nota => $composableBuilder(
+    column: $table.nota,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PuntosTrazadoTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PuntosTrazadoTable> {
+  $$PuntosTrazadoTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get trazadoId =>
+      $composableBuilder(column: $table.trazadoId, builder: (column) => column);
+
+  GeneratedColumn<int> get orden =>
+      $composableBuilder(column: $table.orden, builder: (column) => column);
+
+  GeneratedColumn<double> get latitud =>
+      $composableBuilder(column: $table.latitud, builder: (column) => column);
+
+  GeneratedColumn<double> get longitud =>
+      $composableBuilder(column: $table.longitud, builder: (column) => column);
+
+  GeneratedColumn<double> get altitud =>
+      $composableBuilder(column: $table.altitud, builder: (column) => column);
+
+  GeneratedColumn<double> get precisionM => $composableBuilder(
+    column: $table.precisionM,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get capturadoEn => $composableBuilder(
+    column: $table.capturadoEn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get automatico => $composableBuilder(
+    column: $table.automatico,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get nota =>
+      $composableBuilder(column: $table.nota, builder: (column) => column);
+}
+
+class $$PuntosTrazadoTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PuntosTrazadoTable,
+          PuntoTrazado,
+          $$PuntosTrazadoTableFilterComposer,
+          $$PuntosTrazadoTableOrderingComposer,
+          $$PuntosTrazadoTableAnnotationComposer,
+          $$PuntosTrazadoTableCreateCompanionBuilder,
+          $$PuntosTrazadoTableUpdateCompanionBuilder,
+          (
+            PuntoTrazado,
+            BaseReferences<_$AppDatabase, $PuntosTrazadoTable, PuntoTrazado>,
+          ),
+          PuntoTrazado,
+          PrefetchHooks Function()
+        > {
+  $$PuntosTrazadoTableTableManager(_$AppDatabase db, $PuntosTrazadoTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PuntosTrazadoTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PuntosTrazadoTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PuntosTrazadoTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> trazadoId = const Value.absent(),
+                Value<int> orden = const Value.absent(),
+                Value<double> latitud = const Value.absent(),
+                Value<double> longitud = const Value.absent(),
+                Value<double?> altitud = const Value.absent(),
+                Value<double?> precisionM = const Value.absent(),
+                Value<DateTime> capturadoEn = const Value.absent(),
+                Value<bool> automatico = const Value.absent(),
+                Value<String?> nota = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PuntosTrazadoCompanion(
+                id: id,
+                trazadoId: trazadoId,
+                orden: orden,
+                latitud: latitud,
+                longitud: longitud,
+                altitud: altitud,
+                precisionM: precisionM,
+                capturadoEn: capturadoEn,
+                automatico: automatico,
+                nota: nota,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String trazadoId,
+                required int orden,
+                required double latitud,
+                required double longitud,
+                Value<double?> altitud = const Value.absent(),
+                Value<double?> precisionM = const Value.absent(),
+                required DateTime capturadoEn,
+                Value<bool> automatico = const Value.absent(),
+                Value<String?> nota = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PuntosTrazadoCompanion.insert(
+                id: id,
+                trazadoId: trazadoId,
+                orden: orden,
+                latitud: latitud,
+                longitud: longitud,
+                altitud: altitud,
+                precisionM: precisionM,
+                capturadoEn: capturadoEn,
+                automatico: automatico,
+                nota: nota,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PuntosTrazadoTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PuntosTrazadoTable,
+      PuntoTrazado,
+      $$PuntosTrazadoTableFilterComposer,
+      $$PuntosTrazadoTableOrderingComposer,
+      $$PuntosTrazadoTableAnnotationComposer,
+      $$PuntosTrazadoTableCreateCompanionBuilder,
+      $$PuntosTrazadoTableUpdateCompanionBuilder,
+      (
+        PuntoTrazado,
+        BaseReferences<_$AppDatabase, $PuntosTrazadoTable, PuntoTrazado>,
+      ),
+      PuntoTrazado,
       PrefetchHooks Function()
     >;
 typedef $$SyncQueueTableCreateCompanionBuilder =
@@ -14341,6 +18009,10 @@ class $AppDatabaseManager {
       $$HallazgosTableTableManager(_db, _db.hallazgos);
   $$InformesTableTableManager get informes =>
       $$InformesTableTableManager(_db, _db.informes);
+  $$TrazadosTableTableManager get trazados =>
+      $$TrazadosTableTableManager(_db, _db.trazados);
+  $$PuntosTrazadoTableTableManager get puntosTrazado =>
+      $$PuntosTrazadoTableTableManager(_db, _db.puntosTrazado);
   $$SyncQueueTableTableManager get syncQueue =>
       $$SyncQueueTableTableManager(_db, _db.syncQueue);
 }

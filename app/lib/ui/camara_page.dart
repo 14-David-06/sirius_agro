@@ -22,9 +22,19 @@ import 'theme.dart';
 /// Tampoco se sale de la pantalla de la visita ni se detiene nada: se toman
 /// varias fotos seguidas y se vuelve. El reloj de arriba sigue avanzando.
 class CamaraPage extends ConsumerStatefulWidget {
-  const CamaraPage({super.key, required this.visitaId});
+  const CamaraPage({super.key, required this.visitaId}) : retrato = false;
+
+  /// La foto de perfil del agricultor.
+  ///
+  /// Es la misma camara —con el mismo `enableAudio: false`, que es lo que
+  /// permite fotografiar sin cortar la grabacion— con tres diferencias: mira
+  /// hacia adelante, se toma UNA y se vuelve, y la foto no entra a
+  /// `Evidencias` sino a la ficha del productor.
+  const CamaraPage.retrato({super.key, required this.visitaId})
+      : retrato = true;
 
   final String visitaId;
+  final bool retrato;
 
   @override
   ConsumerState<CamaraPage> createState() => _CamaraPageState();
@@ -53,13 +63,20 @@ class _CamaraPageState extends ConsumerState<CamaraPage> {
       final camaras = await availableCameras();
       if (camaras.isEmpty) throw 'El telefono no reporta camaras.';
 
-      final trasera = camaras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.back,
+      // Para el retrato, la frontal: el visitador esta del otro lado del
+      // telefono y no puede ver el encuadre de la cara del agricultor si la
+      // camara apunta al contrario. Si el equipo no tiene frontal, se usa la
+      // que haya y se encuadra al reves, que es peor pero no impide la foto.
+      final lente = widget.retrato
+          ? CameraLensDirection.front
+          : CameraLensDirection.back;
+      final elegida = camaras.firstWhere(
+        (c) => c.lensDirection == lente,
         orElse: () => camaras.first,
       );
 
       final ctrl = CameraController(
-        trasera,
+        elegida,
         // medium (~720p) da fotos de 200-400 KB. Suficiente para leer una
         // etiqueta y para que la cola las suba desde una vereda sin senal.
         ResolutionPreset.medium,
@@ -86,6 +103,11 @@ class _CamaraPageState extends ConsumerState<CamaraPage> {
 
     try {
       final foto = await camara.takePicture();
+
+      if (widget.retrato) {
+        await _guardarRetrato(foto);
+        return;
+      }
 
       // El segundo del audio en el momento del disparo. Es lo que permite
       // volver a lo que se estaba hablando mientras se fotografiaba.
@@ -124,6 +146,29 @@ class _CamaraPageState extends ConsumerState<CamaraPage> {
     }
   }
 
+  /// Guarda el retrato en la ficha del agricultor y se vuelve.
+  ///
+  /// Nombre fijo `perfil.jpg`: la foto de perfil es una. Tomarla de nuevo
+  /// reemplaza la que habia, en el telefono y en el bucket, en vez de
+  /// acumular retratos que despues nadie sabe cual es el vigente.
+  Future<void> _guardarRetrato(XFile foto) async {
+    final carpeta = await ref.read(repoProvider).carpetaPerfil(widget.visitaId);
+    final destino = p.join(carpeta.path, 'perfil.jpg');
+
+    await File(foto.path).copy(destino);
+    await File(foto.path).delete();
+
+    await ref.read(repoProvider).registrarFotoAgricultor(
+          visitaId: widget.visitaId,
+          archivoPath: destino,
+        );
+
+    if (!mounted) return;
+    // Una sola foto y se vuelve: quien esta tomando un retrato no viene a
+    // tomar seis. La ficha ya muestra la foto al volver.
+    Navigator.of(context).pop(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final grabacion = ref.watch(grabacionProvider(widget.visitaId));
@@ -136,7 +181,13 @@ class _CamaraPageState extends ConsumerState<CamaraPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Text(_tomadas == 0 ? 'Foto' : '$_tomadas foto(s)'),
+        title: Text(
+          widget.retrato
+              ? 'Foto del agricultor'
+              : _tomadas == 0
+                  ? 'Foto'
+                  : '$_tomadas foto(s)',
+        ),
         actions: [
           // Confirmacion visible de que la grabacion NO se detuvo. Es la duda
           // que el visitador va a tener la primera vez que abra la camara.
@@ -198,7 +249,9 @@ class _CamaraPageState extends ConsumerState<CamaraPage> {
                     // volver a la visita.
                     SizedBox(
                       width: 74,
-                      child: fotos.isEmpty
+                      // En el retrato no hay galeria que abrir: la foto de
+                      // perfil es una y se ve en la ficha al volver.
+                      child: fotos.isEmpty || widget.retrato
                           ? null
                           : Center(
                               child: GestureDetector(
@@ -256,9 +309,13 @@ class _CamaraPageState extends ConsumerState<CamaraPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Toca para fotografiar. Podes tomar varias seguidas.',
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                Text(
+                  widget.retrato
+                      ? 'Una foto para reconocerlo en la proxima visita. '
+                          'Pedile permiso antes de tomarla.'
+                      : 'Toca para fotografiar. Podes tomar varias seguidas.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
               ],
             ),

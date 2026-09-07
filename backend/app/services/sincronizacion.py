@@ -26,6 +26,7 @@ from ..schemas_visita import (
     GrabacionPayload,
     InformePayload,
     HallazgoPayload,
+    ProductorPayload,
     VisitaPayload,
     VisitaSyncResult,
 )
@@ -219,15 +220,80 @@ async def _resolver_visitador(at: Airtable, p: VisitaPayload) -> str | None:
     return None
 
 
+def _campos_productor(prod: ProductorPayload) -> dict:
+    """La ficha del agricultor, en campos de Airtable.
+
+    Solo se escribe lo que vino con algo. Un campo que la app manda vacio se
+    omite en vez de mandarse en blanco: la ficha se completa de a poco y a lo
+    largo de varias visitas, y una segunda sincronizacion desde un telefono
+    que todavia no tiene el telefono del productor no puede borrar el que un
+    coordinador ya escribio en Airtable.
+    """
+    fields: dict = {"Nombre completo": prod.nombre_completo}
+
+    if prod.documento:
+        fields["Documento"] = prod.documento
+        # Un numero sin tipo no se sabe leer. Si la app no lo manda se asume
+        # cedula, que es lo que tiene casi todo el mundo en una vereda.
+        fields["Tipo de documento"] = prod.tipo_documento or "CC"
+    elif prod.tipo_documento:
+        fields["Tipo de documento"] = prod.tipo_documento
+
+    if prod.telefono:
+        fields["Telefono"] = prod.telefono
+    if prod.telefono_alterno:
+        fields["Telefono alterno"] = prod.telefono_alterno
+    if prod.genero:
+        fields["Genero"] = prod.genero
+    if prod.fecha_nacimiento:
+        fields["Fecha de nacimiento"] = prod.fecha_nacimiento.isoformat()
+    if prod.nivel_educativo:
+        fields["Nivel educativo"] = prod.nivel_educativo
+    if prod.anios_experiencia is not None:
+        fields["Anios de experiencia"] = prod.anios_experiencia
+    if prod.personas_hogar is not None:
+        fields["Personas en el hogar"] = prod.personas_hogar
+    if prod.organizacion:
+        # Se deriva de la organizacion en vez de pedirla aparte: una casilla
+        # marcada sin nombre de asociacion no le sirve a nadie.
+        fields["Organizacion o asociacion"] = prod.organizacion
+        fields["Pertenece a organizacion"] = True
+    if prod.notas:
+        fields["Notas"] = prod.notas
+    if prod.consentimiento_datos:
+        # Solo se escribe el si. Una visita en la que el productor no autorizo
+        # no puede borrar la autorizacion que dio en otra: eso ya paso y es
+        # justamente lo que hay que poder demostrar.
+        fields["Consentimiento de datos"] = True
+        if prod.fecha_consentimiento:
+            fields["Fecha de consentimiento"] = prod.fecha_consentimiento.isoformat()
+    if prod.enlace_foto:
+        # Airtable va a buscar la imagen a esta URL, asi que tiene que ser
+        # alcanzable desde internet. El adjunto es una copia: la foto vive en
+        # el bucket, bajo el prefijo de la visita donde se tomo.
+        fields["Foto"] = [{"url": prod.enlace_foto}]
+    if prod.codigo_productor:
+        fields["Codigo productor"] = prod.codigo_productor
+
+    return fields
+
+
 async def _resolver_productor(at: Airtable, p: VisitaPayload) -> str | None:
     """Upsert del productor. Documento primero, luego codigo, luego nombre.
 
     El documento es la unica llave de verdad: dos personas pueden llamarse
     igual en la misma vereda, y fusionarlas mezclaria las fincas de ambas.
+
+    Cuando ya existe se ACTUALIZA, no se devuelve tal cual. La ficha del
+    agricultor se completa desde la visita y casi nunca en la primera: si
+    encontrarlo bastara para no escribir, el documento y el telefono que el
+    visitador acaba de teclear en la finca no llegarian nunca a Airtable.
     """
     prod = p.productor
     if prod is None:
         return None
+
+    fields = _campos_productor(prod)
 
     for campo, valor in (
         ("Documento", prod.documento),
@@ -238,15 +304,8 @@ async def _resolver_productor(at: Airtable, p: VisitaPayload) -> str | None:
             continue
         reg = await at.buscar(TBL_PRODUCTORES, f"{{{campo}}} = '{_escapar(valor)}'")
         if reg:
+            await at.actualizar(TBL_PRODUCTORES, reg["id"], fields)
             return reg["id"]
-
-    fields = {"Nombre completo": prod.nombre_completo}
-    if prod.documento:
-        fields["Documento"] = prod.documento
-    if prod.telefono:
-        fields["Telefono"] = prod.telefono
-    if prod.codigo_productor:
-        fields["Codigo productor"] = prod.codigo_productor
 
     creado = await at.crear(TBL_PRODUCTORES, fields)
     return creado["id"]
@@ -452,6 +511,19 @@ def _campos_informe(
         fields["Generado en"] = i.generado_en.isoformat()
     if i.medio_entrega:
         fields["Medio de entrega"] = i.medio_entrega
+    if i.enlace_pdf:
+        # Los nombres son los que la tabla `Informes` tiene DE VERDAD: `Enlace`
+        # y `Archivo`. Antes decian "Enlace del PDF" y "PDF", que no existen, y
+        # Airtable no ignora un campo desconocido — rechaza el registro entero
+        # con 422. Como el audio, las fotos y los hallazgos suben en la misma
+        # sincronizacion, eso dejaba la visita COMPLETA sin subir.
+        #
+        # `scripts/verificar_esquema.py` compara estos nombres contra la base
+        # sin necesidad de un telefono ni una visita real.
+        fields["Enlace"] = i.enlace_pdf
+        # El adjunto es respaldo: sus URLs expiran y topa en 5 MB, y el informe
+        # con fotos puede pasarlo. La fuente de verdad es el enlace al bucket.
+        fields["Archivo"] = [{"url": i.enlace_pdf}]
     return fields
 
 
@@ -497,6 +569,42 @@ def _campos_hallazgo(h: HallazgoPayload, visita_id: str, campo_id: str) -> dict:
 # --------------------------------------------------------- upsert de hijos
 
 
+def _llave_informe(nombre: str | None, version: object) -> str | None:
+    """Identidad de un informe dentro de su visita: el titulo Y la version.
+
+    El titulo solo NO alcanza. La app guarda todas las versiones a proposito
+    —si el visitador regenera y el nuevo sale peor, el que ya le mostro al
+    productor sigue existiendo— y el modelo les pone el mismo titulo a todas.
+    Con el titulo como unica llave, la v1 y la v2 apuntaban al mismo registro:
+    Airtable rechazaba el lote entero con 422 y la visita completa se quedaba
+    sin sincronizar.
+
+    Sin version se asume la 1: los informes escritos antes de que existiera el
+    campo tienen que seguir casando con su registro en vez de duplicarse.
+    """
+    if not nombre:
+        return None
+    return f"{nombre}#v{version if version is not None else 1}"
+
+
+def _llave_natural(tabla: str, fields: dict) -> str | None:
+    """Como se reconoce un hijo ya escrito en Airtable.
+
+    Es la contraparte de la llave que arma `sincronizar` para lo que manda el
+    telefono: las dos tienen que producir la misma cadena o cada
+    sincronizacion crearia registros nuevos en vez de actualizar.
+    """
+    if tabla == TBL_INFORMES:
+        return _llave_informe(fields.get("Nombre"), fields.get("Version"))
+
+    campo = {
+        TBL_GRABACIONES: "Archivo",
+        TBL_EVIDENCIAS: "Titulo",
+        TBL_HALLAZGOS: "Hallazgo",
+    }[tabla]
+    return fields.get(campo) or None
+
+
 async def _upsert_hijos(
     at: Airtable,
     tabla: str,
@@ -520,23 +628,37 @@ async def _upsert_hijos(
     existentes = await at.listar(
         tabla, f"{{Visita}} = '{_escapar(codigo_visita)}'"
     )
-    campo_llave = {
-        TBL_GRABACIONES: "Archivo",
-        TBL_EVIDENCIAS: "Titulo",
-        TBL_HALLAZGOS: "Hallazgo",
-        TBL_INFORMES: "Nombre",
-    }[tabla]
 
-    por_llave = {
-        r["fields"].get(campo_llave): r["id"]
-        for r in existentes
-        if r.get("fields", {}).get(campo_llave)
-    }
+    por_llave: dict[str, str] = {}
+    for r in existentes:
+        llave = _llave_natural(tabla, r.get("fields", {}))
+        if llave:
+            por_llave[llave] = r["id"]
 
-    registros = []
+    registros: list[dict] = []
+    posicion_de: dict[str, int] = {}
     for llave, fields in deseados:
         rid = por_llave.get(llave)
-        registros.append({"id": rid, "fields": fields} if rid else {"fields": fields})
+        if rid is None:
+            registros.append({"fields": fields})
+            continue
+
+        # Airtable rechaza la peticion ENTERA con 422 si el mismo record id
+        # aparece dos veces ("You cannot update the same record multiple times
+        # in a single request"). O sea: dos hijos que caigan en la misma llave
+        # natural no fallan solos, se llevan la sincronizacion de toda la
+        # visita — el audio, las fotos y los hallazgos incluidos.
+        #
+        # Por eso se colapsan aca en vez de confiar en que las llaves siempre
+        # sean unicas. Gana el ultimo, que es el estado mas reciente que mando
+        # el telefono. Que dos hijos compartan llave significa que en Airtable
+        # son indistinguibles de todos modos.
+        anterior = posicion_de.get(rid)
+        if anterior is None:
+            posicion_de[rid] = len(registros)
+            registros.append({"id": rid, "fields": fields})
+        else:
+            registros[anterior] = {"id": rid, "fields": fields}
 
     await at.escribir_lote(tabla, registros)
     return len(registros)
@@ -626,7 +748,10 @@ async def sincronizar(settings: Settings, p: VisitaPayload) -> VisitaSyncResult:
             TBL_INFORMES,
             p.codigo_visita,
             [
-                (i.titulo, _campos_informe(i, visita_id, productor_id))
+                (
+                    _llave_informe(i.titulo, i.version),
+                    _campos_informe(i, visita_id, productor_id),
+                )
                 for i in p.informes
             ],
         )

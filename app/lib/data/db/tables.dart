@@ -191,6 +191,16 @@ class Informes extends Table {
   BoolColumn get entregado => boolean().withDefault(const Constant(false))();
   TextColumn get medioEntrega => text().nullable()();
 
+  /// El PDF armado, en disco. Se guarda el archivo y no solo el markdown
+  /// porque es el documento que el productor tiene en la mano: regenerarlo
+  /// meses despues con otra version del renderizador daria otro papel, y el
+  /// que respalda lo acordado es este.
+  TextColumn get pdfPath => text().nullable()();
+
+  /// URL del PDF en el bucket. Nula hasta que la cola lo sube: el PDF va por
+  /// su propio item y puede quedar pendiente cuando la visita ya subio.
+  TextColumn get enlacePdf => text().nullable()();
+
   TextColumn get remoteId => text().nullable()();
   BoolColumn get sincronizado => boolean().withDefault(const Constant(false))();
 
@@ -198,12 +208,71 @@ class Informes extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// La persona. Permanente: la visita es el evento, el agricultor sigue ahi
+/// visita tras visita.
+///
+/// La visita lo crea con el nombre y nada mas, porque al llegar a una finca lo
+/// unico que se sabe es a quien se viene a ver. El resto se completa desde el
+/// modulo «El agricultor» de la visita, y se completa una sola vez en la vida
+/// del productor: la segunda visita ya lo encuentra con ficha.
+///
+/// [documento] no es un campo mas: es la LLAVE con la que el backend decide si
+/// este agricultor ya existe en Airtable. Sin el, el upsert cae al nombre, y
+/// dos personas que se llaman igual en la misma vereda terminan con las fincas
+/// mezcladas.
 @DataClassName('Productor')
 class Productores extends Table {
   TextColumn get id => text()();
   TextColumn get nombreCompleto => text()();
   TextColumn get documento => text().nullable()();
+
+  /// CC | CE | TI | NIT | Pasaporte | Sin documento. Texto y no enum porque
+  /// son las opciones del select de Airtable y viajan tal cual.
+  TextColumn get tipoDocumento => text().nullable()();
+
   TextColumn get telefono => text().nullable()();
+  TextColumn get telefonoAlterno => text().nullable()();
+
+  TextColumn get genero => text().nullable()();
+  DateTimeColumn get fechaNacimiento => dateTime().nullable()();
+  TextColumn get nivelEducativo => text().nullable()();
+  IntColumn get aniosExperiencia => integer().nullable()();
+  IntColumn get personasHogar => integer().nullable()();
+
+  /// Vacio significa que no pertenece a ninguna: el backend deriva de aqui la
+  /// casilla `Pertenece a organizacion`, para no pedir dos veces lo mismo.
+  TextColumn get organizacion => text().nullable()();
+
+  TextColumn get notas => text().nullable()();
+
+  /// La foto de perfil, en disco. Se guarda dentro de la carpeta de la visita
+  /// donde se tomo: si esa visita se elimina por revocacion, la foto de la
+  /// persona se va con el prefijo, que es exactamente lo que pidio.
+  TextColumn get fotoPath => text().nullable()();
+
+  /// URL de la foto en el bucket. Nula hasta que la cola la sube; es lo que
+  /// Airtable usa para traerse el adjunto de `Productores.Foto`.
+  TextColumn get enlaceFoto => text().nullable()();
+
+  /// Miniatura de la foto que ya esta en Airtable, para reconocer al
+  /// agricultor en el directorio antes de crearlo de nuevo.
+  ///
+  /// Es de Airtable y Airtable la rota cada pocas horas, asi que se muestra
+  /// mientras sirva y su ausencia no significa nada: la foto de verdad es
+  /// [fotoPath] en el telefono y [enlaceFoto] en el bucket.
+  TextColumn get fotoRemota => text().nullable()();
+
+  /// Autorizacion de tratamiento de datos (Ley 1581/2012). Va aqui y no solo
+  /// en la visita porque la autorizacion es DE LA PERSONA: el permiso de
+  /// grabar y de fotografiar se pide en cada visita, pero que sus datos se
+  /// puedan tratar se autoriza una vez y queda con ella.
+  BoolColumn get consentimientoDatos =>
+      boolean().withDefault(const Constant(false))();
+  DateTimeColumn get fechaConsentimiento => dateTime().nullable()();
+
+  /// Cuando alguien completo la ficha. Null = solo tiene el nombre con el que
+  /// nacio, y el modulo de la visita lo va a decir.
+  DateTimeColumn get datosCompletadosEn => dateTime().nullable()();
 
   /// Consecutivo BU-0001. Lo asigna el BACKEND al sincronizar, no la app:
   /// dos telefonos offline generarian el mismo numero.
@@ -403,6 +472,103 @@ class Hallazgos extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// El contorno de un lote o el recorrido por el cultivo, capturado a pie.
+///
+/// Existe porque el area de la finca dicha en la conversacion («seran unas
+/// diez hectareas») no sirve para calcular una dosis ni para comparar dos
+/// visitas. Caminar el lindero si.
+///
+/// Lo que NO hace: decidir por el visitador. El tipo de figura, cada cuanto se
+/// pone un punto, con que precision minima se acepta y cuando se cierra el
+/// anillo son todos suyos y viven en esta fila — no son constantes del codigo.
+/// Un lote de cafe en ladera y un lindero de potrero no se capturan igual.
+@DataClassName('Trazado')
+class Trazados extends Table {
+  TextColumn get id => text()();
+  TextColumn get visitaId => text().references(Visitas, #id)();
+
+  /// Como lo llama el visitador: «Lote de arriba», «lindero con el vecino».
+  TextColumn get nombre => text()();
+
+  TextColumn get tipo =>
+      text().map(const TipoTrazadoConverter()).withDefault(const Constant('Poligono'))();
+
+  TextColumn get modoCaptura =>
+      text().map(const ModoCapturaConverter()).withDefault(const Constant('Manual'))();
+
+  /// Que hay sembrado ahi. Texto libre a proposito: el cultivo tambien sale de
+  /// la conversacion, y obligar a elegir de una lista en el potrero es como
+  /// volver a la encuesta.
+  TextColumn get etiqueta => text().nullable()();
+  TextColumn get notas => text().nullable()();
+
+  /// Cada cuantos segundos se pone un punto en modo automatico. null o 0
+  /// significa que este trazado no captura solo.
+  IntColumn get intervaloSeg => integer().nullable()();
+
+  /// Si el punto nuevo esta a menos de esto del anterior, no se guarda. Es lo
+  /// que evita que estar parado hablando dos minutos deje cuarenta puntos
+  /// encimados que le inventan forma al lote.
+  RealColumn get distanciaMinM => real().nullable()();
+
+  /// Se rechaza el punto cuya precision reportada sea peor que esto. Un punto
+  /// con 60 m de error mueve un lindero mas de lo que mide el lote.
+  RealColumn get precisionMaxM => real().nullable()();
+
+  /// El anillo se cierra. Lo decide el visitador: mientras sea false, el
+  /// trazado sale al KML como linea, porque un poligono que nadie cerro no es
+  /// un lote — es un recorrido a medias.
+  BoolColumn get cerrado => boolean().withDefault(const Constant(true))();
+
+  /// Recalculadas en cada cambio de puntos. Se persisten para que la lista de
+  /// trazados no tenga que recorrer todos los puntos de todos los lotes para
+  /// mostrar un area.
+  RealColumn get areaM2 => real().nullable()();
+  RealColumn get perimetroM => real().nullable()();
+
+  DateTimeColumn get creadoEn => dateTime()();
+  DateTimeColumn get actualizadoEn => dateTime().nullable()();
+
+  TextColumn get remoteId => text().nullable()();
+  BoolColumn get sincronizado => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Un vertice del trazado, con la huella de como se capturo.
+///
+/// [precisionM] y [automatico] no son adorno: son lo que permite, tres meses
+/// despues, decidir si un lindero raro fue un error del visitador o un salto
+/// del GPS bajo los arboles. Un punto sin esa huella no se puede auditar, y un
+/// area que nadie puede auditar no se puede usar para nada serio.
+@DataClassName('PuntoTrazado')
+class PuntosTrazado extends Table {
+  TextColumn get id => text()();
+  TextColumn get trazadoId => text().references(Trazados, #id)();
+
+  /// Posicion en el anillo. El orden ES la geometria: dos puntos intercambiados
+  /// convierten un lote en un ocho.
+  IntColumn get orden => integer()();
+
+  RealColumn get latitud => real()();
+  RealColumn get longitud => real()();
+  RealColumn get altitud => real().nullable()();
+
+  /// Radio de error que reporto el GPS, en metros.
+  RealColumn get precisionM => real().nullable()();
+
+  DateTimeColumn get capturadoEn => dateTime()();
+
+  /// false = lo marco el visitador con el boton. true = lo puso el reloj.
+  BoolColumn get automatico => boolean().withDefault(const Constant(false))();
+
+  TextColumn get nota => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Cola de sincronizacion. Un item por unidad de trabajo, con reintento propio:
 /// que falle la subida de una foto no puede bloquear la visita entera.
 @DataClassName('SyncItem')
@@ -413,7 +579,7 @@ class SyncQueue extends Table {
   TextColumn get entidad => text()();
   TextColumn get entidadId => text()();
 
-  /// upsert | upload_audio | upload_foto
+  /// upsert | upload_audio | upload_foto | upload_informe
   TextColumn get operacion => text()();
 
   TextColumn get payload => text().nullable()();

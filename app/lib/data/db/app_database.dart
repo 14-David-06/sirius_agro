@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import '../../core/geo.dart';
 import 'enums.dart';
 import 'tables.dart';
 
@@ -92,6 +93,8 @@ ProcedenciaResuelta resolverProcedencia({
     Evidencias,
     Hallazgos,
     Informes,
+    Trazados,
+    PuntosTrazado,
     SyncQueue,
   ],
 )
@@ -110,8 +113,15 @@ class AppDatabase extends _$AppDatabase {
   ///
   /// v2: tabla `Ajustes`, `CatalogoCampos.noSugerir` y las cuatro columnas de
   ///     nomina en `Visitadores` (idEmpleado, cargo, email, telefono).
+  /// v6: `Trazados` y `PuntosTrazado` — los poligonos de lote y los recorridos
+  ///     que se caminan en la finca.
+  /// v7: la ficha del agricultor en `Productores` (documento y tipo, telefonos,
+  ///     genero, nacimiento, educacion, experiencia, hogar, organizacion,
+  ///     notas), su foto de perfil y el consentimiento de datos de la persona.
+  /// v8: `Productores.fotoRemota` — la miniatura de Airtable con la que el
+  ///     visitador reconoce al agricultor en el directorio.
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -139,11 +149,47 @@ class AppDatabase extends _$AppDatabase {
           await _asegurarTabla(m, sesiones);
           // v5: el informe que se le entrega al agricultor.
           await _asegurarTabla(m, informes);
+          // v6: los trazados. Van en ese orden: `PuntosTrazado` tiene una
+          // clave foranea hacia `Trazados` y SQLite no crea la tabla hija
+          // antes que la madre.
+          await _asegurarTabla(m, trazados);
+          await _asegurarTabla(m, puntosTrazado);
           await _asegurarColumna(m, catalogoCampos, catalogoCampos.noSugerir);
           await _asegurarColumna(m, visitadores, visitadores.idEmpleado);
           await _asegurarColumna(m, visitadores, visitadores.cargo);
           await _asegurarColumna(m, visitadores, visitadores.email);
           await _asegurarColumna(m, visitadores, visitadores.telefono);
+          // v6: el PDF del informe se guarda en disco y se sube al bucket.
+          // Antes vivia solo en memoria mientras la pantalla estaba abierta,
+          // asi que el documento que se le entrego al productor no quedaba en
+          // ninguna parte.
+          await _asegurarColumna(m, informes, informes.pdfPath);
+          await _asegurarColumna(m, informes, informes.enlacePdf);
+          // v7: la ficha del agricultor. Hasta la v6 el productor era un
+          // nombre y nada mas, asi que el `documento` —que es la llave con la
+          // que el backend decide si ya existe— no tenia donde vivir en el
+          // telefono.
+          for (final columna in [
+            productores.tipoDocumento,
+            productores.telefonoAlterno,
+            productores.genero,
+            productores.fechaNacimiento,
+            productores.nivelEducativo,
+            productores.aniosExperiencia,
+            productores.personasHogar,
+            productores.organizacion,
+            productores.notas,
+            productores.fotoPath,
+            productores.enlaceFoto,
+            productores.consentimientoDatos,
+            productores.fechaConsentimiento,
+            productores.datosCompletadosEn,
+            // v8: la cara con la que se reconoce al agricultor en el
+            // directorio, para no volver a crearlo con otro nombre.
+            productores.fotoRemota,
+          ]) {
+            await _asegurarColumna(m, productores, columna);
+          }
         },
         beforeOpen: (details) async {
           // Sin esto SQLite ignora las claves foraneas y se pueden quedar
@@ -331,6 +377,66 @@ class AppDatabase extends _$AppDatabase {
           validadoEn: Value(DateTime.now()),
         ),
       );
+
+  // ---------------------------------------------------------------- trazados
+
+  /// Los puntos de un trazado, en el orden en que se caminaron.
+  ///
+  /// El orden se pide explicito y no se confia en el de insercion: el
+  /// visitador borra un punto malo del medio y los que quedan tienen que
+  /// seguir describiendo la misma figura.
+  Future<List<PuntoTrazado>> puntosDeTrazado(String trazadoId) =>
+      (select(puntosTrazado)
+            ..where((p) => p.trazadoId.equals(trazadoId))
+            ..orderBy([(p) => OrderingTerm(expression: p.orden)]))
+          .get();
+
+  Stream<List<PuntoTrazado>> observarPuntos(String trazadoId) =>
+      (select(puntosTrazado)
+            ..where((p) => p.trazadoId.equals(trazadoId))
+            ..orderBy([(p) => OrderingTerm(expression: p.orden)]))
+          .watch();
+
+  Future<List<Trazado>> trazadosDeVisita(String visitaId) =>
+      (select(trazados)
+            ..where((t) => t.visitaId.equals(visitaId))
+            ..orderBy([(t) => OrderingTerm(expression: t.creadoEn)]))
+          .get();
+
+  Stream<List<Trazado>> observarTrazados(String visitaId) =>
+      (select(trazados)
+            ..where((t) => t.visitaId.equals(visitaId))
+            ..orderBy([(t) => OrderingTerm(expression: t.creadoEn)]))
+          .watch();
+
+  /// Recalcula area y perimetro y los deja guardados. Devuelve los puntos, que
+  /// es lo que el que llama casi siempre necesita despues.
+  ///
+  /// Se llama tras CADA cambio de puntos. Un area guardada que no corresponde
+  /// a los puntos que tiene al lado es peor que no tener area: el visitador la
+  /// lee en la finca y decide con ella.
+  Future<List<PuntoTrazado>> refrescarGeometria(String trazadoId) async {
+    final puntos = await puntosDeTrazado(trazadoId);
+    final trazado = await (select(trazados)..where((t) => t.id.equals(trazadoId)))
+        .getSingleOrNull();
+    if (trazado == null) return puntos;
+
+    final geos = [
+      for (final p in puntos) PuntoGeo(p.latitud, p.longitud),
+    ];
+    // El area solo tiene sentido en un anillo cerrado. En una ruta se deja en
+    // null en vez de en 0: null es «no aplica», 0 seria «mide cero».
+    final esAnillo = trazado.tipo.esPoligono && trazado.cerrado;
+
+    await (update(trazados)..where((t) => t.id.equals(trazadoId))).write(
+      TrazadosCompanion(
+        areaM2: Value(esAnillo && geos.length >= 3 ? areaM2(geos) : null),
+        perimetroM: Value(longitudMetros(geos, cerrado: esAnillo)),
+        actualizadoEn: Value(DateTime.now()),
+      ),
+    );
+    return puntos;
+  }
 
   // -------------------------------------------------------------- sync queue
 

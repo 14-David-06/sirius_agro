@@ -248,6 +248,152 @@ void main() {
       expect(item.ultimoError, contains('ya no esta en disco'));
     });
 
+    /// Regresion de campo: en Airtable aparecian «Foto 01» a «Foto 03» con
+    /// imagen y «Foto 04» a «Foto 07» sin nada, todas de la misma visita.
+    ///
+    /// La causa no era el bucket —las fotos estaban ahi y su URL respondia
+    /// 200 sin credenciales— sino el orden de la cola: el upsert tiene
+    /// prioridad 10 y las fotos 200, asi que la visita viaja a Airtable antes
+    /// de que exista una sola URL de foto. Si nada vuelve a encolar el upsert,
+    /// el enlace se queda guardado en el telefono para siempre.
+    ///
+    /// En `Evidencias` el adjunto es el UNICO lugar donde vive la foto: no hay
+    /// campo de enlace del que rescatarla despues.
+    test('subir una foto deja la visita encolada para que el enlace llegue',
+        () async {
+      final id = await visitaBase();
+      final foto = await archivoFalso('foto-01.jpg');
+      await repo.registrarEvidencia(
+        visitaId: id,
+        archivoPath: foto.path,
+        tomadaEn: DateTime(2026, 9, 2, 8, 10),
+      );
+
+      // Se vacia la cola dejando SOLO la subida de la foto pendiente, que es
+      // el estado en el que quedaba la visita ya sincronizada.
+      await (db.delete(db.syncQueue)
+            ..where((q) => q.operacion.equals('upsert')))
+          .go();
+
+      final api = ApiClient(
+        client: MockClient((req) async {
+          expect(req.url.path, '/v1/archivos');
+          return http.Response(
+            jsonEncode({
+              'url': 'https://cdn/visitas/$id/fotos/foto-01.jpg',
+              'clave': 'x',
+              'bytes': 32,
+            }),
+            200,
+          );
+        }),
+      );
+
+      await Sincronizador(db, repo, api).procesar();
+
+      expect(
+        (await repo.evidenciasDeVisita(id)).single.enlaceArchivo,
+        endsWith('foto-01.jpg'),
+      );
+
+      final pendientes = await db.pendientesDeVisita(id);
+      expect(
+        pendientes.where((p) => p.operacion == 'upsert').length,
+        1,
+        reason: 'sin un upsert nuevo, la URL de la foto no llega a Airtable',
+      );
+    });
+
+    test('diez fotos dejan un solo upsert pendiente, no diez', () async {
+      // Encolar de mas no puede convertirse en diez sincronizaciones completas
+      // de la visita: `encolar` reemplaza por el id `upsert-<visita>`.
+      final id = await visitaBase();
+      for (var i = 1; i <= 10; i++) {
+        final foto = await archivoFalso('foto-0$i.jpg');
+        await repo.registrarEvidencia(
+          visitaId: id,
+          archivoPath: foto.path,
+          tomadaEn: DateTime(2026, 9, 2, 8, 10 + i),
+        );
+      }
+
+      final api = ApiClient(
+        client: MockClient((req) async {
+          if (req.url.path == '/v1/archivos') {
+            return http.Response(
+              jsonEncode({'url': 'https://cdn/x.jpg', 'clave': 'x', 'bytes': 32}),
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'codigo_visita': id,
+              'record_id': 'recV',
+              'url': 'https://airtable/recV',
+            }),
+            200,
+          );
+        }),
+      );
+
+      await Sincronizador(db, repo, api).procesar();
+
+      final upserts = (await db.pendientesDeVisita(id))
+          .where((p) => p.operacion == 'upsert')
+          .length;
+      expect(upserts, lessThanOrEqualTo(1));
+    });
+
+    /// La otra mitad de la regresion: cuando el upsert finalmente corre, el
+    /// payload tiene que llevar la URL de la foto.
+    test('el payload lleva el enlace de la foto una vez subida', () async {
+      final id = await visitaBase();
+      final foto = await archivoFalso('foto-01.jpg');
+      await repo.registrarEvidencia(
+        visitaId: id,
+        archivoPath: foto.path,
+        tomadaEn: DateTime(2026, 9, 2, 8, 10),
+      );
+
+      Map<String, dynamic>? enviado;
+      final api = ApiClient(
+        client: MockClient((req) async {
+          if (req.url.path == '/v1/archivos') {
+            return http.Response(
+              jsonEncode({
+                'url': 'https://cdn/visitas/$id/fotos/foto-01.jpg',
+                'clave': 'x',
+                'bytes': 32,
+              }),
+              200,
+            );
+          }
+          enviado = jsonDecode(req.body) as Map<String, dynamic>;
+          return http.Response(
+            jsonEncode({
+              'codigo_visita': id,
+              'record_id': 'recV',
+              'url': 'https://airtable/recV',
+            }),
+            200,
+          );
+        }),
+      );
+
+      final sinc = Sincronizador(db, repo, api);
+      // Dos vueltas: la primera sube la foto y deja el upsert encolado; la
+      // segunda es la que manda la visita. Es exactamente lo que pasa en campo.
+      await sinc.procesar();
+      await sinc.procesar();
+
+      final evidencias = (enviado?['evidencias'] as List?) ?? const [];
+      expect(evidencias, hasLength(1));
+      expect(
+        (evidencias.single as Map<String, dynamic>)['enlace_archivo'],
+        endsWith('foto-01.jpg'),
+      );
+    });
+
     test('el audio se sube antes que las fotos', () async {
       // El audio es lo unico irrecuperable de una visita.
       final id = await visitaBase();
@@ -266,10 +412,15 @@ void main() {
         inicio: DateTime(2026, 9, 2, 8, 5),
       );
 
+      // El nombre del archivo viaja en el cuerpo multipart, y es lo unico que
+      // distingue una subida de otra: las dos van al mismo `/v1/archivos`.
+      // Antes se guardaba solo la ruta de la URL, asi que esta prueba llevaba
+      // el nombre de un orden que en realidad no comprobaba.
       final orden = <String>[];
       final api = ApiClient(
         client: MockClient((req) async {
-          orden.add(req.url.path);
+          if (req.body.contains('tramo-1.m4a')) orden.add('audio');
+          if (req.body.contains('foto-1.jpg')) orden.add('foto');
           return http.Response(
             jsonEncode({'url': 'https://cdn/x', 'clave': 'x', 'bytes': 1}),
             200,
@@ -279,9 +430,14 @@ void main() {
 
       await Sincronizador(db, repo, api).procesar();
 
+      expect(orden, ['audio', 'foto']);
+
+      // Lo que queda en la cola es el upsert, no una subida: las dos se
+      // hicieron. Ese upsert es el que lleva los enlaces recien guardados a
+      // Airtable — sin el, la foto queda en el bucket y la evidencia en
+      // Airtable sin imagen.
       final items = await db.proximosItems(limite: 10);
-      expect(items, isEmpty, reason: 'los dos se subieron');
-      expect(orden, hasLength(2));
+      expect(items.map((i) => i.operacion), ['upsert']);
     });
   });
 

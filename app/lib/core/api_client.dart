@@ -376,6 +376,56 @@ class ApiClient {
     return json['url'] as String;
   }
 
+  /// Sube el PDF del informe al bucket con una URL prefirmada.
+  ///
+  /// No pasa por `/v1/archivos` como el audio y las fotos porque no cabe: el
+  /// informe lleva las fotos embebidas y el cuerpo maximo del host son 4,5 MB,
+  /// que es un limite de infraestructura y no se configura.
+  ///
+  /// Sigue sin haber una llave de bucket en el APK. El backend firma un PUT
+  /// contra UNA ruta que el mismo arma, y la firma vence: es un permiso
+  /// temporal para un archivo, no una credencial.
+  ///
+  /// Devuelve la URL publica, que es la que se guarda. La firmada lleva la
+  /// autorizacion en la query y manana no sirve.
+  Future<String> subirInformePdf({
+    required Uint8List contenido,
+    required String filename,
+    required String codigoVisita,
+    int? orden,
+  }) async {
+    final firma = await _client.post(
+      _uri('/v1/archivos/firma'),
+      headers: _authHeaders,
+      body: {
+        'codigo_visita': codigoVisita,
+        'nombre': filename,
+        'categoria': 'informes',
+        if (orden != null) 'orden': '$orden',
+      },
+    );
+    if (firma.statusCode >= 400) _fail(firma);
+
+    final json =
+        jsonDecode(utf8.decode(firma.bodyBytes)) as Map<String, dynamic>;
+
+    // El Content-Type va DENTRO de la firma: si el PUT manda otro, S3 rechaza
+    // la subida. Se usa el que dijo el backend, no uno propio.
+    final puesto = await _client.put(
+      Uri.parse(json['url_firmada'] as String),
+      headers: {'Content-Type': json['content_type'] as String},
+      body: contenido,
+    );
+    if (puesto.statusCode >= 400) {
+      // S3 responde XML, no el JSON con `detail` que espera `_fail`.
+      throw ApiException(
+        'El bucket rechazo el PDF (HTTP ${puesto.statusCode}).',
+      );
+    }
+
+    return json['url_publica'] as String;
+  }
+
   /// Sube la visita. Idempotente por `codigo_visita`, que es el UUID que
   /// genero el dispositivo: reintentar nunca duplica.
   ///
@@ -396,5 +446,35 @@ class ApiClient {
     return VisitaSyncResult.fromJson(
       jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
     );
+  }
+
+  /// Los agricultores ya registrados en Airtable, para no volver a crearlos.
+  ///
+  /// Es una ayuda y se trata como tal: quien la llama tiene que dejar seguir
+  /// el registro si esto falla. Sin senal en la vereda —que es la mitad del
+  /// tiempo— la app busca en su espejo local y, si el agricultor no esta en
+  /// ninguna parte, se teclea el nombre y la visita arranca igual.
+  ///
+  /// [timeout] es corto a proposito: el visitador esta parado frente al
+  /// agricultor esperando para escribir un nombre. Pasado ese punto la
+  /// respuesta ya no ayuda, aunque llegue.
+  Future<List<Map<String, dynamic>>> productoresRegistrados({
+    String? buscar,
+    Duration timeout = const Duration(seconds: 12),
+  }) async {
+    final texto = (buscar ?? '').trim();
+    final response = await _client
+        .get(
+          _uri('/v1/productores').replace(
+            queryParameters: texto.isEmpty ? null : {'buscar': texto},
+          ),
+          headers: _headers,
+        )
+        .timeout(timeout);
+    if (response.statusCode >= 400) _fail(response);
+
+    final json =
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return (json['productores'] as List).cast<Map<String, dynamic>>();
   }
 }

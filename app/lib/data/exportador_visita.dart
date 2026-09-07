@@ -7,7 +7,10 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/informe_pdf.dart';
+import '../core/kml.dart';
 import 'db/app_database.dart';
+import 'nombres_archivo.dart';
+import 'trazado_repository.dart';
 import 'visita_repository.dart';
 
 /// Arma un .zip con TODO lo que el telefono tiene de una visita.
@@ -26,6 +29,10 @@ class ExportadorVisitas {
 
   final AppDatabase _db;
   final VisitaRepository _repo;
+
+  /// Se arma aca en vez de inyectarse: el exportador es el unico que lo usa y
+  /// no tiene estado propio.
+  late final TrazadoRepository _trazados = TrazadoRepository(_db, _repo);
 
   /// Devuelve el .zip escrito en el directorio temporal, listo para compartir.
   ///
@@ -56,7 +63,7 @@ class ExportadorVisitas {
       temporal.path,
       visitas.length == 1
           ? '${await _nombreDeVisita(visitas.first)}.zip'
-          : 'visitas-${visitas.length}-${_selloFecha(DateTime.now())}.zip',
+          : 'visitas-${visitas.length}-${selloFecha(DateTime.now())}.zip',
     );
 
     // Un zip viejo con el mismo nombre haria que el encoder escriba encima a
@@ -129,6 +136,17 @@ class ExportadorVisitas {
       ),
     );
 
+    // El KML aparte del CSV: el CSV son puntos sueltos y esto son las figuras.
+    // Va con los vertices incluidos porque este zip es la copia de archivo de
+    // la visita — el KML para mostrarle a alguien se exporta desde la pantalla
+    // del trazado, y ahi el visitador elige.
+    final doc = await _trazados.documentoKml(visita.id, incluirVertices: true);
+    if (!doc.vacio) {
+      zip.addArchiveFile(
+        ArchiveFile.string('${raiz}trazados.kml', construirKml(doc)),
+      );
+    }
+
     final transcripcion = await _repo.transcripcionCompleta(visita.id);
     if (transcripcion.trim().isNotEmpty) {
       zip.addArchiveFile(
@@ -139,7 +157,7 @@ class ExportadorVisitas {
     // --- Los informes: markdown y PDF ---
     final informes = await _repo.informesDeVisita(visita.id);
     for (final informe in informes) {
-      final base = 'v${informe.version}-${_slug(informe.titulo)}';
+      final base = 'v${informe.version}-${slugArchivo(informe.titulo)}';
       zip.addArchiveFile(
         ArchiveFile.string(
           '${raiz}informes/$base.md',
@@ -277,6 +295,26 @@ class ExportadorVisitas {
       }
     }
 
+    final trazados = (payload['trazados'] as List?) ?? const [];
+    if (trazados.isNotEmpty) {
+      b
+        ..writeln()
+        ..writeln('TRAZADOS CAPTURADOS EN CAMPO (${trazados.length})')
+        ..writeln('-' * 46)
+        ..writeln('El dibujo esta en trazados.kml — este es el resumen.');
+      for (final t in trazados.cast<Map<String, dynamic>>()) {
+        final puntos = (t['puntos'] as List?)?.length ?? 0;
+        final medida = t['area_ha'] != null
+            ? '${(t['area_ha'] as num).toStringAsFixed(2)} ha'
+            : t['perimetro_m'] != null
+                ? '${(t['perimetro_m'] as num).toStringAsFixed(0)} m de recorrido'
+                : 'sin medida';
+        b.writeln('  ${t['nombre']} (${t['tipo']}, ${t['modo_captura']}): '
+            '$puntos punto(s), $medida'
+            '${t['etiqueta'] == null ? '' : ' — ${t['etiqueta']}'}');
+      }
+    }
+
     if (v.temasPendientes != null && v.temasPendientes!.trim().isNotEmpty) {
       b
         ..writeln()
@@ -340,28 +378,8 @@ class ExportadorVisitas {
   /// no le dice nada.
   Future<String> _nombreDeVisita(Visita v) async {
     final ctx = await _repo.contextoInforme(v.id);
-    final quien = _slug((ctx['productor'] ?? ctx['finca'] ?? '') as String);
-    return 'visita-${_selloFecha(v.inicio)}${quien.isEmpty ? '' : '-$quien'}';
+    final quien = slugArchivo((ctx['productor'] ?? ctx['finca'] ?? '') as String);
+    return 'visita-${selloFecha(v.inicio)}${quien.isEmpty ? '' : '-$quien'}';
   }
 
-  String _selloFecha(DateTime d) {
-    final l = d.toLocal();
-    String dd(int n) => n.toString().padLeft(2, '0');
-    return '${l.year}-${dd(l.month)}-${dd(l.day)}-${dd(l.hour)}${dd(l.minute)}';
-  }
-
-  /// Nombre de archivo seguro en Android, iOS y Windows: sin acentos, sin
-  /// espacios y sin los caracteres que rompen un unzip en alguno de los tres.
-  String _slug(String texto) {
-    const con = 'áàäâãéèëêíìïîóòöôõúùüûñçÁÀÄÂÃÉÈËÊÍÌÏÎÓÒÖÔÕÚÙÜÛÑÇ';
-    const sin = 'aaaaaeeeeiiiiooooouuuuncAAAAAEEEEIIIIOOOOOUUUUNC';
-
-    var salida = texto.toLowerCase().trim();
-    for (var i = 0; i < con.length; i++) {
-      salida = salida.replaceAll(con[i], sin[i].toLowerCase());
-    }
-    return salida
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
-        .replaceAll(RegExp(r'^-+|-+$'), '');
-  }
 }

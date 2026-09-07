@@ -1,16 +1,173 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../core/geo.dart';
 import '../data/db/app_database.dart';
+import '../data/visita_repository.dart';
 import '../state/informe.dart';
 import '../state/procesador.dart';
 import '../state/providers.dart';
+import '../state/trazado.dart';
+import 'agricultor_page.dart';
 import 'camara_page.dart';
 import 'galeria_fotos.dart';
 import 'informe_page.dart';
+import 'marca.dart';
 import 'theme.dart';
+import 'trazado_page.dart';
 import 'visita_page.dart';
+
+/// Quien es el agricultor, con su cara y lo que le falta a su ficha.
+///
+/// Aparece en la visita porque es el unico momento en que la persona esta
+/// enfrente: un dato de identidad no se puede completar despues desde la
+/// oficina. Y no interrumpe —igual que el resto de la pantalla, se abre a
+/// proposito— pero SI avisa: mientras el agricultor no tenga documento, el
+/// backend no puede distinguirlo de otro con el mismo nombre en la misma
+/// vereda, y las fincas de los dos terminan en una sola ficha.
+///
+/// Cuando la ficha ya esta completa, la tarjeta se calla: queda como un
+/// renglon con la foto y el nombre, para confirmar a quien se esta visitando.
+class SeccionAgricultor extends ConsumerWidget {
+  const SeccionAgricultor({
+    super.key,
+    required this.visitaId,
+    required this.visita,
+  });
+
+  final String visitaId;
+  final Visita visita;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final productor =
+        ref.watch(productorDeVisitaProvider(visitaId)).valueOrNull;
+    final faltan = faltantesDeAgricultor(productor);
+    final completa = faltan.isEmpty;
+
+    return Card(
+      color: completa ? null : tema.marca.avisoSuave,
+      shape: completa
+          ? null
+          : RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: tema.marca.aviso.withValues(alpha: 0.3),
+              ),
+            ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => AgricultorPage(visitaId: visitaId)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              _Avatar(fotoPath: productor?.fotoPath),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      productor?.nombreCompleto ?? 'Sin agricultor',
+                      style: tema.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      completa
+                          ? [
+                              if (productor?.tipoDocumento != null)
+                                '${productor!.tipoDocumento} ${productor.documento}'
+                              else
+                                productor!.documento!,
+                              productor.telefono!,
+                            ].join(' · ')
+                          // Se nombra lo que falta, no «ficha incompleta»: el
+                          // visitador tiene que saber que preguntar sin abrir
+                          // la pantalla.
+                          : 'Falta ${faltan.join(', ')}',
+                      style: tema.textTheme.bodySmall?.copyWith(
+                        color: completa
+                            ? scheme.onSurfaceVariant
+                            : tema.marca.aviso,
+                        fontWeight:
+                            completa ? FontWeight.w400 : FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (completa)
+                const Icon(Icons.chevron_right)
+              else
+                FilledButton.tonal(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AgricultorPage(visitaId: visitaId),
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Completar'),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// La cara del agricultor, o la silueta mientras no hay foto.
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.fotoPath});
+
+  final String? fotoPath;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final archivo = fotoPath == null ? null : File(fotoPath!);
+    final tiene = archivo != null && archivo.existsSync();
+
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: scheme.surfaceContainerHighest,
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: tiene
+          ? Image.file(
+              archivo,
+              fit: BoxFit.cover,
+              // La ruta es siempre la misma (`perfil.jpg`), asi que sin la
+              // marca de tiempo se seguiria viendo el retrato reemplazado.
+              key: ValueKey(archivo.lastModifiedSync()),
+              cacheWidth: 156,
+              gaplessPlayback: true,
+              errorBuilder: (_, _, _) =>
+                  Icon(Icons.person_outline, color: scheme.outline),
+            )
+          : Icon(Icons.person_outline, size: 26, color: scheme.outline),
+    );
+  }
+}
 
 /// Fotos durante la conversacion, sin detener la grabacion.
 class SeccionFotos extends ConsumerWidget {
@@ -234,6 +391,190 @@ class SeccionProcesar extends ConsumerWidget {
                 ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Los lotes y recorridos de la visita.
+///
+/// Existe porque el area dicha en la conversacion no se puede usar para nada
+/// que importe: «unas diez hectareas» no calcula una dosis, no compara dos
+/// visitas y no entra en un mapa. Caminar el contorno si, y el telefono ya
+/// tiene el GPS.
+///
+/// La tarjeta lista lo capturado con su medida y abre la pantalla donde se
+/// captura. Aca no se captura nada: marcar puntos exige la pantalla completa,
+/// porque se hace caminando y mirando el croquis.
+class SeccionTrazados extends ConsumerWidget {
+  const SeccionTrazados({super.key, required this.visitaId});
+
+  final String visitaId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final trazados = ref.watch(trazadosProvider(visitaId)).valueOrNull ?? [];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(Icons.map_outlined, color: scheme.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Lotes y recorridos',
+                        style: tema.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        trazados.isEmpty
+                            ? 'Camina el contorno del cultivo y sale un KML.'
+                            : '${trazados.length} trazado(s) capturado(s)',
+                        style: tema.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                FilledButton.tonal(
+                  onPressed: () => _nuevo(context, ref),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Nuevo'),
+                ),
+              ],
+            ),
+            if (trazados.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              const Divider(height: 1),
+              for (final t in trazados)
+                _FilaTrazado(visitaId: visitaId, trazado: t),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Crea el trazado y entra derecho a la pantalla de captura: el visitador
+  /// toco «Nuevo» porque esta parado en el lote, no para administrar una lista.
+  Future<void> _nuevo(BuildContext context, WidgetRef ref) async {
+    final ficha = await mostrarFichaTrazado(context);
+    if (ficha == null) return;
+
+    final id = await ref.read(trazadoRepoProvider).crearTrazado(
+          visitaId: visitaId,
+          nombre: ficha.nombre,
+          tipo: ficha.tipo,
+          etiqueta: ficha.etiqueta,
+          notas: ficha.notas,
+          // Los valores con los que arranca el automatico si se prende. Son
+          // sugerencias, no reglas: los tres chips de la pantalla los cambian.
+          intervaloSeg: 10,
+          distanciaMinM: 5,
+        );
+
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TrazadoPage(visitaId: visitaId, trazadoId: id),
+      ),
+    );
+  }
+}
+
+class _FilaTrazado extends ConsumerWidget {
+  const _FilaTrazado({required this.visitaId, required this.trazado});
+
+  final String visitaId;
+  final Trazado trazado;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final puntos =
+        ref.watch(puntosTrazadoProvider(trazado.id)).valueOrNull ?? [];
+    // El reloj de un trazado NO se detiene al salir de su pantalla: el
+    // visitador se va a la camara a fotografiar la mancha en las hojas y el
+    // recorrido tiene que seguir. Pero eso hay que decirlo aca, o queda un
+    // GPS corriendo que nadie ve.
+    final capturando = ref.watch(capturaProvider(trazado.id)).capturando;
+    final anillo = trazado.tipo.esPoligono && trazado.cerrado;
+    final geos = [for (final p in puntos) PuntoGeo(p.latitud, p.longitud)];
+
+    final medida = anillo && geos.length >= 3
+        ? formatearArea(areaM2(geos))
+        : geos.length > 1
+            ? formatearDistancia(longitudMetros(geos, cerrado: anillo))
+            : 'sin medida';
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      dense: true,
+      leading: Icon(
+        switch (trazado.tipo) {
+          TipoTrazado.poligono => Icons.crop_square,
+          TipoTrazado.ruta => Icons.polyline,
+          TipoTrazado.punto => Icons.place_outlined,
+        },
+        color: puntos.isEmpty ? scheme.outline : tema.marca.exito,
+      ),
+      title: Text(trazado.nombre, style: tema.textTheme.bodyLarge),
+      subtitle: Text(
+        [
+          '${puntos.length} punto(s)',
+          medida,
+          if (trazado.etiqueta != null) trazado.etiqueta!,
+          // Un poligono sin cerrar se avisa aca: en el KML sale como linea y
+          // quien lo abra no va a ver un lote.
+          if (trazado.tipo.esPoligono && !trazado.cerrado) 'sin cerrar',
+        ].join(' · '),
+        style: const TextStyle(fontSize: 11.5),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (capturando)
+            const Padding(
+              padding: EdgeInsets.only(right: 6),
+              child: Pildora(
+                texto: 'Capturando',
+                tono: TonoPildora.error,
+                icono: Icons.timer_outlined,
+              ),
+            ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => TrazadoPage(
+            visitaId: visitaId,
+            trazadoId: trazado.id,
+          ),
         ),
       ),
     );

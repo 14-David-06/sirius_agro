@@ -42,6 +42,27 @@ android {
         versionName = flutter.versionName
     }
 
+    // Dos canales que pueden convivir en el mismo telefono. El de pruebas
+    // lleva otro applicationId (`.dev`), asi que Android los trata como apps
+    // distintas: instalar el de pruebas NO desinstala el que el visitador
+    // esta usando en campo, ni le toca su base local de visitas.
+    flavorDimensions += "canal"
+
+    productFlavors {
+        create("prod") {
+            dimension = "canal"
+            manifestPlaceholders["nombreApp"] = "Sirius Agro"
+        }
+        create("dev") {
+            dimension = "canal"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            // El nombre bajo el icono: en el cajon de apps hay dos iconos
+            // iguales y lo unico que los distingue es esta palabra.
+            manifestPlaceholders["nombreApp"] = "Sirius Agro Dev"
+        }
+    }
+
     signingConfigs {
         create("release") {
             // Solo se configura si existe key.properties. Sin eso, un `flutter

@@ -9,7 +9,7 @@ significaria que un telefono que se moja en el potrero se lleva la visita.
 backend hace upsert por ese codigo, asi que reintentar nunca duplica.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -53,6 +53,64 @@ class EvidenciaPayload(BaseModel):
     texto_ocr: str | None = None
     enlace_archivo: str | None = None
     estado_validacion: str = "Sin revisar"
+
+
+class PuntoTrazadoPayload(BaseModel):
+    """Un vertice, con la huella de como se capturo.
+
+    `precision_m` y `automatico` no son adorno: son lo que permite decidir, tres
+    meses despues, si un lindero raro fue un error del visitador o un salto del
+    GPS bajo los arboles. Un area que nadie puede auditar no se puede usar para
+    calcular una dosis.
+    """
+
+    id: str
+    orden: int
+    latitud: float
+    longitud: float
+    altitud: float | None = None
+    precision_m: float | None = None
+    capturado_en: datetime | None = None
+
+    # false = lo marco el visitador con el boton. true = lo puso el reloj.
+    automatico: bool = False
+    nota: str | None = None
+
+
+class TrazadoPayload(BaseModel):
+    """El poligono de un lote o el recorrido por el cultivo, caminado a pie.
+
+    Los puntos viajan completos, sin diezmar: el area sale de ellos y la app no
+    guarda otra copia del lindero.
+
+    `area_m2` y `perimetro_m` los calcula la app y viajan como referencia. El
+    backend puede recalcularlos desde los puntos; si los dos numeros no
+    coinciden, manda el que sale de los puntos.
+    """
+
+    id: str
+    nombre: str
+    tipo: str = "Poligono"
+    modo_captura: str = "Manual"
+    etiqueta: str | None = None
+    notas: str | None = None
+
+    # La configuracion con la que se capturo. Se guarda porque explica la
+    # figura: un contorno con un punto cada 30 s tiene menos detalle que uno
+    # cada 5, y eso no se puede deducir mirando el area.
+    intervalo_seg: int | None = None
+    distancia_min_m: float | None = None
+    precision_max_m: float | None = None
+
+    # Un poligono sin cerrar no es un lote: se lee como recorrido a medias.
+    cerrado: bool = True
+
+    area_m2: float | None = None
+    area_ha: float | None = None
+    perimetro_m: float | None = None
+    creado_en: datetime | None = None
+
+    puntos: list[PuntoTrazadoPayload] = Field(default_factory=list)
 
 
 class HallazgoPayload(BaseModel):
@@ -99,11 +157,49 @@ class InformePayload(BaseModel):
     entregado: bool = False
     medio_entrega: str | None = None
 
+    # URL del PDF en el bucket. Solo la trae si el telefono ya alcanzo a
+    # subirlo: el PDF va por su propio item de la cola y puede quedar pendiente
+    # cuando la visita ya se sincronizo. Vacio no significa que no exista,
+    # significa que todavia no subio.
+    enlace_pdf: str | None = None
+
 
 class ProductorPayload(BaseModel):
+    """La ficha del agricultor, tal como la llena el modulo de la visita.
+
+    Todo es opcional menos el nombre: la visita crea al productor con lo unico
+    que se sabe al llegar a una finca. El `documento` es el que importa —es la
+    llave con la que se decide si esta persona ya existe en Airtable— y por eso
+    llega desde la app y no se deduce aca.
+    """
+
     nombre_completo: str
     documento: str | None = None
+    tipo_documento: str | None = None
     telefono: str | None = None
+    telefono_alterno: str | None = None
+    genero: str | None = None
+    fecha_nacimiento: date | None = None
+    nivel_educativo: str | None = None
+    anios_experiencia: int | None = None
+    personas_hogar: int | None = None
+
+    # Vacio significa que no pertenece a ninguna: de aqui se deriva la casilla
+    # `Pertenece a organizacion`, para no pedirle dos veces lo mismo.
+    organizacion: str | None = None
+
+    notas: str | None = None
+
+    # Autorizacion de tratamiento (Ley 1581/2012). Va en la persona y no solo
+    # en la visita: el permiso de grabar y de fotografiar se pide en cada
+    # visita, pero que sus datos se puedan tratar se autoriza una vez.
+    consentimiento_datos: bool = False
+    fecha_consentimiento: date | None = None
+
+    # URL de la foto de perfil en el bucket. Solo llega si el telefono ya
+    # alcanzo a subirla: el retrato va por su propio item de la cola.
+    enlace_foto: str | None = None
+
     codigo_productor: str | None = None
 
 
@@ -153,6 +249,18 @@ class VisitaPayload(BaseModel):
     hallazgos: list[HallazgoPayload] = Field(default_factory=list)
     informes: list[InformePayload] = Field(default_factory=list)
 
+    # Los lotes y recorridos caminados en la finca.
+    #
+    # Estan tipados y validados, pero TODAVIA NO SE ESCRIBEN EN AIRTABLE: hacen
+    # falta las tablas `Trazados` y `Puntos de trazado`, y escribir en un campo
+    # que no existe hace que Airtable rechace el registro entero — se perderia
+    # la sincronizacion de la visita completa, no solo del poligono.
+    #
+    # Mientras eso no exista, el lindero no se pierde: vive en la base del
+    # telefono y sale en el KML y en el .zip de la visita. Ver
+    # `docs/airtable-schema.md`.
+    trazados: list[TrazadoPayload] = Field(default_factory=list)
+
 
 class VisitaSyncResult(BaseModel):
     codigo_visita: str
@@ -180,3 +288,22 @@ class ArchivoSubido(BaseModel):
     url: str
     clave: str
     bytes: int
+
+
+class SubidaFirmada(BaseModel):
+    """Permiso temporal para que el telefono suba UN archivo al bucket.
+
+    `url_firmada` es contra donde se hace el PUT y vence; `url_publica` es la
+    que se guarda y la que Airtable va a usar para buscar el archivo despues.
+    Son distintas a proposito: la firmada lleva la autorizacion en la query y
+    guardarla seria guardar un enlace que manana no sirve.
+
+    `content_type` va firmado, asi que el PUT tiene que mandar ese mismo header
+    o S3 rechaza la subida.
+    """
+
+    url_firmada: str
+    url_publica: str
+    clave: str
+    content_type: str
+    vence_en: int

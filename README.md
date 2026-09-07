@@ -70,7 +70,7 @@ Se manda con `typecast: true`, así que Airtable crea sola la opción `Procesada
 
 ```bash
 cd app
-flutter run --dart-define=API_BASE_URL=http://localhost:8000 --dart-define=API_KEY=tu-clave
+flutter run --flavor dev --dart-define=API_BASE_URL=http://localhost:8000 --dart-define=API_KEY=tu-clave
 ```
 
 Sin esas dos variables la app arranca igual y podés grabar, pero no transcribe ni
@@ -79,10 +79,24 @@ publica (te lo avisa con un aviso en la barra superior).
 Para compilar:
 
 ```bash
-flutter build apk    --dart-define=API_BASE_URL=... --dart-define=API_KEY=...
-flutter build web    --dart-define=API_BASE_URL=... --dart-define=API_KEY=...
-flutter build windows --dart-define=API_BASE_URL=... --dart-define=API_KEY=...
+flutter build apk --flavor prod --dart-define=API_BASE_URL=... --dart-define=API_KEY=...
+flutter build web              --dart-define=API_BASE_URL=... --dart-define=API_KEY=...
+flutter build windows          --dart-define=API_BASE_URL=... --dart-define=API_KEY=...
 ```
+
+### Los dos canales de Android
+
+En Android hay dos *flavors* y `flutter build apk` **exige elegir uno**:
+
+| Flavor | applicationId | Nombre bajo el icono |
+|---|---|---|
+| `prod` | `com.siriusregenerative.sirius_agro` | Sirius Agro |
+| `dev`  | `com.siriusregenerative.sirius_agro.dev` | Sirius Agro Dev |
+
+Son dos apps distintas para Android, con base local separada: instalar el de
+pruebas no desinstala el que el visitador esta usando en campo ni le borra las
+visitas que todavia no sincronizo. Probar siempre con `--flavor dev`; `prod` es
+lo unico que se reparte.
 
 ### Cuestionarios
 

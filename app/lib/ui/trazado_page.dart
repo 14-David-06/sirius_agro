@@ -6,9 +6,12 @@ import 'package:share_plus/share_plus.dart';
 import '../core/geo.dart';
 import '../data/db/app_database.dart';
 import '../state/providers.dart';
+import '../state/red.dart';
 import '../state/trazado.dart';
 import 'croquis.dart';
+import 'mapa_trazado.dart';
 import 'marca.dart';
+import 'theme.dart';
 
 /// La pantalla donde se dibuja un lote caminandolo.
 ///
@@ -20,7 +23,7 @@ import 'marca.dart';
 ///
 /// Lo unico que la app se reserva es no mentir: cada punto guarda su precision
 /// y si lo puso el dedo o el reloj, y eso se ve en pantalla.
-class TrazadoPage extends ConsumerWidget {
+class TrazadoPage extends ConsumerStatefulWidget {
   const TrazadoPage({
     super.key,
     required this.visitaId,
@@ -31,7 +34,26 @@ class TrazadoPage extends ConsumerWidget {
   final String trazadoId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TrazadoPage> createState() => _TrazadoPageState();
+}
+
+class _TrazadoPageState extends ConsumerState<TrazadoPage> {
+  /// Mapa o croquis. Arranca en nulo: mientras el visitador no elija, manda la
+  /// red — con senal el mapa, sin senal el croquis, que es lo unico que se ve
+  /// igual en los dos casos. Apenas toca el selector, la eleccion es suya y no
+  /// se la cambia una barra de senal que va y viene.
+  bool? _verMapa;
+
+  /// Si tocar el mapa agrega un vertice. Arranca apagado a proposito: el
+  /// primer gesto de cualquiera sobre un mapa es arrastrarlo, y un trazado que
+  /// gana puntos fantasma mientras alguien lo mira es peor que uno vacio.
+  bool _tocarAgrega = false;
+
+  String get visitaId => widget.visitaId;
+  String get trazadoId => widget.trazadoId;
+
+  @override
+  Widget build(BuildContext context) {
     final trazado = ref.watch(trazadoProvider(trazadoId)).valueOrNull;
     final puntos = ref.watch(puntosTrazadoProvider(trazadoId)).valueOrNull ?? [];
     final captura = ref.watch(capturaProvider(trazadoId));
@@ -78,7 +100,16 @@ class TrazadoPage extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
-                Croquis(puntos: puntos, cerrado: _cerradoEfectivo(trazado)),
+                _Vista(
+                  trazado: trazado,
+                  puntos: puntos,
+                  verMapa: _verMapa,
+                  tocarAgrega: _tocarAgrega,
+                  visita: ref.watch(visitaProvider(visitaId)).valueOrNull,
+                  onVista: (mapa) => setState(() => _verMapa = mapa),
+                  onTocarAgrega: (v) => setState(() => _tocarAgrega = v),
+                  onPunto: _agregarDesdeMapa,
+                ),
                 const SizedBox(height: 14),
                 _Medidas(trazado: trazado, puntos: puntos),
                 const SizedBox(height: 24),
@@ -100,6 +131,35 @@ class TrazadoPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Un vertice puesto con el dedo sobre el mapa.
+  ///
+  /// No es lo mismo que uno caminado y hay que decirlo: va sin precision —no
+  /// la tiene, no la midio ningun GPS— y con la nota «marcado en el mapa», que
+  /// es lo que va a leer quien revise el lindero seis meses despues y se
+  /// pregunte por que ese punto no tiene error asociado.
+  Future<void> _agregarDesdeMapa(double latitud, double longitud) async {
+    final trazado = ref.read(trazadoProvider(trazadoId)).valueOrNull;
+    if (trazado == null) return;
+
+    final puntos =
+        ref.read(puntosTrazadoProvider(trazadoId)).valueOrNull ?? const [];
+    // Un trazado de tipo punto es una marca sola: el segundo vertice no lo
+    // dibujaria mas grande, lo volveria otra cosa.
+    if (trazado.tipo == TipoTrazado.punto && puntos.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Este trazado ya tiene su punto.')),
+      );
+      return;
+    }
+
+    await ref.read(trazadoRepoProvider).agregarPunto(
+          trazadoId: trazadoId,
+          latitud: latitud,
+          longitud: longitud,
+          nota: 'marcado en el mapa',
+        );
   }
 
   Future<void> _editarFicha(
@@ -161,6 +221,118 @@ class TrazadoPage extends ConsumerWidget {
 /// Un poligono solo se dibuja cerrado cuando de verdad es un anillo. Con dos
 /// puntos, cerrarlo dibujaria la misma linea de ida y de vuelta.
 bool _cerradoEfectivo(Trazado t) => t.tipo.esPoligono && t.cerrado;
+
+/// El dibujo de arriba: croquis o mapa, con el selector para cambiar.
+///
+/// Los dos muestran lo mismo —los puntos, en orden, con el primero distinto—
+/// y por eso se pueden alternar sin perder el hilo. La diferencia es lo que
+/// hay debajo: el croquis no necesita nada y el mapa necesita red.
+class _Vista extends ConsumerWidget {
+  const _Vista({
+    required this.trazado,
+    required this.puntos,
+    required this.verMapa,
+    required this.tocarAgrega,
+    required this.visita,
+    required this.onVista,
+    required this.onTocarAgrega,
+    required this.onPunto,
+  });
+
+  final Trazado trazado;
+  final List<PuntoTrazado> puntos;
+  final bool? verMapa;
+  final bool tocarAgrega;
+  final Visita? visita;
+  final ValueChanged<bool> onVista;
+  final ValueChanged<bool> onTocarAgrega;
+  final void Function(double latitud, double longitud) onPunto;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final red = ref.watch(redProvider);
+    // El mapa solo necesita bajar teselas de OSM, y para eso alcanza con que
+    // el telefono tenga salida a Internet: que el backend de Sirius no
+    // conteste no le impide funcionar.
+    final hayRed = red == EstadoRed.enLinea || red == EstadoRed.sinServidor;
+    final mapa = verMapa ?? hayRed;
+
+    final centro = visita?.latitud != null && visita?.longitud != null
+        ? PuntoGeo(visita!.latitud!, visita!.longitud!)
+        : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(
+              value: false,
+              icon: Icon(Icons.gesture, size: 18),
+              label: Text('Croquis'),
+            ),
+            ButtonSegment(
+              value: true,
+              icon: Icon(Icons.map_outlined, size: 18),
+              label: Text('Mapa'),
+            ),
+          ],
+          selected: {mapa},
+          showSelectedIcon: false,
+          onSelectionChanged: (s) => onVista(s.first),
+          style: ButtonStyle(
+            visualDensity: VisualDensity.compact,
+            textStyle: WidgetStatePropertyAll(tema.textTheme.labelMedium),
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (!mapa)
+          Croquis(puntos: puntos, cerrado: _cerradoEfectivo(trazado))
+        else ...[
+          MapaTrazado(
+            puntos: puntos,
+            cerrado: _cerradoEfectivo(trazado),
+            centroPorDefecto: centro,
+            onTocar: tocarAgrega ? onPunto : null,
+          ),
+          const SizedBox(height: 6),
+          SwitchListTile(
+            value: tocarAgrega,
+            onChanged: onTocarAgrega,
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: const Text(
+              'Tocar el mapa agrega puntos',
+              style: TextStyle(fontSize: 13),
+            ),
+            subtitle: Text(
+              tocarAgrega
+                  ? 'Cada toque deja un vertice donde tocaste, sin precision '
+                      'de GPS. Para el lindero real, caminalo.'
+                  : 'Prendelo para dibujar el lote sobre el mapa con el dedo.',
+              style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
+            ),
+          ),
+          if (!hayRed)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Sin red las teselas no bajan: el mapa puede salir en blanco. '
+                'Los puntos se guardan igual y el croquis los muestra.',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.35,
+                  color: tema.marca.aviso,
+                ),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
 
 /// Area, perimetro y cuenta de puntos. Es el numero por el que existe la
 /// funcion: reemplaza «seran unas diez hectareas» por una medida.

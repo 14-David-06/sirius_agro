@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -45,6 +46,7 @@ class _CamaraPageState extends ConsumerState<CamaraPage> {
   String? _error;
   bool _tomando = false;
   int _tomadas = 0;
+  final _selector = ImagePicker();
 
   @override
   void initState() {
@@ -146,17 +148,92 @@ class _CamaraPageState extends ConsumerState<CamaraPage> {
     }
   }
 
+  /// Fotos que ya estaban en el telefono.
+  ///
+  /// Pasa seguido: el visitador fotografio el lote antes de abrir la app, o le
+  /// mandaron la foto de la etiqueta por WhatsApp. Sin esto habia que
+  /// re-fotografiar la pantalla, y esa foto de una foto no se puede leer.
+  ///
+  /// El selector del sistema no pide el microfono, asi que la grabacion sigue
+  /// corriendo igual que con la camara propia. Tampoco pide permiso de
+  /// almacenamiento: Android entrega solo lo que la persona eligio.
+  Future<void> _desdeGaleria() async {
+    if (_tomando) return;
+    setState(() => _tomando = true);
+
+    try {
+      if (widget.retrato) {
+        final foto = await _selector.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 85,
+        );
+        if (foto == null) {
+          if (mounted) setState(() => _tomando = false);
+          return;
+        }
+        await _guardarRetrato(foto, borrarOrigen: false);
+        return;
+      }
+
+      // Varias de una: quien viene de la galeria suele traer el lote entero.
+      final fotos = await _selector.pickMultiImage(imageQuality: 85);
+      if (fotos.isEmpty) {
+        if (mounted) setState(() => _tomando = false);
+        return;
+      }
+
+      // El segundo del audio se guarda igual que en la camara: marca cuando se
+      // agrego a la visita, que es lo que sirve para volver a la conversacion.
+      final grabacion = ref.read(grabacionProvider(widget.visitaId));
+
+      final base = await getApplicationDocumentsDirectory();
+      final carpeta =
+          Directory(p.join(base.path, 'visitas', widget.visitaId, 'fotos'));
+      await carpeta.create(recursive: true);
+
+      for (final foto in fotos) {
+        final destino = p.join(
+          carpeta.path,
+          'foto-${DateTime.now().microsecondsSinceEpoch}'
+              '${p.extension(foto.path).isEmpty ? '.jpg' : p.extension(foto.path)}',
+        );
+        // Se copia, no se mueve: el original es de la galeria de la persona y
+        // borrarlo seria una sorpresa muy fea.
+        await File(foto.path).copy(destino);
+
+        await ref.read(repoProvider).registrarEvidencia(
+              visitaId: widget.visitaId,
+              archivoPath: destino,
+              tomadaEn: DateTime.now(),
+              segundoAudio: grabacion.grabando ? grabacion.segundos : null,
+            );
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _tomadas += fotos.length;
+        _tomando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'No se pudo cargar de la galeria: $e';
+        _tomando = false;
+      });
+    }
+  }
+
   /// Guarda el retrato en la ficha del agricultor y se vuelve.
   ///
   /// Nombre fijo `perfil.jpg`: la foto de perfil es una. Tomarla de nuevo
   /// reemplaza la que habia, en el telefono y en el bucket, en vez de
   /// acumular retratos que despues nadie sabe cual es el vigente.
-  Future<void> _guardarRetrato(XFile foto) async {
+  Future<void> _guardarRetrato(XFile foto, {bool borrarOrigen = true}) async {
     final carpeta = await ref.read(repoProvider).carpetaPerfil(widget.visitaId);
     final destino = p.join(carpeta.path, 'perfil.jpg');
 
     await File(foto.path).copy(destino);
-    await File(foto.path).delete();
+    if (borrarOrigen) await File(foto.path).delete();
 
     await ref.read(repoProvider).registrarFotoAgricultor(
           visitaId: widget.visitaId,
@@ -302,10 +379,22 @@ class _CamaraPageState extends ConsumerState<CamaraPage> {
                             : null,
                       ),
                     ),
-                    // Contrapeso del ancho de la miniatura, para que el boton
-                    // de disparo quede centrado en la pantalla.
                     const SizedBox(width: 24),
-                    const SizedBox(width: 74),
+                    // A la derecha del disparo, cargar fotos que ya estan en
+                    // el telefono. Ocupa el mismo ancho que la miniatura de la
+                    // izquierda, asi que el boton de disparo sigue centrado.
+                    SizedBox(
+                      width: 74,
+                      child: Center(
+                        child: IconButton(
+                          iconSize: 30,
+                          color: Colors.white,
+                          icon: const Icon(Icons.photo_library_outlined),
+                          tooltip: 'Cargar de la galeria',
+                          onPressed: _tomando ? null : _desdeGaleria,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -313,7 +402,8 @@ class _CamaraPageState extends ConsumerState<CamaraPage> {
                   widget.retrato
                       ? 'Una foto para reconocerlo en la proxima visita. '
                           'Pedile permiso antes de tomarla.'
-                      : 'Toca para fotografiar. Podes tomar varias seguidas.',
+                      : 'Toca para fotografiar, o carga las que ya tenes en '
+                          'la galeria.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),

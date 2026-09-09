@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../core/geo.dart';
+import '../core/ubicacion.dart';
 import '../data/db/app_database.dart';
 import '../data/visita_repository.dart';
 import '../state/informe.dart';
@@ -405,15 +406,25 @@ class SeccionProcesar extends ConsumerWidget {
 /// tiene el GPS.
 ///
 /// La tarjeta lista lo capturado con su medida y abre la pantalla donde se
-/// captura. Aca no se captura nada: marcar puntos exige la pantalla completa,
-/// porque se hace caminando y mirando el croquis.
-class SeccionTrazados extends ConsumerWidget {
+/// captura. Un lote o un recorrido exigen esa pantalla completa, porque se
+/// hacen caminando y mirando el croquis; el punto suelto no, y por eso tiene
+/// su boton aca mismo.
+class SeccionTrazados extends ConsumerStatefulWidget {
   const SeccionTrazados({super.key, required this.visitaId});
 
   final String visitaId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SeccionTrazados> createState() => _SeccionTrazadosState();
+}
+
+class _SeccionTrazadosState extends ConsumerState<SeccionTrazados> {
+  bool _marcando = false;
+
+  String get visitaId => widget.visitaId;
+
+  @override
+  Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final scheme = tema.colorScheme;
     final trazados = ref.watch(trazadosProvider(visitaId)).valueOrNull ?? [];
@@ -466,6 +477,30 @@ class SeccionTrazados extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            // Un solo toque, sin formulario y sin cambiar de pantalla: el
+            // visitador esta parado donde pasa la cosa —el foco de plaga, la
+            // entrada del lote, el punto de agua— y lo que necesita es dejar
+            // la marca antes de seguir caminando.
+            FilledButton.icon(
+              onPressed: _marcando ? null : _marcarPunto,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: _marcando
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.my_location),
+              label: Text(
+                _marcando ? 'Buscando la coordenada...' : 'Marcar punto aca',
+              ),
+            ),
             if (trazados.isNotEmpty) ...[
               const SizedBox(height: 10),
               const Divider(height: 1),
@@ -476,6 +511,71 @@ class SeccionTrazados extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Guarda la coordenada de donde esta parado el visitador, sin preguntar
+  /// nada.
+  ///
+  /// Cada toque deja un trazado propio de tipo punto —«Punto 1», «Punto 2»—
+  /// en vez de acumular puntos dentro de uno solo. No es capricho del modelo:
+  /// en el KML un trazado de tipo punto sale como UNA marca, asi que varios
+  /// puntos metidos en el mismo trazado se perderian todos menos el primero.
+  /// Separados, cada marca llega a Google Earth con su hora y su precision.
+  Future<void> _marcarPunto() async {
+    if (_marcando) return;
+    setState(() => _marcando = true);
+
+    try {
+      final pos = await ubicacionActual();
+
+      final repo = ref.read(trazadoRepoProvider);
+      final id = await repo.crearTrazado(
+        visitaId: visitaId,
+        tipo: TipoTrazado.punto,
+        cerrado: false,
+      );
+      await repo.agregarPunto(
+        trazadoId: id,
+        latitud: pos.latitude,
+        longitud: pos.longitude,
+        altitud: pos.altitude,
+        precisionM: pos.accuracy,
+      );
+
+      final trazado = await repo.porId(id);
+      if (!mounted) return;
+      setState(() => _marcando = false);
+
+      final coordenada = '${pos.latitude.toStringAsFixed(6)}, '
+          '${pos.longitude.toStringAsFixed(6)}';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${trazado?.nombre ?? 'Punto'} guardado · $coordenada '
+            '(±${pos.accuracy.round()} m)',
+          ),
+          action: SnackBarAction(
+            label: 'Renombrar',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => TrazadoPage(visitaId: visitaId, trazadoId: id),
+              ),
+            ),
+          ),
+        ),
+      );
+    } on ErrorUbicacion catch (e) {
+      if (!mounted) return;
+      setState(() => _marcando = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.mensaje)));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _marcando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo tomar la coordenada: $e')),
+      );
+    }
   }
 
   /// Crea el trazado y entra derecho a la pantalla de captura: el visitador

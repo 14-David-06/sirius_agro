@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -340,13 +341,37 @@ class _TarjetaGps extends StatelessWidget {
         ),
         trailing: buscando
             ? null
-            : IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: onReintentar,
-                tooltip: 'Reintentar',
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (posicion case final Position p)
+                    IconButton(
+                      icon: const Icon(Icons.copy_outlined),
+                      tooltip: 'Copiar coordenadas',
+                      onPressed: () => _copiar(context, p),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: onReintentar,
+                    tooltip: 'Reintentar',
+                  ),
+                ],
               ),
       ),
     );
+  }
+
+  /// Se copia con seis decimales y sin la precision: es el formato que pega
+  /// derecho en Google Maps o en WhatsApp, que es para lo que se copia.
+  Future<void> _copiar(BuildContext context, Position p) async {
+    final texto = '${p.latitude.toStringAsFixed(6)}, '
+        '${p.longitude.toStringAsFixed(6)}';
+    await Clipboard.setData(ClipboardData(text: texto));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Coordenadas copiadas: $texto')),
+      );
+    }
   }
 }
 

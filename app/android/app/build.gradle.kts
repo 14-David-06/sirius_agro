@@ -42,16 +42,26 @@ android {
         versionName = flutter.versionName
     }
 
-    // Dos canales que pueden convivir en el mismo telefono. El de pruebas
-    // lleva otro applicationId (`.dev`), asi que Android los trata como apps
-    // distintas: instalar el de pruebas NO desinstala el que el visitador
-    // esta usando en campo, ni le toca su base local de visitas.
+    // Tres canales que pueden convivir en el mismo telefono. Cada uno lleva su
+    // propio applicationId, asi que Android los trata como apps distintas:
+    // instalar uno NO desinstala el que el visitador esta usando en campo, ni
+    // le toca su base local de visitas.
     flavorDimensions += "canal"
 
     productFlavors {
         create("prod") {
             dimension = "canal"
             manifestPlaceholders["nombreApp"] = "Sirius Agro"
+        }
+        // La linea nueva que se reparte al piloto sin tocar la que ya esta en
+        // los telefonos. Es produccion —se firma igual y no permite http en
+        // claro— pero con su propio applicationId, o sea su propia base local:
+        // arranca vacia y las visitas de la app vieja se quedan donde estan.
+        create("v2") {
+            dimension = "canal"
+            applicationIdSuffix = ".v2"
+            versionNameSuffix = "-v2"
+            manifestPlaceholders["nombreApp"] = "Sirius Agro v2"
         }
         create("dev") {
             dimension = "canal"

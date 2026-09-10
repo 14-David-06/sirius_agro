@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import anthropic
 import httpx
+import openai
 import pytest
 import respx
 from fastapi.testclient import TestClient
@@ -10,6 +11,7 @@ from fastapi.testclient import TestClient
 from app.config import get_settings
 from app.main import app
 from app.services import report as report_service
+from app.services import whisper as whisper_service
 
 REPORT_JSON = {
     "resumen_ejecutivo": "Se reviso el avance del lote 4.",
@@ -45,6 +47,25 @@ class _FakeAnthropic:
         return create
 
 
+class _FakeOpenAI:
+    """Devuelve siempre la misma respuesta de Whisper, sin salir a la red.
+
+    Se fakea el SDK y no el HTTP como con ElevenLabs porque el cliente de
+    OpenAI trae su propio transporte y respx no lo intercepta.
+    """
+
+    def __init__(self, payload=None, error=None, **_):
+        self.calls: list[dict] = []
+
+        async def create(**kwargs):
+            self.calls.append(kwargs)
+            if error is not None:
+                raise error
+            return SimpleNamespace(model_dump=lambda: payload or WHISPER_JSON)
+
+        self.audio = SimpleNamespace(transcriptions=SimpleNamespace(create=create))
+
+
 def _palabra(texto, inicio, fin, hablante):
     return {
         "text": texto,
@@ -71,6 +92,20 @@ STT_JSON = {
 }
 
 STT_URL = "https://api.elevenlabs.io/v1/speech-to-text"
+WHISPER_URL = "https://api.openai.com/v1/audio/transcriptions"
+
+# Respaldo: `verbose_json` de whisper-1, con la duracion real y los segmentos
+# con su segundo, y sin nada sobre quien habla.
+WHISPER_JSON = {
+    "task": "transcribe",
+    "language": "spanish",
+    "duration": 18.4,
+    "text": "Buenos dias. Mucho gusto, Pedro.",
+    "segments": [
+        {"id": 0, "start": 0.0, "end": 3.0, "text": " Buenos dias."},
+        {"id": 1, "start": 3.5, "end": 18.0, "text": " Mucho gusto, Pedro."},
+    ],
+}
 
 
 def _campos(request) -> dict[str, list[str]]:
@@ -333,10 +368,67 @@ def _raising_anthropic(exc):
 
 
 @respx.mock
-def test_llave_de_elevenlabs_invalida_devuelve_502_explicado(client, auth):
+def test_si_elevenlabs_falla_se_transcribe_con_whisper(client, auth, monkeypatch):
+    """Una visita ya hecha no se puede repetir.
+
+    Si el motor diarizado esta caido, el tramo no se queda sin transcribir: se
+    manda a Whisper, que devuelve el texto con marcas de tiempo reales. Lo que
+    no devuelve es el hablante, y eso queda dicho en vez de fingido.
+    """
+    respx.post(STT_URL).mock(
+        return_value=httpx.Response(500, json={"detail": "server error"})
+    )
+    whisper = _FakeOpenAI()
+    monkeypatch.setattr(whisper_service, "AsyncOpenAI", lambda **_: whisper)
+
+    response = client.post(
+        "/v1/transcripciones",
+        headers=auth,
+        files={"file": ("tramo-1.m4a", b"audio", "audio/m4a")},
+        data={"terminos": "Pedro Rodriguez"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+
+    # El motor dice que fue el respaldo: es lo que la app guarda en
+    # `Grabaciones.Motor` y lo que explica por que no hay hablante.
+    assert body["motor"].startswith("whisper-1")
+    assert "sin diarizacion" in body["motor"]
+
+    # Las citas siguen teniendo a que segundo apuntar.
+    assert body["turnos"][1]["inicio"] == 3.5
+    assert body["turnos"][1]["texto"] == "Mucho gusto, Pedro."
+    assert body["text_with_timestamps"].startswith("[00:00] Hablante 1: Buenos dias.")
+
+    # Whisper si mide la duracion del audio completo.
+    assert body["duration_seconds"] == 18.4
+
+    # Una sola voz, ningun visitador propuesto, y el motivo dicho: asi la
+    # extraccion marca cada hallazgo como "no identificado" en vez de
+    # atribuirselo al agricultor.
+    assert len(body["hablantes"]) == 1
+    assert body["hablante_visitador_sugerido"] is None
+    assert "Whisper" in body["razon_sugerencia"]
+
+    # El vocabulario de la visita tambien va al respaldo: es el unico refuerzo
+    # que Whisper acepta, y va primero lo especifico.
+    assert whisper.calls[0]["prompt"].startswith("Pedro Rodriguez")
+    # Sin `verbose_json` no hay segmentos con su segundo, y el respaldo pierde
+    # justo lo que lo hace util.
+    assert whisper.calls[0]["response_format"] == "verbose_json"
+
+
+@respx.mock
+def test_una_llave_invalida_de_elevenlabs_tambien_cae_al_respaldo(
+    client, auth, monkeypatch
+):
+    """Un 401 es configuracion nuestra, pero el visitador no puede arreglarla
+    desde el campo: primero se salva la transcripcion, el 401 queda en el log."""
     respx.post(STT_URL).mock(
         return_value=httpx.Response(401, json={"detail": {"message": "Invalid API key."}})
     )
+    monkeypatch.setattr(whisper_service, "AsyncOpenAI", lambda **_: _FakeOpenAI())
 
     response = client.post(
         "/v1/transcripciones",
@@ -344,15 +436,14 @@ def test_llave_de_elevenlabs_invalida_devuelve_502_explicado(client, auth):
         files={"file": ("tramo-1.m4a", b"audio", "audio/m4a")},
     )
 
-    assert response.status_code == 502
-    detail = response.json()["detail"]
-    assert "ElevenLabs respondio 401" in detail
-    assert "Invalid API key" in detail
+    assert response.status_code == 200
+    assert response.json()["motor"].startswith("whisper-1")
 
 
 @respx.mock
-def test_timeout_de_elevenlabs_devuelve_504(client, auth):
+def test_timeout_de_elevenlabs_cae_al_respaldo(client, auth, monkeypatch):
     respx.post(STT_URL).mock(side_effect=httpx.ReadTimeout("tardo demasiado"))
+    monkeypatch.setattr(whisper_service, "AsyncOpenAI", lambda **_: _FakeOpenAI())
 
     response = client.post(
         "/v1/transcripciones",
@@ -360,13 +451,28 @@ def test_timeout_de_elevenlabs_devuelve_504(client, auth):
         files={"file": ("tramo-1.m4a", b"audio", "audio/m4a")},
     )
 
-    assert response.status_code == 504
-    assert "ElevenLabs" in response.json()["detail"]
+    assert response.status_code == 200
+    assert response.json()["turnos"]
 
 
 @respx.mock
-def test_sin_conexion_con_elevenlabs_devuelve_502(client, auth):
+def test_si_los_dos_motores_fallan_el_error_nombra_a_los_dos(
+    client, auth, monkeypatch
+):
+    """El error tiene que dejar ver la falla de ElevenLabs.
+
+    El respaldo tapa el hueco; lo que hay que arreglar es el motor principal, y
+    si el mensaje solo hablara de Whisper nadie iria a mirar ahi.
+    """
     respx.post(STT_URL).mock(side_effect=httpx.ConnectError("sin red"))
+    caido = _FakeOpenAI(
+        error=openai.RateLimitError(
+            "slow down",
+            response=httpx.Response(429, request=httpx.Request("POST", WHISPER_URL)),
+            body=None,
+        )
+    )
+    monkeypatch.setattr(whisper_service, "AsyncOpenAI", lambda **_: caido)
 
     response = client.post(
         "/v1/transcripciones",
@@ -375,4 +481,6 @@ def test_sin_conexion_con_elevenlabs_devuelve_502(client, auth):
     )
 
     assert response.status_code == 502
-    assert "ElevenLabs" in response.json()["detail"]
+    detalle = response.json()["detail"]
+    assert "ElevenLabs" in detalle
+    assert "Whisper" in detalle

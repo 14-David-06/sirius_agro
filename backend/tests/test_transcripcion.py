@@ -11,6 +11,7 @@ import pytest
 from app.config import Settings
 from app.services import transcription as tr
 from app.services import vocabulario
+from app.services import whisper
 from app.schemas import HablanteStats, Turno
 
 
@@ -304,3 +305,105 @@ class TestVocabulario:
     )
     def test_parte_el_nombre_en_terminos_utiles(self, nombre, esperado):
         assert vocabulario.desde_nombre(nombre) == esperado
+
+
+# --- respaldo con Whisper ---------------------------------------------------
+
+
+# Respuesta `verbose_json` de whisper-1, recortada a lo que el backend usa.
+# Whisper devuelve el nombre del idioma ("spanish"), la duracion real del audio
+# y los segmentos con su segundo — pero ni una palabra sobre quien habla.
+WHISPER = {
+    "task": "transcribe",
+    "language": "spanish",
+    "duration": 70.9,
+    "text": (
+        "Buenos dias don Pedro, yo trabajo con Sirius. "
+        "La finca sera de unas doce hectareas. "
+        "Tengo platano, yuca y un poquito de maiz."
+    ),
+    "segments": [
+        {"id": 0, "start": 0.5, "end": 6.2, "text": " Buenos dias don Pedro, yo trabajo con Sirius."},
+        {"id": 1, "start": 30.1, "end": 38.9, "text": " La finca sera de unas doce hectareas."},
+        {"id": 2, "start": 41.5, "end": 52.5, "text": " Tengo platano, yuca y un poquito de maiz."},
+        {"id": 3, "start": 60.0, "end": 63.1, "text": "   "},
+    ],
+}
+
+
+class TestRespaldoWhisper:
+    def test_los_segmentos_conservan_su_segundo(self):
+        r = tr.construir_resultado(
+            whisper.normalizar(WHISPER), "whisper-1", turnos=whisper.turnos(WHISPER)
+        )
+
+        # Las marcas son las que midio Whisper: sin ellas una cita no puede
+        # apuntar al lugar del audio donde se dijo, y el hallazgo se queda en
+        # Pendiente.
+        assert [(t.inicio, t.fin) for t in r.turnos] == [
+            (0.5, 6.2),
+            (30.1, 38.9),
+            (41.5, 52.5),
+        ]
+        assert r.turnos[1].texto == "La finca sera de unas doce hectareas."
+
+    def test_todo_queda_en_una_sola_voz(self):
+        """Whisper no separa voces y el respaldo no finge que si.
+
+        Una sola voz es lo que deja `hablante_visitador_sugerido` en None, y eso
+        es lo que hace que la extraccion marque cada hallazgo como
+        "no identificado" en vez de atribuirselo al agricultor.
+        """
+        r = tr.construir_resultado(
+            whisper.normalizar(WHISPER), "whisper-1", turnos=whisper.turnos(WHISPER)
+        )
+
+        assert {t.hablante for t in r.turnos} == {0}
+        assert len(r.hablantes) == 1
+        assert r.hablante_visitador_sugerido is None
+
+    def test_usa_la_duracion_que_midio_whisper(self):
+        """El fin de la ultima palabra se come el silencio del final."""
+        r = tr.construir_resultado(
+            whisper.normalizar(WHISPER), "whisper-1", turnos=whisper.turnos(WHISPER)
+        )
+
+        assert r.duration_seconds == 70.9
+
+    def test_descarta_segmentos_vacios(self):
+        assert len(whisper.turnos(WHISPER)) == 3
+
+    def test_los_segmentos_pegados_no_se_fusionan(self):
+        """Whisper corta cada pocas frases y los segmentos vienen contiguos.
+
+        Fusionarlos por proximidad, como se hace con las palabras de
+        ElevenLabs, dejaria el tramo entero en un turno con una sola marca al
+        frente, y una marca cada cinco minutos no sirve para saltar al audio.
+        """
+        pegados = {
+            "text": "Buenos dias. Mucho gusto.",
+            "duration": 8.0,
+            "segments": [
+                {"start": 0.0, "end": 3.0, "text": " Buenos dias."},
+                {"start": 3.1, "end": 8.0, "text": " Mucho gusto."},
+            ],
+        }
+        r = tr.construir_resultado(
+            whisper.normalizar(pegados), "whisper-1", turnos=whisper.turnos(pegados)
+        )
+
+        assert len(r.turnos) == 2
+        assert r.turnos[1].inicio == 3.1
+
+    def test_el_idioma_lo_pone_quien_llama(self):
+        """Whisper devuelve "spanish"; el resto del sistema espera "es"."""
+        assert whisper.normalizar(WHISPER)["language_code"] is None
+
+    def test_la_pista_de_vocabulario_no_pasa_el_tope(self):
+        """El prompt de Whisper es el unico refuerzo posible y se corta a 224
+        tokens: si se pasa, el proveedor descarta el final en silencio."""
+        pista = whisper._pista(vocabulario.construir(["Pedro Rodriguez"]))
+
+        assert len(pista) <= whisper._MAX_PROMPT
+        # Lo especifico de la visita va primero, asi que es lo que sobrevive.
+        assert pista.startswith("Pedro Rodriguez")

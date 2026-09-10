@@ -6,10 +6,18 @@ contrario - `Hallazgos.Hablante` existe para poder aplicar la regla de que lo
 dicho por el visitador nunca queda Confirmado, y esa regla no es verificable
 si la transcripcion no separa las voces.
 
+Aun asi Whisper quedo como respaldo (`whisper.py`), y solo como eso: si
+ElevenLabs no responde, una visita ya hecha no se puede repetir, y un texto con
+marcas de tiempo reales y sin hablante sirve mucho mas que un tramo sin
+transcribir. El respaldo no finge la diarizacion — deja el hablante sin
+identificar y lo dice — asi que la regla dura no se debilita en silencio.
+
 Se usa httpx directo en vez del SDK de ElevenLabs: la peticion es un POST
 multipart con cinco campos, y una dependencia menos es una version menos que
 mantener alineada.
 """
+
+import logging
 
 import httpx
 from fastapi import HTTPException
@@ -17,7 +25,9 @@ from fastapi import HTTPException
 from ..config import Settings
 from ..schemas import HablanteStats, TranscriptionResult, Turno
 from .errors import upstream_error
-from . import vocabulario
+from . import vocabulario, whisper
+
+logger = logging.getLogger(__name__)
 
 _MB = 1024 * 1024
 _URL = "https://api.elevenlabs.io/v1/speech-to-text"
@@ -147,7 +157,12 @@ def _duracion(data: dict) -> float | None:
     El fin de la ultima palabra es lo mas cercano que hay. Queda corto por el
     silencio del final, y para lo que se usa (mostrarle al visitador cuanto
     duro el tramo) eso no cambia nada.
+
+    Whisper si la mide, y cuando el respaldo la trae se usa esa.
     """
+    if data.get("duration") is not None:
+        return round(float(data["duration"]), 1)
+
     fines = [
         float(w["end"]) for w in data.get("words", []) or [] if w.get("end") is not None
     ]
@@ -244,12 +259,42 @@ async def transcribe(
                 "un tramo que no se cerro cuando debia."
             ),
         )
-    if not settings.elevenlabs_api_key:
-        raise HTTPException(
-            status_code=500, detail="Falta ELEVENLABS_API_KEY en el backend."
-        )
 
     terminos = vocabulario.construir(terminos_extra)
+    idioma = language or settings.elevenlabs_language
+
+    try:
+        data = await _pedir_a_elevenlabs(settings, filename, audio, terminos, diarizar, language)
+    except _FalloElevenLabs as fallo:
+        return await _respaldo_whisper(settings, filename, audio, idioma, terminos, fallo)
+
+    return construir_resultado(data, settings.elevenlabs_model)
+
+
+class _FalloElevenLabs(Exception):
+    """ElevenLabs no dejo un resultado usable.
+
+    Se distingue de una HTTPException cualquiera para que el respaldo se dispare
+    solo por fallas del proveedor, y no por las validaciones de arriba (audio
+    vacio, audio gigante), que fallarian igual con Whisper y son del cliente.
+    """
+
+    def __init__(self, motivo: str) -> None:
+        super().__init__(motivo)
+        self.motivo = motivo
+
+
+async def _pedir_a_elevenlabs(
+    settings: Settings,
+    filename: str,
+    audio: bytes,
+    terminos: list[str],
+    diarizar: bool,
+    language: str | None,
+) -> dict:
+    if not settings.elevenlabs_api_key:
+        raise _FalloElevenLabs("falta ELEVENLABS_API_KEY en el backend")
+
     form = _form(settings, terminos, diarizar)
     if language:
         form["language_code"] = language
@@ -263,28 +308,69 @@ async def transcribe(
                 files={"file": (filename, audio, "audio/mp4")},
             )
             response.raise_for_status()
-            data = response.json()
+            return response.json()
     except httpx.HTTPStatusError as exc:
-        detalle = exc.response.text[:400]
-        raise HTTPException(
-            status_code=502,
-            detail=f"ElevenLabs respondio {exc.response.status_code}: {detalle}",
+        raise _FalloElevenLabs(
+            f"respondio {exc.response.status_code}: {exc.response.text[:400]}"
         ) from exc
     except httpx.HTTPError as exc:
-        raise upstream_error("ElevenLabs", exc) from exc
-
-    return construir_resultado(data, settings.elevenlabs_model)
+        raise _FalloElevenLabs(upstream_error("ElevenLabs", exc).detail) from exc
 
 
-def construir_resultado(data: dict, motor: str) -> TranscriptionResult:
+async def _respaldo_whisper(
+    settings: Settings,
+    filename: str,
+    audio: bytes,
+    idioma: str | None,
+    terminos: list[str],
+    fallo: _FalloElevenLabs,
+) -> TranscriptionResult:
+    """Transcribe con Whisper y deja dicho que la diarizacion no se hizo.
+
+    Si Whisper tambien falla, el error que se devuelve nombra las dos fallas:
+    la de ElevenLabs primero, porque es la que hay que arreglar — el respaldo
+    solo tapo el hueco.
+    """
+    logger.warning("ElevenLabs fallo (%s). Se transcribe con Whisper.", fallo.motivo)
+
+    try:
+        data, turnos, motor = await whisper.transcribir(
+            settings, filename, audio, idioma, terminos
+        )
+    except (HTTPException, RuntimeError) as exc:
+        detalle = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"ElevenLabs fallo ({fallo.motivo}) y el respaldo con Whisper "
+                f"tampoco funciono: {detalle}"
+            ),
+        ) from exc
+
+    resultado = construir_resultado(data, motor, turnos=turnos)
+
+    # `construir_resultado` diria "solo se detecto una voz", que es cierto pero
+    # no dice por que. Aca si se sabe: no hubo diarizacion en absoluto.
+    return resultado.model_copy(update={"razon_sugerencia": whisper.RAZON})
+
+
+def construir_resultado(
+    data: dict, motor: str, turnos: list[Turno] | None = None
+) -> TranscriptionResult:
     """Convierte la respuesta cruda de ElevenLabs en el resultado del backend.
 
     Separado del POST a proposito: asi se puede probar contra una respuesta
     guardada, sin red ni credenciales.
+
+    `turnos` lo pasa el respaldo con Whisper, que los cierra por segmento en vez
+    de reconstruirlos desde las palabras (ver `whisper.turnos`). Todo lo demas
+    -- estadisticas, marcas de tiempo, sugerencia de visitador -- se calcula
+    igual para los dos motores, que es lo que evita que se desalineen.
     """
     texto = (data.get("text") or "").strip()
 
-    turnos = _turnos_desde_palabras(data)
+    if turnos is None:
+        turnos = _turnos_desde_palabras(data)
     stats = estadisticas(turnos)
     sugerido, razon = sugerir_visitador(stats)
 

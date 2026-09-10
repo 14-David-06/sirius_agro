@@ -8,9 +8,9 @@ class Settings(BaseSettings):
 
     app_api_key: str = ""
 
-    # Transcripcion diarizada. Whisper quedo fuera porque no separa voces, y
-    # sin voces separadas no se puede aplicar la regla de que lo dicho por el
-    # visitador nunca queda Confirmado.
+    # Transcripcion diarizada. Whisper no es el motor porque no separa voces,
+    # y sin voces separadas no se puede aplicar la regla de que lo dicho por el
+    # visitador nunca queda Confirmado. Queda solo como respaldo, ver abajo.
     elevenlabs_api_key: str = ""
     elevenlabs_model: str = "scribe_v2"
 
@@ -26,7 +26,14 @@ class Settings(BaseSettings):
     # dijo el visitador — justo al reves de la regla que sostiene el dato.
     elevenlabs_num_speakers: int = 0
 
+    # Respaldo de transcripcion cuando ElevenLabs no responde (services/whisper.py).
+    # Sin esta llave, una caida del proveedor deja el tramo sin transcribir.
     openai_api_key: str = ""
+
+    # Tiene que ser whisper-1: es el unico modelo de audio de OpenAI que
+    # soporta `verbose_json`, y sin el no hay segmentos con marca de tiempo.
+    # Con un `gpt-4o-transcribe` el respaldo devuelve texto plano y las citas
+    # se quedan sin el segundo al que apuntar.
     whisper_model: str = "whisper-1"
 
     anthropic_api_key: str = ""

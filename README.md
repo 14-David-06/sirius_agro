@@ -1,12 +1,13 @@
 # Sirius Reuniones
 
 App Flutter para grabar reuniones respondiendo un cuestionario guiado mientras avanza
-la grabación. Al terminar, el audio se transcribe (Whisper), se genera un informe
+la grabación. Al terminar, el audio se transcribe (ElevenLabs Scribe, con Whisper de
+respaldo), se genera un informe
 estructurado (Claude) y todo se publica en Airtable.
 
 ```
 app/       Flutter — Android, iOS, web y Windows
-backend/   FastAPI — guarda las llaves y habla con Whisper, Claude y Airtable
+backend/   FastAPI — guarda las llaves y habla con ElevenLabs, Whisper, Claude y Airtable
 ```
 
 La app **nunca** ve los tokens de OpenAI, Anthropic ni Airtable: solo conoce la URL del
@@ -41,7 +42,7 @@ Endpoints (todos piden `X-API-Key`, salvo `/health`):
 | Método | Ruta                 | Qué hace                                        |
 |--------|----------------------|-------------------------------------------------|
 | GET    | `/health`            | ping                                            |
-| POST   | `/v1/transcriptions` | multipart `file` + `language` → texto (Whisper)  |
+| POST   | `/v1/transcriptions` | multipart `file` + `language` → texto (ElevenLabs) |
 | POST   | `/v1/reports`        | meta + transcripción + respuestas → informe JSON |
 | POST   | `/v1/meetings`       | crea el registro en Airtable                     |
 
@@ -108,7 +109,12 @@ sumar un `Questionnaire` a esa lista; el `id` queda guardado con cada reunión.
 - **Audio en AAC mono a 32 kbps** (~14 MB por hora). Whisper rechaza archivos de más de
   25 MB, así que el backend corta con un 413 explicativo pasado ese límite. Para
   reuniones de más de ~2 horas hay que partir el audio o meter un paso de troceo.
-- **La transcripción no es en vivo.** Whisper procesa el archivo completo al final.
+- **Whisper es solo el respaldo.** El motor es ElevenLabs Scribe porque separa las
+  voces, y de eso depende la regla de que lo dicho por el visitador no queda
+  Confirmado. Si ElevenLabs no responde se transcribe con Whisper: el texto queda con
+  sus marcas de tiempo pero sin hablante, y la respuesta lo dice en `motor` y en
+  `razon_sugerencia` en vez de fingir una diarización que no hubo.
+- **La transcripción no es en vivo.** El motor procesa el archivo completo al final.
   Si hace falta ver el texto avanzar durante la reunión, hay que cambiar a un motor de
   streaming (Deepgram) — es un cambio acotado a `services/transcription.py` y a la
   pantalla de grabación.

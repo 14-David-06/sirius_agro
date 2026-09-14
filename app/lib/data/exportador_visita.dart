@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/informe_pdf.dart';
+import '../core/informe_tecnico.dart';
+import '../core/informe_tecnico_pdf.dart';
 import '../core/kml.dart';
 import 'db/app_database.dart';
 import 'nombres_archivo.dart';
@@ -104,6 +106,22 @@ class ExportadorVisitas {
     return archivoZip;
   }
 
+  /// El PDF tecnico que va al .zip.
+  ///
+  /// Primero el archivado: el documento de la version 1 es el que se genero
+  /// cuando se genero. Solo si ya no esta en el telefono se rearma, con la
+  /// version del informe para que el papel no diga un numero que no es suyo.
+  Future<List<int>> _pdfTecnico(String visitaId, Informe informe) async {
+    final ruta = informe.pdfPath;
+    if (ruta != null) {
+      final archivo = File(ruta);
+      if (await archivo.exists()) return archivo.readAsBytes();
+    }
+    return construirInformeTecnicoPdf(
+      await _repo.datosInformeTecnico(visitaId, version: informe.version),
+    );
+  }
+
   Future<void> _agregarVisita(
     ZipFileEncoder zip,
     Visita visita,
@@ -170,6 +188,21 @@ class ExportadorVisitas {
       // la app lo genera al momento de compartirlo. Si falla (una foto
       // corrupta, por ejemplo) sigue el markdown, que es el contenido real.
       try {
+        // El informe tecnico tiene su propio renderizador. Pasarlo por el del
+        // productor no fallaria —armaria un PDF— y eso es lo peligroso: las
+        // tablas saldrian como parrafos sueltos bajo el membrete de la carta
+        // al agricultor, y en el .zip nadie notaria que es el documento
+        // equivocado.
+        if (informe.tipo == tipoInformeTecnico) {
+          zip.addArchiveFile(
+            ArchiveFile.bytes(
+              '${raiz}informes/$base.pdf',
+              await _pdfTecnico(visita.id, informe),
+            ),
+          );
+          continue;
+        }
+
         final bytes = await construirInformePdf(
           DatosInforme(
             titulo: informe.titulo,

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
 import '../data/sesion_repository.dart';
+import '../data/visita_repository.dart';
 import '../state/providers.dart';
 import '../state/sesion.dart';
 import 'acciones_visitas.dart';
@@ -11,6 +12,7 @@ import 'chat_page.dart';
 import 'marca.dart';
 import 'nueva_visita_page.dart';
 import 'theme.dart';
+import 'traer_historial.dart';
 import 'visita_page.dart';
 
 class VisitasPage extends ConsumerStatefulWidget {
@@ -87,7 +89,14 @@ class _VisitasPageState extends ConsumerState<VisitasPage> {
             )
           : AppBarMarca(
               titulo: 'Visitas de campo',
-              actions: [if (sesion != null) _MenuSesion(sesion: sesion)],
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.cloud_download_outlined),
+                  tooltip: 'Traer visitas de Airtable',
+                  onPressed: () => abrirTraerHistorial(context),
+                ),
+                if (sesion != null) _MenuSesion(sesion: sesion),
+              ],
             ),
       // Las dos acciones abajo y con texto: se tocan con el pulgar y con
       // guantes, y «Eliminar» no puede ser un icono que se confunda.
@@ -148,16 +157,10 @@ class _VisitasPageState extends ConsumerState<VisitasPage> {
                 detalle:
                     'Toca «Nueva visita» al llegar a la finca.\nFunciona sin senal.',
               ),
-            AsyncData(value: final lista) => ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                itemCount: lista.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (_, i) => _VisitaCard(
-                  visita: lista[i],
-                  seleccionando: _seleccionando,
-                  seleccionada: _seleccion.contains(lista[i].id),
-                  onAlternar: () => _alternar(lista[i].id),
-                ),
+            AsyncData() => _ListaAgrupada(
+                seleccionando: _seleccionando,
+                seleccion: _seleccion,
+                onAlternar: _alternar,
               ),
             _ => const Center(child: CircularProgressIndicator()),
           },
@@ -513,5 +516,124 @@ class _MenuSesion extends ConsumerWidget {
     if (partes.isEmpty) return '?';
     if (partes.length == 1) return partes.first[0].toUpperCase();
     return (partes.first[0] + partes.last[0]).toUpperCase();
+  }
+}
+
+/// La lista de visitas, agrupada por agricultor.
+///
+/// Antes era una lista plana por fecha, que es lo correcto cuando cada visita
+/// es un evento suelto. Desde que el telefono puede tener el historial de una
+/// finca —varias visitas de la misma persona, algunas hechas por otro
+/// visitador— la pregunta que se le hace a esta pantalla dejo de ser «que hice
+/// el martes» y paso a ser «que sabemos de don Pedro».
+class _ListaAgrupada extends ConsumerWidget {
+  const _ListaAgrupada({
+    required this.seleccionando,
+    required this.seleccion,
+    required this.onAlternar,
+  });
+
+  final bool seleccionando;
+  final Set<String> seleccion;
+  final void Function(String) onAlternar;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final grupos = ref.watch(visitasAgrupadasProvider).valueOrNull ?? const [];
+    if (grupos.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+      itemCount: grupos.length,
+      itemBuilder: (_, i) => _GrupoAgricultorSeccion(
+        grupo: grupos[i],
+        seleccionando: seleccionando,
+        seleccion: seleccion,
+        onAlternar: onAlternar,
+      ),
+    );
+  }
+}
+
+class _GrupoAgricultorSeccion extends StatelessWidget {
+  const _GrupoAgricultorSeccion({
+    required this.grupo,
+    required this.seleccionando,
+    required this.seleccion,
+    required this.onAlternar,
+  });
+
+  final GrupoAgricultor grupo;
+  final bool seleccionando;
+  final Set<String> seleccion;
+  final void Function(String) onAlternar;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 14, 4, 8),
+          child: Row(
+            children: [
+              Icon(
+                grupo.sinFicha ? Icons.help_outline : Icons.person_outline,
+                size: 18,
+                color: scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  grupo.nombre,
+                  style: tema.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                grupo.visitas.length == 1
+                    ? '1 visita'
+                    : '${grupo.visitas.length} visitas',
+                style: tema.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Cuantas de estas visitas se registraron en este telefono y cuantas
+        // bajaron de Airtable. Importa: sobre las bajadas no se puede grabar
+        // ni corregir nada, y saberlo antes de tocarlas evita el intento.
+        if (grupo.espejadas > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(30, 0, 4, 8),
+            child: Text(
+              grupo.propias == 0
+                  ? 'Todas son de consulta, traidas de Airtable'
+                  : '${grupo.propias} de este telefono · '
+                      '${grupo.espejadas} de consulta',
+              style: tema.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        for (final visita in grupo.visitas)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _VisitaCard(
+              visita: visita,
+              seleccionando: seleccionando,
+              seleccionada: seleccion.contains(visita.id),
+              onAlternar: () => onAlternar(visita.id),
+            ),
+          ),
+      ],
+    );
   }
 }

@@ -396,6 +396,76 @@ visita se vuelve a encolar cuando termina de subir.
 Como la clave empieza por la visita, `borrar_visita` barre el informe junto con el
 audio y las fotos: `Marcada para eliminacion` sigue cumpliéndose completa.
 
+### Dos informes por visita: el del agricultor y el técnico
+
+Una visita puede tener **dos series de informes**, cada una con su propia
+numeración de versiones, distinguidas por `Informes.Tipo`:
+
+| `Tipo` | Formato | Quién lo lee | Carpeta en el bucket |
+| --- | --- | --- | --- |
+| `Resumen para el agricultor` | FT-AGRO-001 | El productor, en su casa | `visitas/<uuid>/informes/informe-NN.pdf` |
+| `Informe tecnico de visita` | FT-AGRO-002 | La empresa | `visitas/<uuid>/informes_tecnicos/informe-tecnico-NN.pdf` |
+
+Las carpetas son distintas porque el backend renombra por categoría y por orden,
+y las dos series comparten numeración: en la misma carpeta, el técnico 01
+sobreescribiría el del agricultor 01 — y el que se perdería es el que ya se
+entregó. La app pide la firma con `categoria=informes_tecnicos`; `firmar_subida`
+acepta esas dos categorías y ninguna más.
+
+La opción nueva de `Tipo` **no hay que crearla a mano**: la sincronización
+escribe con `typecast`, así que Airtable la agrega la primera vez que llega un
+informe técnico.
+
+Diferencia de fondo entre los dos: el del agricultor lo **escribe el modelo** a
+partir de la conversación. El técnico **no pasa por el modelo** — se arma en el
+teléfono con lo que ya está en la base (coordenadas de la visita y de la finca,
+áreas y perímetros calculados sobre los vértices caminados, hallazgos con su
+certeza, metadatos de cada foto, el registro de consentimiento con el segundo del
+audio donde consta). Por eso sus números se pueden auditar y por eso se genera
+**sin señal**. `Informes.Contenido` del técnico lleva las mismas tablas en
+markdown, para poder leerlo en Airtable sin abrir el adjunto y para poder
+rearmar el documento si el renderizador cambia.
+
+## El historial baja: la primera lectura de visitas
+
+Hasta esta version la sincronizacion era **de una sola via**: el telefono
+empujaba y nunca bajaba. `GET /v1/productores/{id}/visitas` es la primera
+excepcion despues del directorio — devuelve las visitas ya registradas de un
+agricultor, con sus hallazgos, evidencias, grabaciones e informes.
+
+Tres reglas lo gobiernan, y las tres existen para que consultar el historial no
+pueda costar trabajo de campo:
+
+1. **Se pide por agricultor**, nunca "todas". Bajarle a un telefono de campo el
+   historial del equipo entero mueve datos personales de productores a
+   dispositivos que no los registraron.
+2. **Baja como espejo de solo lectura.** En la app esas visitas llevan
+   `Visitas.soloLectura = true` (esquema local v9) y el guardarraíl vive en
+   `encolarVisita`, por donde pasan todos los caminos que escriben en Airtable:
+   un espejo **nunca** entra a la cola. Sin eso, consultar el historial podria
+   reescribir en el registro central la visita de otro visitador con los datos
+   parciales que este telefono alcanzo a bajar.
+3. **Una visita que ya esta en el telefono y no es espejo se salta entera.** Ahi
+   el telefono es la fuente de verdad, porque es donde se registro.
+
+Detalles que importan al leer:
+
+- Los hijos enlazan a la visita por **record id**, no por codigo. Casar por
+  codigo devuelve visitas sin un solo hallazgo y **sin ningun error**, que se
+  leen como visitas donde no se registro nada.
+- `Completitud (%)` vuelve de fraccion a porcentaje (0,48 → 48%).
+- Las fotos solo existen como **adjunto** de `Evidencias`, y Airtable rota esas
+  URL cada pocas horas: la app baja los bytes en el momento y se queda con el
+  archivo, no con el enlace. El audio y el PDF si tienen URL del bucket, que no
+  caduca.
+- El segundo del audio de una foto viaja al frente de `Descripcion del
+  visitador` como `[MM:SS]` —la tabla no tiene columna propia— y la app lo
+  vuelve a separar al importarlo.
+- Del catalogo solo viaja la **clave tecnica**; el nombre legible del campo y su
+  modulo los resuelve la app contra su catalogo sembrado. Un hallazgo cuya clave
+  no este en el catalogo de ese APK se descarta y se cuenta, en vez de romper la
+  importacion entera.
+
 ## Trazados: capturados en la app, todavia no en Airtable
 
 Desde la version del croquis, una visita puede llevar **poligonos de lote y

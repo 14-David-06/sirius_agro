@@ -3,12 +3,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../core/geo.dart';
+import '../core/informe_tecnico.dart';
 import '../core/ubicacion.dart';
 import '../data/db/app_database.dart';
 import '../data/visita_repository.dart';
 import '../state/informe.dart';
+import '../state/informe_tecnico.dart';
 import '../state/procesador.dart';
 import '../state/providers.dart';
 import '../state/trazado.dart';
@@ -696,7 +700,13 @@ class SeccionInforme extends ConsumerWidget {
     final tema = Theme.of(context);
     final scheme = tema.colorScheme;
     final estado = ref.watch(informeProvider(visitaId));
-    final informes = ref.watch(informesProvider(visitaId)).valueOrNull ?? [];
+    // Solo los del productor: desde que existe el informe tecnico, una visita
+    // tiene informes de dos tipos en la misma tabla, y cada tarjeta lista su
+    // propia serie de versiones.
+    final informes = [
+      for (final i in ref.watch(informesProvider(visitaId)).valueOrNull ?? [])
+        if (i.tipo != tipoInformeTecnico) i,
+    ];
 
     return Card(
       child: Padding(
@@ -797,6 +807,338 @@ class SeccionInforme extends ConsumerWidget {
                   ),
                 ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// El informe tecnico de la visita: el documento de la empresa.
+///
+/// Es una tarjeta aparte de la del productor y no un boton mas dentro de
+/// ella, porque son dos entregables distintos con dos destinatarios distintos.
+/// Y porque este no necesita senal: se arma con lo que ya esta en el telefono,
+/// asi que el boton funciona igual en la finca que en la oficina — mientras el
+/// del productor espera a que haya una barra para poder llamar al modelo.
+class SeccionInformeTecnico extends ConsumerWidget {
+  const SeccionInformeTecnico({super.key, required this.visitaId});
+
+  final String visitaId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final estado = ref.watch(informeTecnicoProvider(visitaId));
+    final informes = [
+      for (final i in ref.watch(informesProvider(visitaId)).valueOrNull ?? [])
+        if (i.tipo == tipoInformeTecnico) i,
+    ];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(
+                    Icons.fact_check_outlined,
+                    color: estado.error != null ? scheme.error : scheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Informe tecnico (empresa)',
+                        style: tema.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        estado.error ??
+                            (informes.isEmpty
+                                ? 'Coordenadas, areas medidas y datos '
+                                    'ordenados. No necesita senal.'
+                                : '${informes.length} generado(s)'),
+                        style: tema.textTheme.bodySmall?.copyWith(
+                          color: estado.error != null
+                              ? scheme.error
+                              : scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: estado.trabajando
+                    ? null
+                    : () => _generar(context, ref),
+                icon: estado.trabajando
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(informes.isEmpty ? Icons.table_chart_outlined
+                        : Icons.refresh),
+                label: Text(
+                  estado.trabajando
+                      ? 'Armando el informe...'
+                      : informes.isEmpty
+                          ? 'Generar informe tecnico'
+                          : 'Generar de nuevo',
+                ),
+              ),
+            ),
+            if (informes.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              for (final i in informes)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  dense: true,
+                  leading: Icon(
+                    Icons.description_outlined,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  title: Text(
+                    'Version ${i.version}',
+                    style: tema.textTheme.bodyLarge,
+                  ),
+                  subtitle: Text(
+                    DateFormat("d 'de' MMMM, h:mm a", 'es').format(i.generadoEn),
+                  ),
+                  // Compartir e imprimir, sin pantalla intermedia: el
+                  // documento es una cuadricula de tablas y leerlo en el
+                  // telefono no sirve de nada. Se archiva, se manda o se
+                  // imprime.
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.share_outlined),
+                        tooltip: 'Compartir el PDF',
+                        onPressed: () => _compartir(context, ref, i),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.print_outlined),
+                        tooltip: 'Imprimir',
+                        onPressed: () => _imprimir(context, ref, i),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _generar(BuildContext context, WidgetRef ref) async {
+    final mensajero = ScaffoldMessenger.of(context);
+    final resultado =
+        await ref.read(informeTecnicoProvider(visitaId).notifier).generar();
+    if (resultado == null) return;
+
+    mensajero.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Informe tecnico version ${resultado.informe.version} archivado. '
+          'Sube cuando haya senal.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _compartir(
+    BuildContext context,
+    WidgetRef ref,
+    Informe informe,
+  ) async {
+    final mensajero = ScaffoldMessenger.of(context);
+    final caja = context.findRenderObject() as RenderBox?;
+    try {
+      final archivado = await ref
+          .read(informeTecnicoProvider(visitaId).notifier)
+          .pdfArchivado(informe);
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              archivado.pdf,
+              mimeType: 'application/pdf',
+              name: _nombreArchivo(informe),
+            ),
+          ],
+          subject: informe.titulo,
+          sharePositionOrigin:
+              caja == null ? null : caja.localToGlobal(Offset.zero) & caja.size,
+        ),
+      );
+
+      if (archivado.rearmado) {
+        mensajero.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'El PDF ya no estaba en el telefono: se volvio a armar con los '
+              'datos de hoy.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      mensajero.showSnackBar(
+        SnackBar(content: Text('No se pudo armar el PDF: $e')),
+      );
+    }
+  }
+
+  Future<void> _imprimir(
+    BuildContext context,
+    WidgetRef ref,
+    Informe informe,
+  ) async {
+    final mensajero = ScaffoldMessenger.of(context);
+    try {
+      final archivado = await ref
+          .read(informeTecnicoProvider(visitaId).notifier)
+          .pdfArchivado(informe);
+      await Printing.layoutPdf(
+        onLayout: (_) async => archivado.pdf,
+        name: _nombreArchivo(informe),
+      );
+    } catch (e) {
+      mensajero.showSnackBar(
+        SnackBar(content: Text('No se pudo armar el PDF: $e')),
+      );
+    }
+  }
+
+  /// `informe-tecnico-01.pdf`: el mismo nombre que en el telefono y en el
+  /// bucket. Quien reciba el archivo por WhatsApp y quien lo busque en la nube
+  /// tienen que estar mirando el mismo documento.
+  String _nombreArchivo(Informe informe) =>
+      'informe-tecnico-${informe.version.toString().padLeft(2, '0')}.pdf';
+}
+
+/// Las fotos de una visita traida de Airtable.
+///
+/// Se ven y se abren, pero no hay boton de camara: sobre un espejo no se toman
+/// fotos. La tarjeta normal no sirve porque encola subidas, y un espejo no
+/// sube nunca.
+class SeccionFotosSoloLectura extends ConsumerWidget {
+  const SeccionFotosSoloLectura({super.key, required this.visitaId});
+
+  final String visitaId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final fotos = ref.watch(evidenciasProvider(visitaId)).valueOrNull ?? [];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.photo_library_outlined, color: scheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    fotos.isEmpty
+                        ? 'Esta visita no tiene fotos'
+                        : '${fotos.length} foto(s) de la visita',
+                    style: tema.textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            if (fotos.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              GrillaFotos(fotos: fotos),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Los informes de una visita traida de Airtable.
+///
+/// Se leen; no se generan. Generar uno aqui encolaria la visita —
+/// `guardarInforme` lo hace— y un espejo no puede subir a Airtable: se
+/// reescribiria el registro de otro visitador con lo que este telefono
+/// alcanzo a bajar.
+class InformesSoloLectura extends ConsumerWidget {
+  const InformesSoloLectura({super.key, required this.visitaId});
+
+  final String visitaId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final informes = ref.watch(informesProvider(visitaId)).valueOrNull ?? [];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.description_outlined, color: scheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    informes.isEmpty
+                        ? 'Esta visita no tiene informes'
+                        : 'Informes de esta visita',
+                    style: tema.textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            if (informes.isNotEmpty)
+              for (final i in informes)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  dense: true,
+                  leading: Icon(
+                    Icons.article_outlined,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  title: Text(i.tipo, style: tema.textTheme.bodyLarge),
+                  subtitle: Text(
+                    'Version ${i.version} · '
+                    '${DateFormat("d 'de' MMMM 'de' y", 'es').format(i.generadoEn)}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => InformePage(informe: i)),
+                  ),
+                ),
           ],
         ),
       ),

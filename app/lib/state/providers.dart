@@ -48,6 +48,15 @@ final visitasProvider = StreamProvider<List<Visita>>((ref) {
       .watch();
 });
 
+/// Las visitas agrupadas por agricultor, la persona mas reciente primero.
+///
+/// Convive con `visitasProvider` en vez de reemplazarlo: la seleccion multiple
+/// y el «marcar todas» siguen razonando sobre la lista plana, que es lo que
+/// son —un conjunto de ids— y no sobre como se dibujan en la pantalla.
+final visitasAgrupadasProvider = StreamProvider<List<GrupoAgricultor>>((ref) {
+  return ref.watch(repoProvider).observarVisitasPorAgricultor();
+});
+
 final visitaProvider = StreamProvider.family<Visita?, String>((ref, id) {
   final db = ref.watch(dbProvider);
   return (db.select(db.visitas)..where((v) => v.id.equals(id)))

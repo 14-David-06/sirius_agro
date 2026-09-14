@@ -171,6 +171,30 @@ class TestFirmarSubida:
         assert "visitas/uuid-1/informes/informe-01.pdf" in firmada.url_firmada
         assert firmada.url_firmada.startswith("https://")
 
+    def test_el_informe_tecnico_va_a_su_propia_carpeta(self):
+        """El tecnico y el del agricultor comparten visita y version. Con la
+        misma clave, el segundo que subiera borraria al primero — y el que se
+        perderia es el documento que ya se entrego."""
+        alm._cliente.cache_clear()
+        agricultor = alm.firmar_subida(
+            _s(),
+            codigo_visita="uuid-1",
+            categoria="informes",
+            nombre="informe-01.pdf",
+            orden=1,
+        )
+        tecnico = alm.firmar_subida(
+            _s(),
+            codigo_visita="uuid-1",
+            categoria="informes_tecnicos",
+            nombre="informe-tecnico-01.pdf",
+            orden=1,
+        )
+        assert tecnico.clave == (
+            "visitas/uuid-1/informes_tecnicos/informe-tecnico-01.pdf"
+        )
+        assert tecnico.clave != agricultor.clave
+
     def test_la_firma_lleva_el_content_type(self):
         """Va dentro de la firma: sin esto el objeto queda octet-stream y el
         navegador lo descarga en vez de abrirlo."""

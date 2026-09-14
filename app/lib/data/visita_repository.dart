@@ -6,10 +6,78 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../core/informe_tecnico.dart';
 import 'db/app_database.dart';
 
 /// Un hallazgo tal como lo devuelve el modelo, antes de pasar por las reglas.
 /// Es el borde entre el JSON del backend y la base local.
+/// Las visitas de un agricultor, para la lista de la pantalla principal.
+class GrupoAgricultor {
+  GrupoAgricultor({
+    required this.nombre,
+    required this.visitas,
+    this.productorId,
+    this.remoteId,
+  });
+
+  final String nombre;
+
+  /// Id local. Null en el grupo de las visitas sin ficha.
+  final String? productorId;
+
+  /// Record id de Airtable. Es lo que permite pedirle el historial al backend;
+  /// sin el, el agricultor solo existe en este telefono y no hay nada que
+  /// traer.
+  final String? remoteId;
+
+  /// De la mas reciente a la mas vieja.
+  final List<Visita> visitas;
+
+  DateTime get ultima => visitas.first.inicio;
+
+  /// Cuantas de estas visitas son espejo de Airtable y no se registraron aqui.
+  int get espejadas => visitas.where((v) => v.soloLectura).length;
+
+  int get propias => visitas.length - espejadas;
+
+  bool get sinFicha => productorId == null;
+}
+
+/// Lo que dejo una descarga del historial de un agricultor.
+///
+/// Se devuelve entero en vez de un booleano porque lo que hay que decirle al
+/// visitador no es «listo»: es cuantas visitas entraron, cuantas se
+/// respetaron por ser suyas y que quedo sin bajar. Un «listo» sobre una
+/// descarga que no trajo ninguna foto es una mentira comoda.
+class ResultadoEspejo {
+  const ResultadoEspejo({
+    this.visitas = 0,
+    this.propiasRespetadas = 0,
+    this.fotos = 0,
+    this.audios = 0,
+    this.informes = 0,
+    this.hallazgosFueraDeCatalogo = 0,
+  });
+
+  /// Visitas que quedaron espejadas en el telefono.
+  final int visitas;
+
+  /// Visitas que Airtable trajo y NO se tocaron porque son de este telefono.
+  /// No es un error: es la regla funcionando.
+  final int propiasRespetadas;
+
+  final int fotos;
+  final int audios;
+  final int informes;
+
+  /// Hallazgos que se descartaron porque su clave no esta en el catalogo de
+  /// este telefono. Se cuentan para poder decir que el historial esta
+  /// incompleto en vez de mostrarlo como si estuviera entero.
+  final int hallazgosFueraDeCatalogo;
+
+  bool get vacio => visitas == 0 && propiasRespetadas == 0;
+}
+
 class HallazgoExtraido {
   const HallazgoExtraido({
     required this.claveTecnica,
@@ -483,15 +551,41 @@ class VisitaRepository {
     return tocados;
   }
 
-  static Productor? _primero(
-    List<Productor> lista,
-    bool Function(Productor) prueba,
-  ) {
-    for (final p in lista) {
-      if (prueba(p)) return p;
+  /// El primero que cumple, o null. Generico porque lo usan el directorio de
+  /// productores y el espejo del historial, que ademas busca veredas y fincas.
+  static T? _primero<T>(List<T> lista, bool Function(T) prueba) {
+    for (final elemento in lista) {
+      if (prueba(elemento)) return elemento;
     }
     return null;
   }
+
+  static double? _decimal(Object? v) {
+    if (v is num) return v.toDouble();
+    final t = _texto(v);
+    return t == null ? null : double.tryParse(t);
+  }
+
+  /// Los enums viajan como el nombre EXACTO de la opcion de Airtable. Si
+  /// llegara uno que este telefono no conoce —porque alguien renombro la
+  /// opcion o porque la app esta atrasada— cae al valor mas prudente en vez de
+  /// tumbar la importacion: perder un select no vale perder el historial.
+  static Certeza _certeza(String? valor) => Certeza.values.firstWhere(
+        (c) => c.airtable == valor,
+        orElse: () => Certeza.pendiente,
+      );
+
+  static FuenteHallazgo _fuente(String? valor) =>
+      FuenteHallazgo.values.firstWhere(
+        (f) => f.airtable == valor,
+        orElse: () => FuenteHallazgo.audio,
+      );
+
+  static EstadoHallazgo _estadoHallazgo(String? valor) =>
+      EstadoHallazgo.values.firstWhere(
+        (e) => e.airtable == valor,
+        orElse: () => EstadoHallazgo.propuestoPorIa,
+      );
 
   /// Solo escribe si el telefono no tenia nada. Lo que el visitador tecleo en
   /// la finca vale mas que lo que Airtable sabia antes de esa visita.
@@ -1076,22 +1170,42 @@ class VisitaRepository {
     required String tipo,
     String? modelo,
   }) async {
-    final previos = await informesDeVisita(visitaId);
-    final informe = InformesCompanion.insert(
-      id: _uuid.v4(),
-      visitaId: visitaId,
-      titulo: titulo,
-      tipo: Value(tipo),
-      contenido: contenido,
-      version: Value(previos.length + 1),
-      generadoEn: DateTime.now(),
-      modelo: Value(modelo),
-    );
-    await _db.into(_db.informes).insert(informe);
+    final id = _uuid.v4();
+    await _db.into(_db.informes).insert(
+          InformesCompanion.insert(
+            id: id,
+            visitaId: visitaId,
+            titulo: titulo,
+            tipo: Value(tipo),
+            contenido: contenido,
+            version: Value(await proximaVersion(visitaId, tipo)),
+            generadoEn: DateTime.now(),
+            modelo: Value(modelo),
+          ),
+        );
     // Prioridad alta pero por debajo del audio: el informe se puede volver a
     // generar, la grabacion no.
     await encolarVisita(visitaId);
-    return (await informesDeVisita(visitaId)).first;
+    // Por id y no `informesDeVisita().first`: esa lista viene ordenada por
+    // version descendente, y desde que una visita puede tener informes de dos
+    // tipos —el del productor y el tecnico— la version mas alta no es
+    // necesariamente el que se acaba de guardar.
+    return (_db.select(_db.informes)..where((i) => i.id.equals(id)))
+        .getSingle();
+  }
+
+  /// Que version le toca al proximo informe de este TIPO.
+  ///
+  /// Por tipo y no por visita: el informe del productor y el tecnico son dos
+  /// series distintas. Contando todo junto, el primer tecnico de una visita
+  /// que ya tenia un informe entregado saldria como «version 2» de algo que
+  /// nunca tuvo version 1, y en el bucket se llamaria con el numero de otro
+  /// documento.
+  Future<int> proximaVersion(String visitaId, String tipo) async {
+    final previos = await (_db.select(_db.informes)
+          ..where((i) => i.visitaId.equals(visitaId) & i.tipo.equals(tipo)))
+        .get();
+    return previos.length + 1;
   }
 
   /// Guarda el PDF en disco y lo encola para el bucket.
@@ -1116,9 +1230,14 @@ class VisitaRepository {
     );
     await carpeta.create(recursive: true);
 
+    // El tipo va en el nombre. Sin eso, el tecnico y el del productor —dos
+    // documentos distintos de la misma visita, cada uno con su propia serie de
+    // versiones— se llamarian igual y el segundo pisaria al primero, tanto en
+    // la carpeta del telefono como en el bucket.
     final ruta = p.join(
       carpeta.path,
-      'informe-${informe.version.toString().padLeft(2, '0')}.pdf',
+      '${_prefijoPdf(informe.tipo)}-'
+      '${informe.version.toString().padLeft(2, '0')}.pdf',
     );
     await File(ruta).writeAsBytes(bytes, flush: true);
 
@@ -1154,6 +1273,27 @@ class VisitaRepository {
     return informe?.version;
   }
 
+  /// La carpeta del bucket donde va este PDF.
+  ///
+  /// El backend renombra por categoria (`informes/informe-01.pdf`), asi que la
+  /// categoria es lo que evita que el tecnico y el del productor compartan
+  /// ruta. Se consulta por el pdfPath por la misma razon que la version: es lo
+  /// unico que lleva el item de la cola.
+  Future<String> categoriaDeInformePorPdf(String pdfPath) async {
+    final informe = await (_db.select(_db.informes)
+          ..where((i) => i.pdfPath.equals(pdfPath)))
+        .getSingleOrNull();
+    return informe?.tipo == tipoInformeTecnico
+        ? 'informes_tecnicos'
+        : 'informes';
+  }
+
+  /// `informe` para el del productor, `informe-tecnico` para el de la empresa.
+  /// Coincide con el prefijo que usa el backend al renombrar en el bucket, a
+  /// proposito: el archivo se llama igual en el telefono y en la nube.
+  String _prefijoPdf(String tipo) =>
+      tipo == tipoInformeTecnico ? 'informe-tecnico' : 'informe';
+
   Future<void> registrarEnlaceInforme(String pdfPath, String url) =>
       (_db.update(_db.informes)..where((i) => i.pdfPath.equals(pdfPath)))
           .write(InformesCompanion(enlacePdf: Value(url)));
@@ -1184,6 +1324,666 @@ class VisitaRepository {
       ...ctx,
       'fotos': [for (final f in fotos) f.archivoPath],
     };
+  }
+
+  /// Todo lo que lleva el informe tecnico, leido de la base.
+  ///
+  /// No pasa por el backend ni por el modelo: se arma en el telefono con lo
+  /// que ya esta guardado, y por eso funciona sin senal en la finca. Es
+  /// tambien la razon por la que las coordenadas de ese documento se pueden
+  /// auditar — ningun numero paso por un modelo de lenguaje.
+  ///
+  /// Sin [version], trae la que le TOCARIA al proximo informe tecnico de esta
+  /// visita: se calcula antes de guardarlo porque el documento la imprime en
+  /// el membrete, y `guardarInforme` le va a asignar la misma. Se pasa
+  /// explicita cuando se rearma el PDF de un informe que ya existe, para que
+  /// el papel no diga una version que no es la suya.
+  Future<DatosInformeTecnico> datosInformeTecnico(
+    String visitaId, {
+    int? version,
+  }) async {
+    final v = await (_db.select(_db.visitas)..where((x) => x.id.equals(visitaId)))
+        .getSingle();
+
+    final visitador = v.visitadorLocalId == null
+        ? null
+        : await (_db.select(_db.visitadores)
+              ..where((x) => x.id.equals(v.visitadorLocalId!)))
+            .getSingleOrNull();
+    final productor = v.productorLocalId == null
+        ? null
+        : await (_db.select(_db.productores)
+              ..where((x) => x.id.equals(v.productorLocalId!)))
+            .getSingleOrNull();
+    final finca = v.fincaLocalId == null
+        ? null
+        : await (_db.select(_db.fincas)
+              ..where((x) => x.id.equals(v.fincaLocalId!)))
+            .getSingleOrNull();
+    final vereda = v.veredaLocalId == null
+        ? null
+        : await (_db.select(_db.veredas)
+              ..where((x) => x.id.equals(v.veredaLocalId!)))
+            .getSingleOrNull();
+
+    // El catalogo da el nombre legible del campo y su modulo. Sin el, la tabla
+    // de datos del informe mostraria `area_total_ha` en vez de «Área total»:
+    // una clave tecnica en un documento institucional obliga a quien lo lee a
+    // conocer el esquema de la base.
+    final catalogo = {
+      for (final c in await _db.select(_db.catalogoCampos).get())
+        c.claveTecnica: c,
+    };
+
+    final hallazgos = await (_db.select(_db.hallazgos)
+          ..where((h) => h.visitaId.equals(visitaId))
+          ..orderBy([(h) => OrderingTerm(expression: h.creadoEn)]))
+        .get();
+
+    final trazados = await (_db.select(_db.trazados)
+          ..where((t) => t.visitaId.equals(visitaId))
+          ..orderBy([(t) => OrderingTerm(expression: t.creadoEn)]))
+        .get();
+
+    final trazadosTecnicos = <TrazadoTecnico>[];
+    for (final t in trazados) {
+      final puntos = await (_db.select(_db.puntosTrazado)
+            ..where((x) => x.trazadoId.equals(t.id))
+            ..orderBy([(x) => OrderingTerm(expression: x.orden)]))
+          .get();
+      trazadosTecnicos.add(
+        TrazadoTecnico(
+          nombre: t.nombre,
+          tipo: t.tipo.airtable,
+          modoCaptura: t.modoCaptura.airtable,
+          cerrado: t.cerrado,
+          etiqueta: t.etiqueta,
+          notas: t.notas,
+          areaM2: t.areaM2,
+          perimetroM: t.perimetroM,
+          puntos: [
+            for (final p in puntos)
+              PuntoTecnico(
+                orden: p.orden,
+                latitud: p.latitud,
+                longitud: p.longitud,
+                capturadoEn: p.capturadoEn,
+                altitud: p.altitud,
+                precisionM: p.precisionM,
+                automatico: p.automatico,
+                nota: p.nota,
+              ),
+          ],
+        ),
+      );
+    }
+
+    final grabaciones = await grabacionesDeVisita(visitaId);
+    final evidencias = await evidenciasDeVisita(visitaId);
+
+    // El modelo que se registro en la visita. Sale del ultimo informe que se
+    // genero con IA —el del productor— porque es el unico lugar donde queda
+    // guardado. Los hallazgos no llevan columna de modelo.
+    final informes = await informesDeVisita(visitaId);
+    final modelo = informes
+        .where((i) => i.tipo != tipoInformeTecnico && i.modelo != null)
+        .firstOrNull
+        ?.modelo;
+
+    return DatosInformeTecnico(
+      codigoVisita: v.id,
+      inicio: v.inicio,
+      fin: v.fin,
+      generadoEn: DateTime.now(),
+      version: version ?? await proximaVersion(visitaId, tipoInformeTecnico),
+      estado: v.estado,
+      tipoVisita: v.tipoVisita,
+      completitudPct: v.completitudPct,
+      visitador: visitador?.nombre,
+      productor: productor == null
+          ? null
+          : ProductorTecnico(
+              nombre: productor.nombreCompleto,
+              documento: productor.documento,
+              tipoDocumento: productor.tipoDocumento,
+              telefono: productor.telefono,
+              organizacion: productor.organizacion,
+              codigoProductor: productor.codigoProductor,
+              consentimientoDatos: productor.consentimientoDatos,
+              fechaConsentimiento: productor.fechaConsentimiento,
+            ),
+      finca: finca == null
+          ? null
+          : FincaTecnica(
+              nombre: finca.nombre,
+              latitud: finca.latitud,
+              longitud: finca.longitud,
+              areaDeclaradaHa: finca.areaTotalHa,
+            ),
+      vereda: vereda?.vereda,
+      municipio: vereda?.municipio,
+      latitud: v.latitud,
+      longitud: v.longitud,
+      precisionGps: v.precisionGps,
+      objetivo: v.objetivo,
+      observaciones: v.observaciones,
+      temasPendientes: v.temasPendientes,
+      trazados: trazadosTecnicos,
+      hallazgos: [
+        for (final h in hallazgos)
+          HallazgoTecnico(
+            modulo: catalogo[h.claveTecnica]?.modulo ?? 'Sin módulo',
+            campo: catalogo[h.claveTecnica]?.campo ?? h.claveTecnica,
+            claveTecnica: h.claveTecnica,
+            valor: h.valorTexto ?? _numero(h.valorNumerico),
+            unidad: h.unidad,
+            certeza: h.certeza.airtable,
+            fuente: h.fuente.airtable,
+            estado: h.estado.airtable,
+            confianza: h.confianza,
+            segundoAudio: h.segundoAudio,
+            citaTextual: h.citaTextual,
+            razonamiento: h.razonamiento,
+            valorCorregido: h.valorCorregido,
+            entidad: h.entidadLocalId,
+          ),
+      ],
+      evidencias: [
+        for (final e in evidencias)
+          EvidenciaTecnica(
+            archivoPath: e.archivoPath,
+            tomadaEn: e.tomadaEn,
+            tipo: e.tipo,
+            latitud: e.latitud,
+            longitud: e.longitud,
+            segundoAudio: e.segundoAudio,
+            // La del visitador manda sobre la que escribio la IA: si el
+            // visitador escribio que es, eso es lo que la foto muestra.
+            descripcion: e.descripcionVisitador ?? e.descripcionIa,
+            textoOcr: e.textoOcr,
+            estadoValidacion: e.estadoValidacion,
+          ),
+      ],
+      grabaciones: [
+        for (final g in grabaciones)
+          GrabacionTecnica(
+            orden: g.orden,
+            inicio: g.inicio,
+            duracionSeg: g.duracionSeg,
+            tamanoBytes: g.tamanoBytes,
+            motor: g.motorTranscripcion,
+            estado: g.estado,
+            transcrita: (g.transcripcion ?? '').isNotEmpty,
+          ),
+      ],
+      consentimiento: ConsentimientoTecnico(
+        audio: v.consienteAudio,
+        fotos: v.consienteFotos,
+        usoDatos: v.consienteUsoDatos,
+        segundoConsentimiento: v.segundoConsentimiento,
+        marcadaParaEliminacion: v.marcadaParaEliminacion,
+      ),
+      sincronizada: v.sincronizada,
+      modeloIa: modelo,
+    );
+  }
+
+  /// El valor numerico sin el `.0` de los enteros: «3 pozos», no «3.0 pozos».
+  String _numero(double? valor) {
+    if (valor == null) return '';
+    return valor == valor.roundToDouble()
+        ? valor.toInt().toString()
+        : valor.toString();
+  }
+
+  /// Las visitas agrupadas por agricultor, la persona mas reciente primero.
+  ///
+  /// La lista plana por fecha servia cuando cada visita era un evento suelto.
+  /// Desde que el telefono puede tener el historial de una finca —varias
+  /// visitas de la misma persona, algunas de otro visitador— lo que se busca
+  /// ya no es «que hice el martes» sino «que sabemos de don Pedro».
+  ///
+  /// Las visitas sin agricultor no se esconden: van juntas al final, bajo su
+  /// propio encabezado. Una visita sin ficha es un pendiente, y esconderlo
+  /// seria taparlo.
+  Stream<List<GrupoAgricultor>> observarVisitasPorAgricultor() {
+    final consulta = _db.select(_db.visitas).join([
+      leftOuterJoin(
+        _db.productores,
+        _db.productores.id.equalsExp(_db.visitas.productorLocalId),
+      ),
+    ])
+      ..orderBy([
+        OrderingTerm(expression: _db.visitas.inicio, mode: OrderingMode.desc),
+      ]);
+
+    return consulta.watch().map((filas) {
+      final grupos = <String, GrupoAgricultor>{};
+
+      for (final fila in filas) {
+        final visita = fila.readTable(_db.visitas);
+        final productor = fila.readTableOrNull(_db.productores);
+        // Sin ficha, todas juntas bajo una sola llave: si se agrupara por id
+        // de visita, cada una seria su propio encabezado y la pantalla
+        // quedaria peor que la lista plana.
+        final llave = productor?.id ?? '';
+
+        final grupo = grupos.putIfAbsent(
+          llave,
+          () => GrupoAgricultor(
+            productorId: productor?.id,
+            nombre: productor?.nombreCompleto ?? 'Sin agricultor',
+            remoteId: productor?.remoteId,
+            visitas: [],
+          ),
+        );
+        grupo.visitas.add(visita);
+      }
+
+      // Las filas ya vienen ordenadas por fecha, asi que la primera visita de
+      // cada grupo es la mas reciente y sirve para ordenar los grupos.
+      final lista = grupos.values.toList()
+        ..sort((a, b) => b.ultima.compareTo(a.ultima));
+      return lista;
+    });
+  }
+
+  // ------------------------------------------- el espejo del historial
+
+  /// Mete en la base local el historial que devolvio el backend.
+  ///
+  /// Las visitas entran marcadas `soloLectura`: se consultan y nada mas. No es
+  /// una limitacion pendiente de levantar, es la garantia de la funcion — con
+  /// ella es IMPOSIBLE que traer el historial de un agricultor pise una visita
+  /// que el visitador todavia no ha subido. En una vereda sin senal ese
+  /// trabajo no tiene de donde rescatarse.
+  ///
+  /// La regla que lo sostiene esta en una sola linea de abajo: una visita que
+  /// ya existe en el telefono y NO es un espejo se salta entera. Da igual lo
+  /// que traiga Airtable; en ese caso el telefono es la fuente de verdad,
+  /// porque es donde se registro.
+  ///
+  /// [bajar] trae los bytes de una URL. Se recibe como funcion en vez de
+  /// llamar al backend desde aqui para que el repositorio siga sin saber de
+  /// red: quien orquesta es `HistorialController`.
+  Future<ResultadoEspejo> importarHistorial(
+    Map<String, dynamic> historial, {
+    Future<List<int>?> Function(String url)? bajar,
+    void Function(String)? onPaso,
+  }) async {
+    final visitas = (historial['visitas'] as List?) ?? const [];
+    if (visitas.isEmpty) return const ResultadoEspejo();
+
+    final nombreProductor = _texto(historial['productor']);
+    var espejadas = 0;
+    var propias = 0;
+    var fotos = 0;
+    var audios = 0;
+    var informes = 0;
+    var hallazgosFuera = 0;
+
+    // El catalogo decide que hallazgos pueden entrar: `Hallazgos.claveTecnica`
+    // es una clave foranea, y una clave que este telefono no conoce —porque su
+    // catalogo es mas viejo— reventaria la insercion entera.
+    final catalogo = {
+      for (final c in await _db.select(_db.catalogoCampos).get()) c.claveTecnica,
+    };
+
+    for (final cruda in visitas) {
+      final v = (cruda as Map).cast<String, dynamic>();
+      final codigo = _texto(v['codigo_visita']);
+      if (codigo == null) continue;
+
+      final local = await (_db.select(_db.visitas)
+            ..where((x) => x.id.equals(codigo)))
+          .getSingleOrNull();
+
+      if (local != null && !local.soloLectura) {
+        // La visita es de este telefono. No se toca ni para "completarla":
+        // lo que esta aca es lo que se registro en la finca.
+        propias++;
+        continue;
+      }
+
+      onPaso?.call(
+        'Trayendo la visita de ${_texto(v['finca']) ?? nombreProductor ?? 'la finca'}...',
+      );
+
+      final productorId = await _productorEspejo(nombreProductor);
+      final veredaId = await _veredaEspejo(_texto(v['vereda']));
+      final fincaId = await _fincaEspejo(
+        _texto(v['finca']),
+        productorId,
+        veredaId,
+      );
+
+      await _db.transaction(() async {
+        final fila = VisitasCompanion(
+          id: Value(codigo),
+          inicio: Value(_fecha(v['inicio']) ?? DateTime.now()),
+          fin: Value(_fecha(v['fin'])),
+          productorLocalId: Value(productorId),
+          fincaLocalId: Value(fincaId),
+          veredaLocalId: Value(veredaId),
+          tipoVisita: Value(_texto(v['tipo_visita'])),
+          estado: Value(_texto(v['estado']) ?? 'Cerrada'),
+          latitud: Value(_decimal(v['latitud'])),
+          longitud: Value(_decimal(v['longitud'])),
+          consienteAudio: Value(v['consiente_audio'] == true),
+          consienteFotos: Value(v['consiente_fotos'] == true),
+          consienteUsoDatos: Value(v['consiente_uso_datos'] == true),
+          segundoConsentimiento: Value(_entero(v['segundo_consentimiento'])),
+          marcadaParaEliminacion: Value(v['marcada_para_eliminacion'] == true),
+          objetivo: Value(_texto(v['objetivo'])),
+          observaciones: Value(_texto(v['observaciones'])),
+          resumen: Value(_texto(v['resumen'])),
+          temasPendientes: Value(_texto(v['temas_pendientes'])),
+          completitudPct: Value(_entero(v['completitud_pct']) ?? 0),
+          // Viene de Airtable: ya esta sincronizada por definicion. Marcarla
+          // asi tambien la mantiene fuera de cualquier barrido de pendientes.
+          sincronizada: const Value(true),
+          soloLectura: const Value(true),
+          descargadaEn: Value(DateTime.now()),
+        );
+
+        if (local == null) {
+          await _db.into(_db.visitas).insert(fila);
+        } else {
+          // Ya era un espejo: se reemplaza con lo que dice Airtable hoy, que
+          // es la fuente de verdad de una visita que no es de este telefono.
+          await (_db.update(_db.visitas)..where((x) => x.id.equals(codigo)))
+              .write(fila);
+          await _borrarHijosDe(codigo);
+        }
+
+        for (final cruda in (v['hallazgos'] as List?) ?? const []) {
+          final h = (cruda as Map).cast<String, dynamic>();
+          final clave = _texto(h['clave_tecnica']);
+          if (clave == null || !catalogo.contains(clave)) {
+            // Un campo que este telefono no tiene en su catalogo. Se cuenta y
+            // se dice, en vez de tumbar el historial entero por un hallazgo.
+            hallazgosFuera++;
+            continue;
+          }
+          await _db.into(_db.hallazgos).insert(
+                HallazgosCompanion.insert(
+                  id: _uuid.v4(),
+                  visitaId: codigo,
+                  claveTecnica: clave,
+                  valorTexto: Value(_texto(h['valor_texto'])),
+                  valorNumerico: Value(_decimal(h['valor_numerico'])),
+                  unidad: Value(_texto(h['unidad'])),
+                  certeza: Value(_certeza(_texto(h['certeza']))),
+                  fuente: Value(_fuente(_texto(h['fuente']))),
+                  estado: Value(_estadoHallazgo(_texto(h['estado']))),
+                  citaTextual: Value(_texto(h['cita_textual'])),
+                  segundoAudio: Value(_entero(h['segundo_audio'])),
+                  razonamiento: Value(_texto(h['razonamiento'])),
+                  confianza: Value(_decimal(h['confianza'])),
+                  valorCorregido: Value(_texto(h['valor_corregido'])),
+                  entidadLocalId: Value(_texto(h['entidad_local_id'])),
+                  creadoEn: DateTime.now(),
+                ),
+              );
+        }
+
+        for (final cruda in (v['informes'] as List?) ?? const []) {
+          final i = (cruda as Map).cast<String, dynamic>();
+          final contenido = _texto(i['contenido']);
+          if (contenido == null) continue;
+          await _db.into(_db.informes).insert(
+                InformesCompanion.insert(
+                  id: _uuid.v4(),
+                  visitaId: codigo,
+                  titulo: _texto(i['titulo']) ?? 'Informe',
+                  tipo: Value(
+                    _texto(i['tipo']) ?? 'Resumen para el agricultor',
+                  ),
+                  contenido: contenido,
+                  version: Value(_entero(i['version']) ?? 1),
+                  generadoEn: _fecha(i['generado_en']) ?? DateTime.now(),
+                  entregado: Value(i['entregado'] == true),
+                  medioEntrega: Value(_texto(i['medio_entrega'])),
+                  enlacePdf: Value(_texto(i['enlace_pdf'])),
+                ),
+              );
+          informes++;
+        }
+      });
+
+      fotos += await _bajarEvidencias(codigo, v, bajar, onPaso);
+      audios += await _bajarAudios(codigo, v, bajar, onPaso);
+      espejadas++;
+    }
+
+    return ResultadoEspejo(
+      visitas: espejadas,
+      propiasRespetadas: propias,
+      fotos: fotos,
+      audios: audios,
+      informes: informes,
+      hallazgosFueraDeCatalogo: hallazgosFuera,
+    );
+  }
+
+  /// Borra los hijos de un espejo antes de volver a escribirlo.
+  ///
+  /// Solo se llama sobre visitas `soloLectura`: si esto corriera sobre una
+  /// visita propia borraria el audio y las fotos de una conversacion real.
+  Future<void> _borrarHijosDe(String visitaId) async {
+    await (_db.delete(_db.hallazgos)..where((h) => h.visitaId.equals(visitaId)))
+        .go();
+    await (_db.delete(_db.evidencias)..where((e) => e.visitaId.equals(visitaId)))
+        .go();
+    await (_db.delete(_db.grabaciones)..where((g) => g.visitaId.equals(visitaId)))
+        .go();
+    await (_db.delete(_db.informes)..where((i) => i.visitaId.equals(visitaId)))
+        .go();
+  }
+
+  /// Las fotos del espejo, bajadas a la carpeta de la visita.
+  ///
+  /// Las URL de los adjuntos de Airtable caducan en unas horas: se guardan los
+  /// BYTES, no el enlace. Una foto que no se pudo bajar no cancela nada — la
+  /// fila queda sin archivo y el historial se ve igual, con un hueco honesto.
+  Future<int> _bajarEvidencias(
+    String visitaId,
+    Map<String, dynamic> v,
+    Future<List<int>?> Function(String url)? bajar,
+    void Function(String)? onPaso,
+  ) async {
+    final lista = (v['evidencias'] as List?) ?? const [];
+    if (lista.isEmpty) return 0;
+
+    final carpeta = Directory(
+      p.join((await _carpetaDeVisita(visitaId)).path, 'fotos'),
+    );
+    await carpeta.create(recursive: true);
+
+    var bajadas = 0;
+    var orden = 0;
+    for (final cruda in lista) {
+      final e = (cruda as Map).cast<String, dynamic>();
+      orden++;
+
+      final url = _texto(e['url']);
+      final ruta = p.join(
+        carpeta.path,
+        'foto-${orden.toString().padLeft(2, '0')}.jpg',
+      );
+
+      if (url != null && bajar != null) {
+        onPaso?.call('Bajando la foto $orden...');
+        final bytes = await bajar(url);
+        if (bytes != null) {
+          await File(ruta).writeAsBytes(bytes, flush: true);
+          bajadas++;
+        }
+      }
+
+      // La descripcion vuelve con el `[MM:SS]` que le puso la sincronizacion
+      // al escribirla, porque `Evidencias` no tiene columna para el segundo
+      // del audio. Se separa de nuevo: es lo que permite volver a lo que se
+      // estaba hablando mientras se fotografiaba.
+      final descripcion = _texto(e['descripcion_visitador']);
+      final marca = RegExp(r'^\[(\d{1,2}):(\d{2})\]\s*').firstMatch(
+        descripcion ?? '',
+      );
+
+      await _db.into(_db.evidencias).insert(
+            EvidenciasCompanion.insert(
+              id: _uuid.v4(),
+              visitaId: visitaId,
+              archivoPath: ruta,
+              tomadaEn: _fecha(e['tomada_en']) ?? DateTime.now(),
+              tipo: Value(_texto(e['tipo'])),
+              latitud: Value(_decimal(e['latitud'])),
+              longitud: Value(_decimal(e['longitud'])),
+              segundoAudio: Value(
+                marca == null
+                    ? null
+                    : int.parse(marca.group(1)!) * 60 +
+                        int.parse(marca.group(2)!),
+              ),
+              descripcionVisitador: Value(
+                marca == null ? descripcion : descripcion!.substring(marca.end),
+              ),
+              descripcionIa: Value(_texto(e['descripcion_ia'])),
+              textoOcr: Value(_texto(e['texto_ocr'])),
+              estadoValidacion: Value(
+                _texto(e['estado_validacion']) ?? 'Sin revisar',
+              ),
+            ),
+          );
+    }
+    return bajadas;
+  }
+
+  /// El audio del espejo. Su enlace es del bucket y no caduca, pero se baja
+  /// igual: el historial se consulta en la finca, que es justo donde no hay
+  /// con que abrir una URL.
+  Future<int> _bajarAudios(
+    String visitaId,
+    Map<String, dynamic> v,
+    Future<List<int>?> Function(String url)? bajar,
+    void Function(String)? onPaso,
+  ) async {
+    final lista = (v['grabaciones'] as List?) ?? const [];
+    if (lista.isEmpty) return 0;
+
+    final carpeta = Directory(
+      p.join((await _carpetaDeVisita(visitaId)).path, 'audios'),
+    );
+    await carpeta.create(recursive: true);
+
+    var bajados = 0;
+    var posicion = 0;
+    for (final cruda in lista) {
+      final g = (cruda as Map).cast<String, dynamic>();
+      posicion++;
+      final orden = _entero(g['orden']) ?? posicion;
+
+      final ruta = p.join(
+        carpeta.path,
+        'tramo-${orden.toString().padLeft(2, '0')}.m4a',
+      );
+      final url = _texto(g['url']);
+
+      if (url != null && bajar != null) {
+        onPaso?.call('Bajando el audio del tramo $orden...');
+        final bytes = await bajar(url);
+        if (bytes != null) {
+          await File(ruta).writeAsBytes(bytes, flush: true);
+          bajados++;
+        }
+      }
+
+      final minutos = _decimal(g['duracion_min']) ?? 0;
+      final megas = _decimal(g['tamano_mb']) ?? 0;
+
+      await _db.into(_db.grabaciones).insert(
+            GrabacionesCompanion.insert(
+              id: _uuid.v4(),
+              visitaId: visitaId,
+              orden: orden,
+              archivoPath: ruta,
+              inicio: _fecha(g['inicio']) ?? DateTime.now(),
+              duracionSeg: Value((minutos * 60).round()),
+              tamanoBytes: Value((megas * 1024 * 1024).round()),
+              enlaceAudio: Value(url),
+              transcripcion: Value(_texto(g['transcripcion'])),
+              transcripcionMarcas: Value(_texto(g['transcripcion_marcas'])),
+              motorTranscripcion: Value(_texto(g['motor_transcripcion'])),
+              estado: Value(_texto(g['estado']) ?? 'Grabada'),
+            ),
+          );
+    }
+    return bajados;
+  }
+
+  /// El agricultor del espejo: el que ya existe con ese nombre, o uno nuevo.
+  ///
+  /// Se busca por nombre normalizado y no se crea una ficha por visita: sin
+  /// esto, bajar cinco visitas de Pedro Gomez dejaria cinco Pedro Gomez en el
+  /// directorio del telefono, que es el problema que el directorio existe para
+  /// evitar.
+  Future<String?> _productorEspejo(String? nombre) async {
+    if (nombre == null) return null;
+    final buscado = normalizarBusqueda(nombre);
+    final locales = await _db.select(_db.productores).get();
+    final existente = _primero(
+      locales,
+      (p) => normalizarBusqueda(p.nombreCompleto) == buscado,
+    );
+    if (existente != null) return existente.id;
+
+    final id = _uuid.v4();
+    await _db.into(_db.productores).insert(
+          ProductoresCompanion.insert(id: id, nombreCompleto: nombre),
+        );
+    return id;
+  }
+
+  Future<String?> _veredaEspejo(String? nombre) async {
+    if (nombre == null) return null;
+    final buscado = normalizarBusqueda(nombre);
+    final locales = await _db.select(_db.veredas).get();
+    final existente = _primero(
+      locales,
+      (v) => normalizarBusqueda(v.vereda) == buscado,
+    );
+    // Las veredas son un catalogo sembrado: si esta no esta, no se inventa.
+    // Una vereda de mas en el selector es una opcion equivocada que alguien va
+    // a tocar despues.
+    return existente?.id;
+  }
+
+  Future<String?> _fincaEspejo(
+    String? nombre,
+    String? productorId,
+    String? veredaId,
+  ) async {
+    if (nombre == null || productorId == null) return null;
+    final buscado = normalizarBusqueda(nombre);
+    final locales = await (_db.select(_db.fincas)
+          ..where((f) => f.productorLocalId.equals(productorId)))
+        .get();
+    final existente = _primero(
+      locales,
+      (f) => normalizarBusqueda(f.nombre) == buscado,
+    );
+    if (existente != null) return existente.id;
+
+    final id = _uuid.v4();
+    await _db.into(_db.fincas).insert(
+          FincasCompanion.insert(
+            id: id,
+            productorLocalId: productorId,
+            nombre: nombre,
+            veredaLocalId: Value(veredaId),
+          ),
+        );
+    return id;
   }
 
   /// Lo que el chat de campo sabe de estas fincas.
@@ -1271,6 +2071,17 @@ class VisitaRepository {
     final visita = await (_db.select(_db.visitas)
           ..where((v) => v.id.equals(visitaId)))
         .getSingle();
+
+    // Un espejo NUNCA sube. Esta linea es la garantia de toda la funcion de
+    // historial, y vive aca —en el dato— y no en la pantalla a proposito: una
+    // pantalla nueva, un boton mal conectado o un flujo que nadie penso
+    // pasarian por encima de un guardarraiil que viviera en la UI. Por aqui
+    // pasan todos los caminos que terminan escribiendo en Airtable.
+    //
+    // Sin esto, consultar el historial de un agricultor podria reescribir en
+    // el registro central la visita de otro visitador con los datos parciales
+    // que este telefono alcanzo a bajar.
+    if (visita.soloLectura) return;
 
     // Id derivado de la visita y no un UUID nuevo: `encolar` reemplaza por id,
     // asi que volver a encolar la misma visita actualiza el item en vez de

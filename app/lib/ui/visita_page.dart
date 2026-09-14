@@ -74,10 +74,22 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
                     icono: Icons.info_outline,
                     onCerrar: ctrl.limpiarAviso,
                   ),
+                // Una visita traida de Airtable se consulta y nada mas. La
+                // banda va arriba del todo porque lo primero que hay que saber
+                // de esta pantalla es que aqui no se registra: quien llegue
+                // creyendo que esta en una visita propia y empiece a hablar
+                // sin grabar pierde la conversacion.
+                if (visita.soloLectura)
+                  const Banda(
+                    texto: 'Visita de consulta, traida de Airtable. No se '
+                        'puede grabar ni corregir: se ve como quedo.',
+                    icono: Icons.cloud_done_outlined,
+                  ),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                     children: [
+                      if (!visita.soloLectura)
                       _PanelGrabacion(
                         visitaId: visitaId,
                         estado: grabacion,
@@ -95,7 +107,7 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
                           }
                         },
                       ),
-                      const SizedBox(height: 28),
+                      if (!visita.soloLectura) const SizedBox(height: 28),
                       // Antes que la evidencia y el terreno: es la unica
                       // seccion que depende de que la persona este enfrente.
                       // Un dato de identidad no se completa desde la oficina.
@@ -103,15 +115,33 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
                       SeccionAgricultor(visitaId: visitaId, visita: visita),
                       const SizedBox(height: 28),
                       const TituloSeccion('Evidencia'),
-                      SeccionFotos(visitaId: visitaId, visita: visita),
-                      const SizedBox(height: 10),
-                      SeccionProcesar(visitaId: visitaId),
-                      const SizedBox(height: 28),
-                      const TituloSeccion('El terreno'),
-                      SeccionTrazados(visitaId: visitaId),
+                      // En un espejo las fotos se ven pero no se toman, y no
+                      // hay nada que procesar: la conversacion ya se proceso en
+                      // el telefono que la grabo.
+                      if (visita.soloLectura)
+                        SeccionFotosSoloLectura(visitaId: visitaId)
+                      else ...[
+                        SeccionFotos(visitaId: visitaId, visita: visita),
+                        const SizedBox(height: 10),
+                        SeccionProcesar(visitaId: visitaId),
+                      ],
+                      if (!visita.soloLectura) ...[
+                        const SizedBox(height: 28),
+                        const TituloSeccion('El terreno'),
+                        SeccionTrazados(visitaId: visitaId),
+                      ],
                       const SizedBox(height: 28),
                       const TituloSeccion('Entregable'),
-                      SeccionInforme(visitaId: visitaId),
+                      // Los informes de un espejo se leen; generar uno nuevo
+                      // no: `guardarInforme` encola la visita, y un espejo no
+                      // sube nunca.
+                      if (visita.soloLectura)
+                        InformesSoloLectura(visitaId: visitaId)
+                      else ...[
+                        SeccionInforme(visitaId: visitaId),
+                        const SizedBox(height: 10),
+                        SeccionInformeTecnico(visitaId: visitaId),
+                      ],
                       const SizedBox(height: 28),
                       const TituloSeccion('Cobertura de la conversacion'),
                       _Faltantes(visitaId: visitaId),

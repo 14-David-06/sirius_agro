@@ -120,8 +120,11 @@ class AppDatabase extends _$AppDatabase {
   ///     notas), su foto de perfil y el consentimiento de datos de la persona.
   /// v8: `Productores.fotoRemota` — la miniatura de Airtable con la que el
   ///     visitador reconoce al agricultor en el directorio.
+  /// v9: `Visitas.soloLectura` y `Visitas.descargadaEn` — el espejo del
+  ///     historial que baja de Airtable. Hasta aqui la sincronizacion era de
+  ///     una sola via y toda visita en el telefono era propia.
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -190,6 +193,12 @@ class AppDatabase extends _$AppDatabase {
           ]) {
             await _asegurarColumna(m, productores, columna);
           }
+          // v9: el espejo del historial. `soloLectura` es lo que impide que
+          // una visita bajada de Airtable se edite o se vuelva a subir, y por
+          // eso tiene default `false`: todo lo que ya estaba en el telefono
+          // antes de esta version es propio del visitador y sigue siendolo.
+          await _asegurarColumna(m, visitas, visitas.soloLectura);
+          await _asegurarColumna(m, visitas, visitas.descargadaEn);
         },
         beforeOpen: (details) async {
           // Sin esto SQLite ignora las claves foraneas y se pueden quedar

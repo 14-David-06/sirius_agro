@@ -17,6 +17,7 @@ from .schemas import (
 from .schemas_auth import LoginRequest, LoginResult
 from .schemas_chat import ChatRequest, ChatResult
 from .schemas_directorio import DirectorioProductores
+from .schemas_historial import HistorialProductor
 from .schemas_informe import InformeRequest, InformeResult
 from .schemas_visita import (
     ArchivoSubido,
@@ -30,6 +31,7 @@ from .services import (
     chat as chat_service,
     directorio as directorio_service,
     extraccion as extraccion_service,
+    historial as historial_service,
     informe as informe_service,
     nomina,
     report as report_service,
@@ -223,9 +225,10 @@ async def publish_meeting(
 async def firmar_archivo(
     codigo_visita: str = Form(...),
     nombre: str = Form(...),
-    # Por ahora solo `informes`. El audio y las fotos siguen por /v1/archivos:
-    # caben en el cuerpo y pasar por el backend deja validar el tamano y el
-    # tipo antes de que el byte toque el bucket.
+    # `informes` (el del agricultor) o `informes_tecnicos` (el de la empresa).
+    # El audio y las fotos siguen por /v1/archivos: caben en el cuerpo y pasar
+    # por el backend deja validar el tamano y el tipo antes de que el byte
+    # toque el bucket.
     categoria: str = Form("informes"),
     orden: int | None = Form(None),
     settings: Settings = Depends(require_api_key),
@@ -237,12 +240,17 @@ async def firmar_archivo(
     Con la firma el telefono sube directo al bucket sin que en el APK viva
     nunca una llave — la firma vence y solo autoriza esa ruta.
     """
-    if categoria != "informes":
+    # Las dos categorias de informe van a carpetas distintas del bucket. No es
+    # cosmetico: el backend renombra por categoria y por orden, y el informe
+    # tecnico y el del agricultor de la misma visita comparten numero de
+    # version — en la misma carpeta el segundo pisaria al primero.
+    if categoria not in ("informes", "informes_tecnicos"):
         raise HTTPException(
             status_code=400,
             detail=(
-                "Solo se firma la categoria 'informes'. El audio y las fotos "
-                "se suben por POST /v1/archivos."
+                "Solo se firman las categorias 'informes' e "
+                "'informes_tecnicos'. El audio y las fotos se suben por "
+                "POST /v1/archivos."
             ),
         )
 
@@ -312,6 +320,31 @@ async def listar_productores(
     arranca igual. Este endpoint cayendose no puede impedir un registro.
     """
     return await directorio_service.listar_productores(settings, buscar, limite)
+
+
+@app.get(
+    "/v1/productores/{productor_id}/visitas",
+    response_model=HistorialProductor,
+)
+async def historial_de_productor(
+    productor_id: str,
+    limite: int = historial_service.LIMITE_POR_DEFECTO,
+    settings: Settings = Depends(require_api_key),
+) -> HistorialProductor:
+    """Las visitas ya registradas de un agricultor, para consultarlas en campo.
+
+    Es la primera vez que algo baja de Airtable hacia el telefono aparte del
+    directorio, y baja como ESPEJO DE CONSULTA: la app no las edita ni las
+    vuelve a subir. Esa restriccion es la que hace imposible que traer el
+    historial pise una visita que el visitador todavia no ha sincronizado.
+
+    Se pide por agricultor y no "todas": bajarle a un telefono de campo las
+    visitas del equipo entero es mover datos personales de productores a
+    dispositivos que no los registraron.
+    """
+    return await historial_service.historial_de_productor(
+        settings, productor_id, limite
+    )
 
 
 @app.post("/v1/visitas", response_model=VisitaSyncResult)

@@ -94,7 +94,15 @@ def _tipo(nombre: str) -> str:
     return adivinado or "application/octet-stream"
 
 
-_PREFIJO = {"audio": "tramo", "fotos": "foto", "informes": "informe"}
+_PREFIJO = {
+    "audio": "tramo",
+    "fotos": "foto",
+    "informes": "informe",
+    # El informe tecnico de la empresa. Carpeta y prefijo propios: comparte
+    # visita y numero de version con el del agricultor, asi que con el mismo
+    # nombre el segundo que subiera borraria al primero.
+    "informes_tecnicos": "informe-tecnico",
+}
 
 
 def nombre_ordenado(categoria: str, nombre: str, orden: int | None) -> str:

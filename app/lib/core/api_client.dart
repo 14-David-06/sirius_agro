@@ -388,10 +388,16 @@ class ApiClient {
   ///
   /// Devuelve la URL publica, que es la que se guarda. La firmada lleva la
   /// autorizacion en la query y manana no sirve.
+  ///
+  /// [categoria] separa el informe del productor (`informes`) del tecnico de
+  /// la empresa (`informes_tecnicos`). Van a carpetas distintas del bucket
+  /// porque el backend renombra por categoria y por orden: en la misma
+  /// carpeta, el tecnico 01 pisaria el del productor 01.
   Future<String> subirInformePdf({
     required Uint8List contenido,
     required String filename,
     required String codigoVisita,
+    String categoria = 'informes',
     int? orden,
   }) async {
     final firma = await _client.post(
@@ -400,7 +406,7 @@ class ApiClient {
       body: {
         'codigo_visita': codigoVisita,
         'nombre': filename,
-        'categoria': 'informes',
+        'categoria': categoria,
         if (orden != null) 'orden': '$orden',
       },
     );
@@ -476,5 +482,45 @@ class ApiClient {
     final json =
         jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     return (json['productores'] as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Las visitas ya registradas de un agricultor.
+  ///
+  /// Es lo unico que baja de Airtable aparte del directorio, y baja para
+  /// CONSULTARSE: la app las guarda como espejo de solo lectura. El timeout es
+  /// mas largo que el del directorio porque el backend recorre varias tablas,
+  /// y esto se pide a proposito —el visitador toca un boton y espera—, no en
+  /// medio de una pantalla que tiene que responder.
+  Future<Map<String, dynamic>> historialDeProductor(
+    String productorId, {
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
+    final response = await _client
+        .get(_uri('/v1/productores/$productorId/visitas'), headers: _headers)
+        .timeout(timeout);
+    if (response.statusCode >= 400) _fail(response);
+
+    return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+  }
+
+  /// Baja un archivo por su URL: la foto de un adjunto de Airtable o el audio
+  /// del bucket.
+  ///
+  /// Va sin las cabeceras de la app a proposito: son URL de terceros —Airtable
+  /// y S3— y mandarles la llave de la API seria filtrarla fuera de nuestro
+  /// backend. Devuelve null si falla; un archivo que no se pudo bajar deja un
+  /// hueco en el historial, no cancela la descarga entera.
+  Future<List<int>?> descargarArchivo(
+    String url, {
+    Duration timeout = const Duration(seconds: 60),
+  }) async {
+    try {
+      final response =
+          await _client.get(Uri.parse(url)).timeout(timeout);
+      if (response.statusCode >= 400) return null;
+      return response.bodyBytes;
+    } catch (_) {
+      return null;
+    }
   }
 }

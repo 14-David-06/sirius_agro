@@ -158,6 +158,10 @@ class Sincronizador {
       contenido: await archivo.readAsBytes(),
       filename: ruta.split(Platform.pathSeparator).last,
       codigoVisita: item.entidadId,
+      // La carpeta del bucket depende del tipo: el informe del productor y el
+      // tecnico de la empresa comparten visita y numero de version, asi que en
+      // la misma carpeta el segundo sobreescribiria al primero.
+      categoria: await _repo.categoriaDeInformePorPdf(ruta),
       // La version, para que el bucket no sobreescriba el informe que ya se
       // entrego cuando el visitador regenera.
       orden: await _repo.versionDeInformePorPdf(ruta),

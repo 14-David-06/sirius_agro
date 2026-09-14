@@ -5135,6 +5135,32 @@ class $VisitasTable extends Visitas with TableInfo<$VisitasTable, Visita> {
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _soloLecturaMeta = const VerificationMeta(
+    'soloLectura',
+  );
+  @override
+  late final GeneratedColumn<bool> soloLectura = GeneratedColumn<bool>(
+    'solo_lectura',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("solo_lectura" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _descargadaEnMeta = const VerificationMeta(
+    'descargadaEn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> descargadaEn = GeneratedColumn<DateTime>(
+    'descargada_en',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -5162,6 +5188,8 @@ class $VisitasTable extends Visitas with TableInfo<$VisitasTable, Visita> {
     completitudPct,
     sincronizada,
     sincronizadaEn,
+    soloLectura,
+    descargadaEn,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5374,6 +5402,24 @@ class $VisitasTable extends Visitas with TableInfo<$VisitasTable, Visita> {
         ),
       );
     }
+    if (data.containsKey('solo_lectura')) {
+      context.handle(
+        _soloLecturaMeta,
+        soloLectura.isAcceptableOrUnknown(
+          data['solo_lectura']!,
+          _soloLecturaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('descargada_en')) {
+      context.handle(
+        _descargadaEnMeta,
+        descargadaEn.isAcceptableOrUnknown(
+          data['descargada_en']!,
+          _descargadaEnMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -5483,6 +5529,14 @@ class $VisitasTable extends Visitas with TableInfo<$VisitasTable, Visita> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}sincronizada_en'],
       ),
+      soloLectura: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}solo_lectura'],
+      )!,
+      descargadaEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}descargada_en'],
+      ),
     );
   }
 
@@ -5528,6 +5582,22 @@ class Visita extends DataClass implements Insertable<Visita> {
   final int completitudPct;
   final bool sincronizada;
   final DateTime? sincronizadaEn;
+
+  /// Esta visita se bajo de Airtable para consultarla, no se registro aqui.
+  ///
+  /// Es la marca que la vuelve intocable: no se graba, no se le toman fotos,
+  /// no se edita y NUNCA se vuelve a encolar. Sin esto, espejar el historial
+  /// de un agricultor podria terminar reescribiendo en Airtable una visita que
+  /// hizo otro visitador con datos a medio bajar.
+  ///
+  /// Que sea una columna y no un estado es a proposito: `estado` viaja a
+  /// Airtable, y el hecho de que una copia viva en este telefono no es asunto
+  /// del registro central.
+  final bool soloLectura;
+
+  /// Cuando se bajo el espejo. Es lo que permite decir en la pantalla «traido
+  /// el martes» y saber si vale la pena volver a pedirlo.
+  final DateTime? descargadaEn;
   const Visita({
     required this.id,
     required this.inicio,
@@ -5554,6 +5624,8 @@ class Visita extends DataClass implements Insertable<Visita> {
     required this.completitudPct,
     required this.sincronizada,
     this.sincronizadaEn,
+    required this.soloLectura,
+    this.descargadaEn,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5615,6 +5687,10 @@ class Visita extends DataClass implements Insertable<Visita> {
     if (!nullToAbsent || sincronizadaEn != null) {
       map['sincronizada_en'] = Variable<DateTime>(sincronizadaEn);
     }
+    map['solo_lectura'] = Variable<bool>(soloLectura);
+    if (!nullToAbsent || descargadaEn != null) {
+      map['descargada_en'] = Variable<DateTime>(descargadaEn);
+    }
     return map;
   }
 
@@ -5675,6 +5751,10 @@ class Visita extends DataClass implements Insertable<Visita> {
       sincronizadaEn: sincronizadaEn == null && nullToAbsent
           ? const Value.absent()
           : Value(sincronizadaEn),
+      soloLectura: Value(soloLectura),
+      descargadaEn: descargadaEn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(descargadaEn),
     );
   }
 
@@ -5713,6 +5793,8 @@ class Visita extends DataClass implements Insertable<Visita> {
       completitudPct: serializer.fromJson<int>(json['completitudPct']),
       sincronizada: serializer.fromJson<bool>(json['sincronizada']),
       sincronizadaEn: serializer.fromJson<DateTime?>(json['sincronizadaEn']),
+      soloLectura: serializer.fromJson<bool>(json['soloLectura']),
+      descargadaEn: serializer.fromJson<DateTime?>(json['descargadaEn']),
     );
   }
   @override
@@ -5744,6 +5826,8 @@ class Visita extends DataClass implements Insertable<Visita> {
       'completitudPct': serializer.toJson<int>(completitudPct),
       'sincronizada': serializer.toJson<bool>(sincronizada),
       'sincronizadaEn': serializer.toJson<DateTime?>(sincronizadaEn),
+      'soloLectura': serializer.toJson<bool>(soloLectura),
+      'descargadaEn': serializer.toJson<DateTime?>(descargadaEn),
     };
   }
 
@@ -5773,6 +5857,8 @@ class Visita extends DataClass implements Insertable<Visita> {
     int? completitudPct,
     bool? sincronizada,
     Value<DateTime?> sincronizadaEn = const Value.absent(),
+    bool? soloLectura,
+    Value<DateTime?> descargadaEn = const Value.absent(),
   }) => Visita(
     id: id ?? this.id,
     inicio: inicio ?? this.inicio,
@@ -5816,6 +5902,8 @@ class Visita extends DataClass implements Insertable<Visita> {
     sincronizadaEn: sincronizadaEn.present
         ? sincronizadaEn.value
         : this.sincronizadaEn,
+    soloLectura: soloLectura ?? this.soloLectura,
+    descargadaEn: descargadaEn.present ? descargadaEn.value : this.descargadaEn,
   );
   Visita copyWithCompanion(VisitasCompanion data) {
     return Visita(
@@ -5878,6 +5966,12 @@ class Visita extends DataClass implements Insertable<Visita> {
       sincronizadaEn: data.sincronizadaEn.present
           ? data.sincronizadaEn.value
           : this.sincronizadaEn,
+      soloLectura: data.soloLectura.present
+          ? data.soloLectura.value
+          : this.soloLectura,
+      descargadaEn: data.descargadaEn.present
+          ? data.descargadaEn.value
+          : this.descargadaEn,
     );
   }
 
@@ -5908,7 +6002,9 @@ class Visita extends DataClass implements Insertable<Visita> {
           ..write('notasPruebaCampo: $notasPruebaCampo, ')
           ..write('completitudPct: $completitudPct, ')
           ..write('sincronizada: $sincronizada, ')
-          ..write('sincronizadaEn: $sincronizadaEn')
+          ..write('sincronizadaEn: $sincronizadaEn, ')
+          ..write('soloLectura: $soloLectura, ')
+          ..write('descargadaEn: $descargadaEn')
           ..write(')'))
         .toString();
   }
@@ -5940,6 +6036,8 @@ class Visita extends DataClass implements Insertable<Visita> {
     completitudPct,
     sincronizada,
     sincronizadaEn,
+    soloLectura,
+    descargadaEn,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -5969,7 +6067,9 @@ class Visita extends DataClass implements Insertable<Visita> {
           other.notasPruebaCampo == this.notasPruebaCampo &&
           other.completitudPct == this.completitudPct &&
           other.sincronizada == this.sincronizada &&
-          other.sincronizadaEn == this.sincronizadaEn);
+          other.sincronizadaEn == this.sincronizadaEn &&
+          other.soloLectura == this.soloLectura &&
+          other.descargadaEn == this.descargadaEn);
 }
 
 class VisitasCompanion extends UpdateCompanion<Visita> {
@@ -5998,6 +6098,8 @@ class VisitasCompanion extends UpdateCompanion<Visita> {
   final Value<int> completitudPct;
   final Value<bool> sincronizada;
   final Value<DateTime?> sincronizadaEn;
+  final Value<bool> soloLectura;
+  final Value<DateTime?> descargadaEn;
   final Value<int> rowid;
   const VisitasCompanion({
     this.id = const Value.absent(),
@@ -6025,6 +6127,8 @@ class VisitasCompanion extends UpdateCompanion<Visita> {
     this.completitudPct = const Value.absent(),
     this.sincronizada = const Value.absent(),
     this.sincronizadaEn = const Value.absent(),
+    this.soloLectura = const Value.absent(),
+    this.descargadaEn = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   VisitasCompanion.insert({
@@ -6053,6 +6157,8 @@ class VisitasCompanion extends UpdateCompanion<Visita> {
     this.completitudPct = const Value.absent(),
     this.sincronizada = const Value.absent(),
     this.sincronizadaEn = const Value.absent(),
+    this.soloLectura = const Value.absent(),
+    this.descargadaEn = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        inicio = Value(inicio);
@@ -6082,6 +6188,8 @@ class VisitasCompanion extends UpdateCompanion<Visita> {
     Expression<int>? completitudPct,
     Expression<bool>? sincronizada,
     Expression<DateTime>? sincronizadaEn,
+    Expression<bool>? soloLectura,
+    Expression<DateTime>? descargadaEn,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -6112,6 +6220,8 @@ class VisitasCompanion extends UpdateCompanion<Visita> {
       if (completitudPct != null) 'completitud_pct': completitudPct,
       if (sincronizada != null) 'sincronizada': sincronizada,
       if (sincronizadaEn != null) 'sincronizada_en': sincronizadaEn,
+      if (soloLectura != null) 'solo_lectura': soloLectura,
+      if (descargadaEn != null) 'descargada_en': descargadaEn,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -6142,6 +6252,8 @@ class VisitasCompanion extends UpdateCompanion<Visita> {
     Value<int>? completitudPct,
     Value<bool>? sincronizada,
     Value<DateTime?>? sincronizadaEn,
+    Value<bool>? soloLectura,
+    Value<DateTime?>? descargadaEn,
     Value<int>? rowid,
   }) {
     return VisitasCompanion(
@@ -6172,6 +6284,8 @@ class VisitasCompanion extends UpdateCompanion<Visita> {
       completitudPct: completitudPct ?? this.completitudPct,
       sincronizada: sincronizada ?? this.sincronizada,
       sincronizadaEn: sincronizadaEn ?? this.sincronizadaEn,
+      soloLectura: soloLectura ?? this.soloLectura,
+      descargadaEn: descargadaEn ?? this.descargadaEn,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -6258,6 +6372,12 @@ class VisitasCompanion extends UpdateCompanion<Visita> {
     if (sincronizadaEn.present) {
       map['sincronizada_en'] = Variable<DateTime>(sincronizadaEn.value);
     }
+    if (soloLectura.present) {
+      map['solo_lectura'] = Variable<bool>(soloLectura.value);
+    }
+    if (descargadaEn.present) {
+      map['descargada_en'] = Variable<DateTime>(descargadaEn.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -6292,6 +6412,8 @@ class VisitasCompanion extends UpdateCompanion<Visita> {
           ..write('completitudPct: $completitudPct, ')
           ..write('sincronizada: $sincronizada, ')
           ..write('sincronizadaEn: $sincronizadaEn, ')
+          ..write('soloLectura: $soloLectura, ')
+          ..write('descargadaEn: $descargadaEn, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -14699,6 +14821,8 @@ typedef $$VisitasTableCreateCompanionBuilder =
       Value<int> completitudPct,
       Value<bool> sincronizada,
       Value<DateTime?> sincronizadaEn,
+      Value<bool> soloLectura,
+      Value<DateTime?> descargadaEn,
       Value<int> rowid,
     });
 typedef $$VisitasTableUpdateCompanionBuilder =
@@ -14728,6 +14852,8 @@ typedef $$VisitasTableUpdateCompanionBuilder =
       Value<int> completitudPct,
       Value<bool> sincronizada,
       Value<DateTime?> sincronizadaEn,
+      Value<bool> soloLectura,
+      Value<DateTime?> descargadaEn,
       Value<int> rowid,
     });
 
@@ -14862,6 +14988,16 @@ class $$VisitasTableFilterComposer
 
   ColumnFilters<DateTime> get sincronizadaEn => $composableBuilder(
     column: $table.sincronizadaEn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get soloLectura => $composableBuilder(
+    column: $table.soloLectura,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get descargadaEn => $composableBuilder(
+    column: $table.descargadaEn,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -14999,6 +15135,16 @@ class $$VisitasTableOrderingComposer
     column: $table.sincronizadaEn,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get soloLectura => $composableBuilder(
+    column: $table.soloLectura,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get descargadaEn => $composableBuilder(
+    column: $table.descargadaEn,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$VisitasTableAnnotationComposer
@@ -15118,6 +15264,16 @@ class $$VisitasTableAnnotationComposer
     column: $table.sincronizadaEn,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get soloLectura => $composableBuilder(
+    column: $table.soloLectura,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get descargadaEn => $composableBuilder(
+    column: $table.descargadaEn,
+    builder: (column) => column,
+  );
 }
 
 class $$VisitasTableTableManager
@@ -15173,6 +15329,8 @@ class $$VisitasTableTableManager
                 Value<int> completitudPct = const Value.absent(),
                 Value<bool> sincronizada = const Value.absent(),
                 Value<DateTime?> sincronizadaEn = const Value.absent(),
+                Value<bool> soloLectura = const Value.absent(),
+                Value<DateTime?> descargadaEn = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => VisitasCompanion(
                 id: id,
@@ -15200,6 +15358,8 @@ class $$VisitasTableTableManager
                 completitudPct: completitudPct,
                 sincronizada: sincronizada,
                 sincronizadaEn: sincronizadaEn,
+                soloLectura: soloLectura,
+                descargadaEn: descargadaEn,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -15229,6 +15389,8 @@ class $$VisitasTableTableManager
                 Value<int> completitudPct = const Value.absent(),
                 Value<bool> sincronizada = const Value.absent(),
                 Value<DateTime?> sincronizadaEn = const Value.absent(),
+                Value<bool> soloLectura = const Value.absent(),
+                Value<DateTime?> descargadaEn = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => VisitasCompanion.insert(
                 id: id,
@@ -15256,6 +15418,8 @@ class $$VisitasTableTableManager
                 completitudPct: completitudPct,
                 sincronizada: sincronizada,
                 sincronizadaEn: sincronizadaEn,
+                soloLectura: soloLectura,
+                descargadaEn: descargadaEn,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

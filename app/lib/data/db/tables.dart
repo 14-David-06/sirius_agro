@@ -351,6 +351,22 @@ class Visitas extends Table {
   BoolColumn get sincronizada => boolean().withDefault(const Constant(false))();
   DateTimeColumn get sincronizadaEn => dateTime().nullable()();
 
+  /// Esta visita se bajo de Airtable para consultarla, no se registro aqui.
+  ///
+  /// Es la marca que la vuelve intocable: no se graba, no se le toman fotos,
+  /// no se edita y NUNCA se vuelve a encolar. Sin esto, espejar el historial
+  /// de un agricultor podria terminar reescribiendo en Airtable una visita que
+  /// hizo otro visitador con datos a medio bajar.
+  ///
+  /// Que sea una columna y no un estado es a proposito: `estado` viaja a
+  /// Airtable, y el hecho de que una copia viva en este telefono no es asunto
+  /// del registro central.
+  BoolColumn get soloLectura => boolean().withDefault(const Constant(false))();
+
+  /// Cuando se bajo el espejo. Es lo que permite decir en la pantalla «traido
+  /// el martes» y saber si vale la pena volver a pedirlo.
+  DateTimeColumn get descargadaEn => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

@@ -426,6 +426,42 @@ audio donde consta). Por eso sus números se pueden auditar y por eso se genera
 markdown, para poder leerlo en Airtable sin abrir el adjunto y para poder
 rearmar el documento si el renderizador cambia.
 
+## El chat que escribe: complementar una visita
+
+`POST /v1/complemento` es el único punto del sistema donde un dato entra al
+registro **sin haber pasado por el audio**. El visitador escribe lo que quedó a
+medias —«el esposo se llama Hernán», «el arriendo son 600 mil al mes»— y eso se
+guarda como `Hallazgos` de la visita, sube a Airtable y mueve la completitud.
+
+Lo que lo hace aceptable no está en el prompt, porque un modelo puede
+desobedecer una instrucción:
+
+1. **El backend marca la procedencia, no el modelo**: todo hallazgo que sale de
+   ahí lleva `fuente = Manual` y `hablante = visitador`, reescritos por el
+   servicio. Si el modelo pudiera elegir esos dos campos, bastaría una
+   alucinación para que un dato tecleado entrara como si lo hubiera afirmado el
+   agricultor frente a una grabadora.
+2. **Esa marca dispara la regla dura número 1**: `Hablante = visitador` ⇒ nunca
+   `Confirmado`. La app la aplica al escribir (`insertarHallazgo`) y el backend
+   al sincronizar. Un complemento entra, como mucho, `Estimado`.
+3. **Cada dato lleva como `Cita textual` la frase con que el visitador lo
+   dijo.** Es lo que hace auditable el guardado directo: meses después, un valor
+   que no vino del audio se puede explicar.
+
+El `segundo` viaja en `null` a propósito: no hay grabación detrás, y un segundo
+inventado mandaría a alguien a escuchar un minuto donde nadie dijo nada.
+
+**La conversación completa se archiva** como una fila de `Informes` con
+`Tipo = Complemento de la visita` (opción creada sola por `typecast`). Es **una
+fila por visita que se reescribe**, no una versión por mensaje: veinte turnos
+dejarían veinte informes y ninguno sería el bueno. Se guarda literal y no
+resumida porque es el registro de procedencia — un resumen escrito por el modelo
+sería un registro de procedencia que ya pasó por un modelo.
+
+El chat **no sugiere** los campos marcados `No sugerir al visitador`. Preguntarle
+a alguien por qué le tocó dejar su tierra, para cerrar un checklist, es justo lo
+que esa bandera existe para impedir, y el chat no es la excepción.
+
 ## El historial baja: la primera lectura de visitas
 
 Hasta esta version la sincronizacion era **de una sola via**: el telefono

@@ -141,6 +141,10 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
                         SeccionInforme(visitaId: visitaId),
                         const SizedBox(height: 10),
                         SeccionInformeTecnico(visitaId: visitaId),
+                        const SizedBox(height: 10),
+                        // Despues de los informes: se usa cuando el visitador
+                        // ya salio de la finca y ve los huecos que quedaron.
+                        SeccionComplemento(visitaId: visitaId),
                       ],
                       const SizedBox(height: 28),
                       const TituloSeccion('Cobertura de la conversacion'),

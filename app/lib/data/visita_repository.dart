@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../core/complemento_visita.dart';
 import '../core/informe_tecnico.dart';
 import 'db/app_database.dart';
 
@@ -996,6 +997,146 @@ class VisitaRepository {
         },
     ];
   }
+
+  /// Lo que el chat de la visita necesita saber de ella.
+  ///
+  /// Van los datos YA registrados con su certeza y —esto es lo que lo hace
+  /// util— los obligatorios que faltan. Sin la lista de faltantes el modelo
+  /// responde preguntas pero no sabe que vale la pena preguntarle al
+  /// visitador, que es la mitad de para lo que existe la funcion.
+  ///
+  /// Los `Pendiente` entran, al contrario del informe del agricultor: alla un
+  /// pendiente presentado como dato seria mentirle al productor; aca es
+  /// exactamente lo que hay que completar.
+  Future<String> contextoComplemento(String visitaId) async {
+    final v = await (_db.select(_db.visitas)..where((x) => x.id.equals(visitaId)))
+        .getSingle();
+    final productor = await productorDeVisita(visitaId);
+    final finca = v.fincaLocalId == null
+        ? null
+        : await (_db.select(_db.fincas)
+              ..where((f) => f.id.equals(v.fincaLocalId!)))
+            .getSingleOrNull();
+
+    final catalogo = {
+      for (final c in await _db.select(_db.catalogoCampos).get())
+        c.claveTecnica: c,
+    };
+    final hallazgos = await _db.hallazgosDeVisita(visitaId);
+
+    final lineas = <String>[
+      'VISITA ${v.id}',
+      'Fecha: ${v.inicio.toIso8601String().substring(0, 10)}',
+      if (productor != null) 'Productor: ${productor.nombreCompleto}',
+      if (finca != null) 'Finca: ${finca.nombre}',
+      'Cobertura del cuestionario: ${v.completitudPct}%',
+      '',
+      'DATOS YA REGISTRADOS',
+    ];
+
+    if (hallazgos.isEmpty) {
+      lineas.add('(Ninguno todavia.)');
+    } else {
+      for (final h in hallazgos) {
+        final campo = catalogo[h.claveTecnica];
+        final valor = h.valorCorregido ??
+            h.valorTexto ??
+            _numero(h.valorNumerico);
+        lineas.add(
+          '- ${h.claveTecnica} (${campo?.campo ?? h.claveTecnica}): '
+          '$valor${h.unidad == null ? '' : ' ${h.unidad}'} '
+          '[${h.certeza.airtable}, fuente ${h.fuente.airtable}]',
+        );
+      }
+    }
+
+    // Los obligatorios que faltan, con la pregunta guia TEXTUAL del catalogo.
+    // Es la misma que usa el motor de faltantes: si el chat la reescribiera,
+    // el visitador veria dos versiones distintas de la misma pregunta.
+    // `faltantesSugeribles` y no `faltantes`: los campos marcados «no
+    // sugerir» cuentan para la completitud pero no se preguntan. Preguntarle a
+    // alguien por que le toco dejar su tierra, para cerrar un checklist, es
+    // justo lo que no se debe hacer — y el chat no es la excepcion.
+    final faltantes = await _db.faltantesSugeribles(visitaId);
+    lineas
+      ..add('')
+      ..add('OBLIGATORIOS QUE FALTAN');
+    if (faltantes.isEmpty) {
+      lineas.add('(Ninguno: el cuestionario obligatorio esta completo.)');
+    } else {
+      for (final c in faltantes) {
+        lineas.add(
+          '- ${c.claveTecnica} (${c.campo})'
+          '${c.preguntaGuia == null ? '' : ': ${c.preguntaGuia}'}',
+        );
+      }
+    }
+
+    if (v.temasPendientes != null && v.temasPendientes!.isNotEmpty) {
+      lineas
+        ..add('')
+        ..add('TEMAS QUE QUEDARON PENDIENTES')
+        ..add(v.temasPendientes!);
+    }
+
+    return lineas.join('\n');
+  }
+
+  /// Guarda la conversacion del chat de la visita y la encola para Airtable.
+  ///
+  /// Es UNA fila por visita que se reescribe, no una version por mensaje: el
+  /// hilo es un registro que crece, no un entregable que se rehace. Si cada
+  /// turno creara una version, una conversacion de veinte mensajes dejaria
+  /// veinte informes en Airtable y ninguno seria el bueno.
+  ///
+  /// Se guarda entera y no resumida porque es la PROCEDENCIA de los datos que
+  /// no vinieron del audio: dentro de seis meses, un valor que el visitador
+  /// tecleo tiene que poder explicarse con la frase con que lo dijo.
+  Future<Informe> guardarConversacionComplemento({
+    required String visitaId,
+    required String contenido,
+    String? modelo,
+  }) async {
+    final previo = await (_db.select(_db.informes)
+          ..where(
+            (i) =>
+                i.visitaId.equals(visitaId) &
+                i.tipo.equals(tipoComplementoVisita),
+          ))
+        .getSingleOrNull();
+
+    if (previo != null) {
+      await (_db.update(_db.informes)..where((i) => i.id.equals(previo.id)))
+          .write(
+        InformesCompanion(
+          contenido: Value(contenido),
+          generadoEn: Value(DateTime.now()),
+          modelo: Value(modelo),
+        ),
+      );
+      await encolarVisita(visitaId);
+      return (_db.select(_db.informes)..where((i) => i.id.equals(previo.id)))
+          .getSingle();
+    }
+
+    return guardarInforme(
+      visitaId: visitaId,
+      titulo: 'Complemento de la visita',
+      contenido: contenido,
+      tipo: tipoComplementoVisita,
+      modelo: modelo,
+    );
+  }
+
+  /// La conversacion guardada de esta visita, si ya hay una.
+  Future<Informe?> conversacionComplemento(String visitaId) =>
+      (_db.select(_db.informes)
+            ..where(
+              (i) =>
+                  i.visitaId.equals(visitaId) &
+                  i.tipo.equals(tipoComplementoVisita),
+            ))
+          .getSingleOrNull();
 
   /// Guarda la transcripcion de un tramo.
   ///

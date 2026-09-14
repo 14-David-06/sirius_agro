@@ -57,6 +57,15 @@ final visitasAgrupadasProvider = StreamProvider<List<GrupoAgricultor>>((ref) {
   return ref.watch(repoProvider).observarVisitasPorAgricultor();
 });
 
+/// La conversacion de complemento guardada de una visita, si ya hay una.
+///
+/// Es `Future` y no `Stream` porque se consulta para decidir un subtitulo: el
+/// hilo vivo esta en `complementoProvider`, que es quien lo va escribiendo.
+final conversacionComplementoProvider =
+    FutureProvider.family<Informe?, String>((ref, visitaId) {
+  return ref.watch(repoProvider).conversacionComplemento(visitaId);
+});
+
 final visitaProvider = StreamProvider.family<Visita?, String>((ref, id) {
   final db = ref.watch(dbProvider);
   return (db.select(db.visitas)..where((v) => v.id.equals(id)))

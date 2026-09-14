@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../core/informe_pdf.dart';
 import '../data/db/app_database.dart';
 import '../state/providers.dart';
+import 'complemento_page.dart';
 import 'marca.dart';
 
 /// El informe, para leerselo al productor antes de irse de la finca.
@@ -184,6 +185,26 @@ class InformePage extends ConsumerWidget {
       // no puede saber si el productor lo abrio, y pedir esa confirmacion seria
       // inventar un dato.
       await ref.read(repoProvider).marcarInformeEntregado(informe.id);
+
+      // Entregar el informe es cuando se ven los huecos: el visitador acaba de
+      // leerselo al productor y ahi salta lo que falto o lo que quedo mal. Se
+      // ofrece, no se abre solo — puede estar despidiendose en la puerta.
+      if (!context.mounted) return;
+      mensajero.showSnackBar(
+        SnackBar(
+          content: const Text('Informe entregado. Si algo quedo faltando, '
+              'podes completarlo.'),
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: 'Completar',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ComplementoPage(visitaId: informe.visitaId),
+              ),
+            ),
+          ),
+        ),
+      );
     } catch (e) {
       mensajero.showSnackBar(
         SnackBar(content: Text('No se pudo armar el PDF: $e')),

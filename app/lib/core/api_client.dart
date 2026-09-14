@@ -33,6 +33,28 @@ class MensajeChat {
   Map<String, dynamic> toJson() => {'rol': rol, 'contenido': contenido};
 }
 
+/// Lo que devuelve el chat de una visita: la respuesta y lo que quedo escrito.
+///
+/// Los dos van juntos a proposito. La pantalla tiene que poder decir «guarde
+/// esto» en el mismo turno en que lo guardo: el dato entra directo al registro,
+/// y el unico momento en que alguien puede notar que el modelo entendio mal es
+/// ese.
+class ComplementoResult {
+  const ComplementoResult({
+    required this.respuesta,
+    this.hallazgos = const [],
+    this.temasPendientes = const [],
+  });
+
+  final String respuesta;
+
+  /// En el formato de la extraccion del audio, para que la app los guarde por
+  /// el camino que ya aplica las reglas duras.
+  final List<Map<String, dynamic>> hallazgos;
+
+  final List<String> temasPendientes;
+}
+
 class ApiException implements Exception {
   ApiException(this.message);
   final String message;
@@ -274,6 +296,46 @@ class ApiClient {
     final json =
         jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     return json['respuesta'] as String;
+  }
+
+  /// El chat de UNA visita: responde sobre ella y captura lo que falto.
+  ///
+  /// Distinto del chat de campo en lo que importa: aquel solo responde, este
+  /// devuelve tambien `hallazgos` — datos que el visitador aporto tecleando y
+  /// que entran al registro de la visita.
+  ///
+  /// Vienen en el mismo formato que la extraccion del audio, asi que la app
+  /// los guarda por el camino que ya existe: el que aplica las reglas duras y
+  /// recalcula la completitud. Lo que los distingue es la procedencia, que
+  /// marca el backend: `fuente = Manual`, `hablante = visitador`.
+  Future<ComplementoResult> complementar({
+    required String codigoVisita,
+    required List<MensajeChat> mensajes,
+    required List<Map<String, dynamic>> campos,
+    String? contexto,
+    String? visitador,
+  }) async {
+    final response = await _client.post(
+      _uri('/v1/complemento'),
+      headers: _headers,
+      body: jsonEncode({
+        'codigo_visita': codigoVisita,
+        'mensajes': [for (final m in mensajes) m.toJson()],
+        'campos': campos,
+        'visitador': ?visitador,
+        if (contexto != null && contexto.isNotEmpty) 'contexto': contexto,
+      }),
+    );
+    if (response.statusCode >= 400) _fail(response);
+
+    final json =
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return ComplementoResult(
+      respuesta: json['respuesta'] as String,
+      hallazgos: (json['hallazgos'] as List).cast<Map<String, dynamic>>(),
+      temasPendientes:
+          ((json['temas_pendientes'] as List?) ?? const []).cast<String>(),
+    );
   }
 
   /// Trae el catalogo vigente para refrescar el espejo local. Airtable es la

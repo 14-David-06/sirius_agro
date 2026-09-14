@@ -16,6 +16,7 @@ from .schemas import (
 )
 from .schemas_auth import LoginRequest, LoginResult
 from .schemas_chat import ChatRequest, ChatResult
+from .schemas_complemento import ComplementoRequest, ComplementoResult
 from .schemas_directorio import DirectorioProductores
 from .schemas_historial import HistorialProductor
 from .schemas_informe import InformeRequest, InformeResult
@@ -29,6 +30,7 @@ from .services import (
     airtable,
     almacenamiento,
     chat as chat_service,
+    complemento as complemento_service,
     directorio as directorio_service,
     extraccion as extraccion_service,
     historial as historial_service,
@@ -320,6 +322,23 @@ async def listar_productores(
     arranca igual. Este endpoint cayendose no puede impedir un registro.
     """
     return await directorio_service.listar_productores(settings, buscar, limite)
+
+
+@app.post("/v1/complemento", response_model=ComplementoResult)
+async def complementar_visita(
+    req: ComplementoRequest,
+    settings: Settings = Depends(require_api_key),
+) -> ComplementoResult:
+    """El chat de una visita: responde sobre ella y captura lo que falto.
+
+    Es lo unico del sistema donde el modelo produce datos a partir de lo que
+    teclea el visitador, y por eso todo lo que sale de aca viene marcado
+    `fuente = Manual` y `hablante = visitador`. Ese marcado lo pone el
+    servicio, no el modelo: dispara la regla dura de que lo dicho por el
+    visitador nunca es `Confirmado`, y dejarsela elegir al modelo seria dejar
+    que una alucinacion la desactive.
+    """
+    return await complemento_service.responder(settings, req)
 
 
 @app.get(

@@ -18,6 +18,7 @@ import '../state/providers.dart';
 import '../state/trazado.dart';
 import 'agricultor_page.dart';
 import 'camara_page.dart';
+import 'complemento_page.dart';
 import 'galeria_fotos.dart';
 import 'informe_page.dart';
 import 'marca.dart';
@@ -1140,6 +1141,81 @@ class InformesSoloLectura extends ConsumerWidget {
                   ),
                 ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Completar la visita conversando con la IA.
+///
+/// Va en «Entregable» y no junto a la grabacion a proposito: se usa DESPUES,
+/// cuando el visitador ya salio de la finca y se acuerda de lo que no alcanzo
+/// a preguntar, o cuando el informe salio con huecos.
+///
+/// Es la unica tarjeta de la app que escribe datos sin pasar por el audio, y
+/// la unica que lo dice en su propio subtitulo.
+class SeccionComplemento extends ConsumerWidget {
+  const SeccionComplemento({super.key, required this.visitaId});
+
+  final String visitaId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final faltan = ref.watch(faltantesProvider(visitaId)).valueOrNull ?? [];
+    final guardada = ref.watch(conversacionComplementoProvider(visitaId));
+    final hilo = guardada.valueOrNull;
+
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ComplementoPage(visitaId: visitaId),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(Icons.edit_note, color: scheme.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Complementar la visita',
+                      style: tema.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      // Lo que falta se nombra con numero: «faltan 12 datos»
+                      // le dice al visitador si vale la pena abrirlo, y
+                      // «completa» le dice que no.
+                      hilo != null
+                          ? 'Ya hay una conversacion guardada'
+                          : faltan.isEmpty
+                              ? 'Escribi lo que quedo a medias y queda registrado'
+                              : 'Faltan ${faltan.length} dato(s). Escribilos y '
+                                  'quedan registrados',
+                      style: tema.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
         ),
       ),
     );

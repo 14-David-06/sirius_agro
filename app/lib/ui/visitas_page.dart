@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../core/config.dart';
 import '../data/db/app_database.dart';
 import '../data/sesion_repository.dart';
 import '../data/visita_repository.dart';
+import '../state/historial.dart';
 import '../state/providers.dart';
+import '../state/red.dart';
 import '../state/sesion.dart';
 import 'acciones_visitas.dart';
 import 'chat_page.dart';
@@ -23,6 +26,28 @@ class VisitasPage extends ConsumerStatefulWidget {
 }
 
 class _VisitasPageState extends ConsumerState<VisitasPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Las visitas de Airtable aparecen solas. Se pide al abrir la lista y no
+    // con un boton porque el visitador no tiene por que saber que hay dos
+    // origenes: lo que hizo el en este telefono y lo que hizo el equipo son la
+    // misma pregunta — que sabemos de estas fincas.
+    //
+    // Solo el indice, que son unos KB. Las fotos y el audio de una visita se
+    // bajan cuando alguien la abre: un refresco automatico que arrastre
+    // cientos de megas en una vereda es una factura, no una comodidad.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refrescarIndice());
+  }
+
+  Future<void> _refrescarIndice() async {
+    if (!AppConfig.isConfigured) return;
+    if (ref.read(redProvider) == EstadoRed.sinRed) return;
+    // Falla en silencio: la lista que ya esta en el telefono sigue sirviendo,
+    // y un error rojo al entrar a la pantalla principal sin senal seria ruido.
+    await ref.read(historialProvider.notifier).refrescarIndice();
+  }
+
   /// Que visitas estan marcadas. Vacio significa que no hay modo seleccion:
   /// no hace falta un segundo booleano que pueda quedar desincronizado.
   final Set<String> _seleccion = {};
@@ -188,6 +213,11 @@ class _VisitaCard extends ConsumerWidget {
     final scheme = tema.colorScheme;
     final pendientes = ref.watch(pendientesSyncProvider(visita.id));
     final porSubir = pendientes.valueOrNull?.length ?? 0;
+    // Puede llegar tarde o no llegar: una visita bajada del indice todavia no
+    // tiene ficha de productor. El avatar cae solo a la silueta, asi que no
+    // hace falta esperarlo ni dejar un hueco mientras carga.
+    final productor =
+        ref.watch(productorDeVisitaProvider(visita.id)).valueOrNull;
 
     final fecha = DateFormat("EEEE d 'de' MMMM", 'es').format(visita.inicio);
     final hora = DateFormat('h:mm a', 'es').format(visita.inicio);
@@ -214,97 +244,132 @@ class _VisitaCard extends ConsumerWidget {
                     builder: (_) => VisitaPage(visitaId: visita.id),
                   ),
                 ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (seleccionando)
-                // Mismo tamano que el anillo que reemplaza, para que la fila
-                // no salte al entrar y salir del modo seleccion.
-                SizedBox(
-                  width: 46,
-                  height: 46,
-                  child: Center(
-                    child: Icon(
-                      seleccionada
-                          ? Icons.check_circle
-                          : Icons.radio_button_unchecked,
-                      color: seleccionada
-                          ? scheme.primary
-                          : scheme.onSurfaceVariant,
-                      size: 26,
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (seleccionando)
+                    // Mismo tamano que el anillo que reemplaza, para que
+                    // la fila no salte al entrar y salir del modo seleccion.
+                    SizedBox(
+                      width: 46,
+                      height: 46,
+                      child: Center(
+                        child: Icon(
+                          seleccionada
+                              ? Icons.check_circle
+                              : Icons.radio_button_unchecked,
+                          color: seleccionada
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                          size: 26,
+                        ),
+                      ),
+                    )
+                  else
+                    AnilloCompletitud(
+                      pct: visita.completitudPct,
+                      child: AvatarAgricultor(
+                        fotoPath: productor?.fotoPath,
+                        fotoRemota: productor?.fotoRemota,
+                        genero: productor?.genero,
+                      ),
+                    ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          // La fecha en mayuscula inicial: `EEEE` en
+                          // espanol viene en minuscula y arranca la tarjeta
+                          // con cara de dato.
+                          fecha.isEmpty
+                              ? fecha
+                              : fecha[0].toUpperCase() + fecha.substring(1),
+                          style: tema.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          hora,
+                          style: tema.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            Pildora(
+                              texto: visita.estado,
+                              tono: visita.estado == 'cerrada'
+                                  ? TonoPildora.exito
+                                  : TonoPildora.info,
+                            ),
+                            if (!visita.consienteAudio)
+                              const Pildora(
+                                texto: 'Sin consentimiento',
+                                tono: TonoPildora.error,
+                                icono: Icons.mic_off_outlined,
+                              ),
+                            if (porSubir > 0)
+                              Pildora(
+                                texto: '$porSubir por subir',
+                                tono: TonoPildora.aviso,
+                                icono: Icons.cloud_upload_outlined,
+                              ),
+                            if (visita.sincronizada)
+                              const Pildora(
+                                texto: 'Sincronizada',
+                                tono: TonoPildora.exito,
+                                icono: Icons.check_rounded,
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                )
-              else
-                AnilloCompletitud(pct: visita.completitudPct),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      // La fecha en mayuscula inicial: `EEEE` en espanol viene
-                      // en minuscula y arranca la tarjeta con cara de dato.
-                      fecha.isEmpty
-                          ? fecha
-                          : fecha[0].toUpperCase() + fecha.substring(1),
-                      style: tema.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      hora,
-                      style: tema.textTheme.bodySmall?.copyWith(
+                  // El chevron dice «esto abre». En modo seleccion el
+                  // toque marca, asi que la flecha estaria mintiendo.
+                  if (!seleccionando)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12, left: 4),
+                      child: Icon(
+                        Icons.chevron_right,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        Pildora(
-                          texto: visita.estado,
-                          tono: visita.estado == 'cerrada'
-                              ? TonoPildora.exito
-                              : TonoPildora.info,
-                        ),
-                        if (!visita.consienteAudio)
-                          const Pildora(
-                            texto: 'Sin consentimiento',
-                            tono: TonoPildora.error,
-                            icono: Icons.mic_off_outlined,
-                          ),
-                        if (porSubir > 0)
-                          Pildora(
-                            texto: '$porSubir por subir',
-                            tono: TonoPildora.aviso,
-                            icono: Icons.cloud_upload_outlined,
-                          ),
-                        if (visita.sincronizada)
-                          const Pildora(
-                            texto: 'Sincronizada',
-                            tono: TonoPildora.exito,
-                            icono: Icons.check_rounded,
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
+                ],
               ),
-              // El chevron dice «esto abre». En modo seleccion el toque marca,
-              // asi que la flecha estaria mintiendo.
-              if (!seleccionando)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12, left: 4),
-                  child: Icon(
-                    Icons.chevron_right,
-                    color: scheme.onSurfaceVariant,
+            ),
+            // El porcentaje, pegado a la esquina de abajo a la derecha. Sale
+            // del anillo porque el anillo ahora lleva la cara del agricultor:
+            // el color del aro ya dice como va la visita de un vistazo, y el
+            // numero exacto es para quien se detiene a mirarlo.
+            //
+            // Va en un Stack y no como una columna mas de la fila porque la
+            // fila se alinea arriba: dentro de ella no hay forma de decir
+            // "abajo del todo" sin estirar tambien la cara y las pildoras.
+            Positioned(
+              right: 14,
+              bottom: 12,
+              child: Text(
+                '${visita.completitudPct}%',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: AnilloCompletitud.colorDe(
+                    context,
+                    visita.completitudPct,
                   ),
                 ),
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );

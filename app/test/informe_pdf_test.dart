@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:pdf/pdf.dart';
@@ -51,8 +52,10 @@ Fue una visita corta. Hablamos del **agua** y de lo que siembra.
 
     // Firma de PDF. Sin esto, "genero algo" no significa "genero un PDF".
     expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
-    // El logo pesa: un PDF de pocos bytes seria una hoja en blanco.
-    expect(bytes.length, greaterThan(20000));
+    // Un PDF de pocos bytes seria una hoja en blanco. El umbral es mas bajo
+    // que el de antes a proposito: el logo dejo de ser un PNG de 28 kB y pasó
+    // a ser vector, asi que el documento pesa menos y se ve mejor.
+    expect(bytes.length, greaterThan(9000));
   });
 
   test('es A4, no carta', () {
@@ -62,28 +65,70 @@ Fue una visita corta. Hablamos del **agua** y de lo que siembra.
     expect(PdfPageFormat.a4.height.round(), 842);
   });
 
-  test('la paleta es la profesional, no el azul intenso viejo', () {
-    // El azul corporativo #0154AC y el verde neon #00B602 se descartaron
-    // justamente por lo que hacian en un documento denso.
-    expect(PaletaInforme.tinta.toInt(), 0xFF1F3D5C);
-    expect(PaletaInforme.franja.toInt(), 0xFFDCE6EE);
-    expect(PaletaInforme.suave.toInt(), 0xFFF5F8FA);
-    expect(PaletaInforme.seccion.toInt(), 0xFF4A7A96);
-    expect(PaletaInforme.cierre.toInt(), 0xFF7C9A72);
-    expect(PaletaInforme.cuerpo.toInt(), 0xFF2E3A46);
+  test('la paleta es la del manual de marca, hex por hex', () {
+    // Los colores del documento son los que declara el manual de marca 2023
+    // en «Paleta de colores primarios». No se eligen a ojo ni se retocan: si
+    // alguien los ajusta «para que se vea mejor», el papel deja de ser de la
+    // misma casa que el resto de la comunicacion de Sirius.
+    expect(ColoresSirius.azulBarranca.toInt(), 0xFF0154AC);
+    expect(ColoresSirius.verdeAlegria.toInt(), 0xFF00B602);
+    expect(ColoresSirius.azulCielo.toInt(), 0xFF00A3FF);
+    expect(ColoresSirius.imperial.toInt(), 0xFF1A1A33);
+    expect(ColoresSirius.sutileza.toInt(), 0xFFBCD7EA);
+    expect(ColoresSirius.sutilezaClara.toInt(), 0xFFECF1F4);
+    expect(ColoresSirius.cotiledon.toInt(), 0xFFBCD983);
+    expect(ColoresSirius.cotiledonClaro.toInt(), 0xFFF2FFDD);
 
-    for (final descartado in [0xFF0154AC, 0xFFBCD7EA, 0xFF00A3FF, 0xFF00B602]) {
+    // El membrete es Azul Cielo, no el azul oscuro, y encima va el logo
+    // blanco: «blanco sobre color», la combinacion principal del manual.
+    expect(PaletaInforme.membrete.toInt(), 0xFF00A3FF);
+
+    // Y cada papel del documento se sirve de esa paleta, no de un color suelto.
+    for (final usado in [
+      PaletaInforme.membrete.toInt(),
+      PaletaInforme.tinta.toInt(),
+      PaletaInforme.franja.toInt(),
+      PaletaInforme.suave.toInt(),
+      PaletaInforme.seccion.toInt(),
+      PaletaInforme.cierre.toInt(),
+      PaletaInforme.cuerpo.toInt(),
+      PaletaInforme.borde.toInt(),
+    ]) {
       expect(
         [
-          PaletaInforme.tinta.toInt(),
-          PaletaInforme.franja.toInt(),
-          PaletaInforme.suave.toInt(),
-          PaletaInforme.seccion.toInt(),
-          PaletaInforme.cierre.toInt(),
+          ColoresSirius.azulBarranca.toInt(),
+          ColoresSirius.verdeAlegria.toInt(),
+          ColoresSirius.azulCielo.toInt(),
+          ColoresSirius.imperial.toInt(),
+          ColoresSirius.sutileza.toInt(),
+          ColoresSirius.sutilezaClara.toInt(),
+          ColoresSirius.cotiledon.toInt(),
+          ColoresSirius.cotiledonClaro.toInt(),
         ],
-        isNot(contains(descartado)),
+        contains(usado),
       );
     }
+  });
+
+  test('el logo va en vector, no en mapa de bits', () async {
+    // El PNG de 512 px se veia pixelado al ampliar y al imprimir grande. El
+    // vector no: por eso el documento pesa MENOS que antes y se ve mejor.
+    final color = await rootBundle.loadString('assets/marca/sirius.svg');
+    expect(color, startsWith('<svg'));
+    expect(color, contains('#00B602')); // el punto Verde Alegria
+    expect(color, contains('#00A3FF')); // el punto Azul Cielo
+    expect(color, contains('#0154AC')); // el logotipo, en Azul Barranca
+  });
+
+  test('el logo del membrete no tiene un punto del color del membrete', () async {
+    // El membrete es Azul Cielo. Si ahi fuera el logo «blanco sobre color»,
+    // su punto Azul Cielo desapareceria contra la banda y la marca quedaria
+    // con un solo punto: por eso va el mono blanco, con los dos en blanco.
+    final mono =
+        await rootBundle.loadString('assets/marca/sirius_mono_blanco.svg');
+    expect(mono, startsWith('<svg'));
+    expect(mono, isNot(contains('#00A3FF')));
+    expect(mono, isNot(contains('#00B602')));
   });
 
   test('la ficha del modelo no se duplica con la del documento', () async {
@@ -102,7 +147,7 @@ Fue una visita corta. Hablamos del **agua** y de lo que siembra.
     // No se puede leer el texto del PDF comprimido aca, pero el documento se
     // arma: la regresion que importa la cubre `_cuerpo` descartando todo lo
     // anterior a la primera seccion.
-    expect(bytes.length, greaterThan(20000));
+    expect(bytes.length, greaterThan(9000));
   });
 
   test('embebe una fuente TTF, no las internas sin Unicode', () async {
@@ -118,6 +163,17 @@ Fue una visita corta. Hablamos del **agua** y de lo que siembra.
     // FontFile2 es como el formato PDF marca una TrueType embebida. Con una
     // fuente interna no aparece.
     expect(String.fromCharCodes(bytes).contains('FontFile2'), isTrue);
+  });
+
+  test('la fuente embebida es la corporativa, no una cualquiera', () async {
+    // El informe es lo unico de Sirius que el productor se lleva a su casa.
+    // Que salga en la letra de la marca no es gusto: es lo que lo hace
+    // reconocible al lado de los papeles de cualquier otro.
+    //
+    // El nombre PostScript de la fuente viaja dentro del PDF, en /BaseFont.
+    final bytes = await construirInformePdf(datos());
+
+    expect(String.fromCharCodes(bytes).contains('MuseoSlab'), isTrue);
   });
 
   test('una foto que ya no esta en disco no impide entregar el informe',

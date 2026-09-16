@@ -6,42 +6,86 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'fuentes_pdf.dart';
+
 /// El PDF del informe, con el mismo patron de diseño de las actas de dotacion.
 ///
-/// La paleta viene de ahi tal cual: se descarto el azul intenso corporativo
-/// (#0154AC) porque en un documento denso cansa la vista y compite con el
-/// contenido. El azul pizarra sostiene el membrete sin gritar.
-class PaletaInforme {
-  /// Membrete y encabezados de tabla.
-  static const tinta = PdfColor.fromInt(0xFF1F3D5C);
+/// Los colores salen del manual de marca de Sirius (2023, seccion 03 Color,
+/// «Paleta de colores primarios»). No son aproximaciones: son los hex que
+/// declara el manual, y por eso llevan el nombre que les puso el manual.
+class ColoresSirius {
+  /// Azul Barranca. El color caracteristico de la marca.
+  static const azulBarranca = PdfColor.fromInt(0xFF0154AC);
 
-  /// Franja del titulo, bajo el membrete.
-  static const franja = PdfColor.fromInt(0xFFDCE6EE);
+  /// Verde Alegria.
+  static const verdeAlegria = PdfColor.fromInt(0xFF00B602);
 
-  /// Bandas suaves: filas alternas y bloques de datos.
-  static const suave = PdfColor.fromInt(0xFFF5F8FA);
+  /// Azul Cielo.
+  static const azulCielo = PdfColor.fromInt(0xFF00A3FF);
 
-  /// Encabezado de seccion dentro del cuerpo.
-  static const seccion = PdfColor.fromInt(0xFF4A7A96);
+  /// Imperial. El azul casi negro de la paleta.
+  static const imperial = PdfColor.fromInt(0xFF1A1A33);
 
-  /// Linea de cierre. Verde salvia, no el verde neon.
-  static const cierre = PdfColor.fromInt(0xFF7C9A72);
+  /// Sutileza, y su gradiente claro.
+  static const sutileza = PdfColor.fromInt(0xFFBCD7EA);
+  static const sutilezaClara = PdfColor.fromInt(0xFFECF1F4);
 
-  /// Texto de cuerpo. Gris grafito, no negro puro: en papel el negro pleno
-  /// sobre blanco vibra y cansa.
-  static const cuerpo = PdfColor.fromInt(0xFF2E3A46);
-
-  static const borde = PdfColor.fromInt(0xFFD5DFEB);
+  /// Cotiledon, y su gradiente claro.
+  static const cotiledon = PdfColor.fromInt(0xFFBCD983);
+  static const cotiledonClaro = PdfColor.fromInt(0xFFF2FFDD);
 }
 
-/// Codigo de formato, abajo a la derecha en cada pagina.
-const _codigoFormato = 'FT-AGRO-001';
+/// Los colores de marca repartidos en los papeles que cumplen en el documento.
+///
+/// Las combinaciones son las que el manual aprueba en «Combinaciones de
+/// colores»: blanco sobre azul en las bandas de seccion, azul sobre sutileza
+/// en la franja del titulo y la marca a color sobre cotiledon en el membrete.
+class PaletaInforme {
+  /// Encabezados de tabla, etiquetas y titulos.
+  static const tinta = ColoresSirius.imperial;
+
+  /// El membrete: la banda donde va el logo, arriba de todo.
+  ///
+  /// Azul Cielo y no el azul oscuro. Encima va el logo mono blanco: el logo a
+  /// color se perderia —su azul Barranca compite con este fondo— y el de
+  /// «blanco sobre color» tampoco sirve aca, porque uno de sus dos puntos es
+  /// justamente Azul Cielo y desapareceria contra la banda.
+  static const membrete = ColoresSirius.azulCielo;
+
+  /// Lo que se escribe encima del membrete.
+  static const sobreMembrete = PdfColors.white;
+
+  /// Franja del titulo, bajo el membrete.
+  static const franja = ColoresSirius.sutileza;
+
+  /// Bandas suaves: filas alternas y bloques de datos.
+  static const suave = ColoresSirius.sutilezaClara;
+
+  /// Encabezado de seccion dentro del cuerpo, y los textos de apoyo.
+  static const seccion = ColoresSirius.azulBarranca;
+
+  /// Linea de cierre.
+  static const cierre = ColoresSirius.verdeAlegria;
+
+  /// Texto de cuerpo.
+  static const cuerpo = ColoresSirius.imperial;
+
+  static const borde = ColoresSirius.sutileza;
+}
+
+/// El margen del documento, en puntos: 2,54 cm arriba y abajo, 1,91 cm a los
+/// lados. Es la caja de la papeleria de Sirius — la pulgada completa arriba
+/// para el membrete, y los lados un poco mas angostos para que las tablas no
+/// se aprieten.
+const _margenVertical = 72.0; // 2,54 cm
+const _margenLateral = 54.0; // 1,91 cm
 
 class DatosInforme {
   const DatosInforme({
     required this.titulo,
     required this.contenido,
     required this.generadoEn,
+    this.version = 1,
     this.productor,
     this.finca,
     this.vereda,
@@ -56,6 +100,10 @@ class DatosInforme {
   /// Markdown que devolvio el modelo.
   final String contenido;
   final DateTime generadoEn;
+
+  /// La version del informe. Va al pie de cada pagina: dos informes de la
+  /// misma visita se distinguen por ahi y por la fecha, no por un codigo.
+  final int version;
 
   final String? productor;
   final String? finca;
@@ -72,6 +120,7 @@ class DatosInforme {
         titulo: titulo,
         contenido: otroContenido,
         generadoEn: generadoEn,
+        version: version,
         productor: productor,
         finca: finca,
         vereda: vereda,
@@ -90,15 +139,19 @@ Future<Uint8List> construirInformePdf(DatosInforme datos) async {
     subject: 'Informe de visita de campo',
   );
 
-  final logo = pw.MemoryImage(
-    (await rootBundle.load('assets/marca/sirius.png')).buffer.asUint8List(),
-  );
+  // El logo va como vector y no como PNG: es el activo mas importante de la
+  // marca y el manual no perdona que se vea pixelado. Dibujado desde su
+  // contorno se imprime nitido a cualquier tamaño y en cualquier impresora.
+  final logoBlanco =
+      await rootBundle.loadString('assets/marca/sirius_mono_blanco.svg');
+  final logoColor = await rootBundle.loadString('assets/marca/sirius.svg');
 
-  // Roboto empaquetada, no las fuentes internas del generador: esas no cubren
-  // Unicode, y el informe esta lleno de "señor", "años" y "quemó". Que salgan
-  // rotos en el papel que se le entrega al productor no es un detalle.
-  final fuente = pw.Font.ttf(await rootBundle.load('assets/fuentes/Roboto-Regular.ttf'));
-  final fuenteBold = pw.Font.ttf(await rootBundle.load('assets/fuentes/Roboto-Bold.ttf'));
+  // Museo Slab, la corporativa de Sirius, y no las fuentes internas del
+  // generador: esas no cubren Unicode y el informe esta lleno de "señor",
+  // "años" y "quemó". Que salgan rotos en el papel que se le entrega al
+  // productor no es un detalle.
+  final fuentes = await FuentesInforme.cargar();
+  final tema = await fuentes.tema();
 
   final fotos = <pw.MemoryImage>[];
   for (final ruta in datos.fotos) {
@@ -111,16 +164,20 @@ Future<Uint8List> construirInformePdf(DatosInforme datos) async {
   doc.addPage(
     pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
-      // Los mismos margenes de las actas: 20 arriba, 24 abajo para el pie,
-      // 18 a los lados.
-      margin: const pw.EdgeInsets.fromLTRB(18, 20, 18, 24),
-      theme: pw.ThemeData.withFont(base: fuente, bold: fuenteBold),
+      // Mas aire del que pedia el diseño de las actas, y a proposito — este
+      // papel se archiva, se anilla y se fotocopia, y en todas esas el margen
+      // es lo que salva el texto del borde.
+      margin: const pw.EdgeInsets.symmetric(
+        horizontal: _margenLateral,
+        vertical: _margenVertical,
+      ),
+      theme: tema,
       header: (ctx) => ctx.pageNumber == 1
           ? pw.SizedBox()
-          : _membreteContinuacion(logo, datos),
-      footer: _pie,
+          : _membreteContinuacion(logoColor, datos),
+      footer: (ctx) => _pie(ctx, datos),
       build: (ctx) => [
-        _membrete(logo),
+        _membrete(logoBlanco),
         _franjaTitulo(),
         pw.SizedBox(height: 14),
         _bloqueDatos(datos),
@@ -143,18 +200,18 @@ Future<Uint8List> construirInformePdf(DatosInforme datos) async {
 
 /// El logo va centrado en su propio bloque, no arrinconado: es lo primero que
 /// mira el productor y lo que le dice de quien es el documento.
-pw.Widget _membrete(pw.MemoryImage logo) {
+pw.Widget _membrete(String logo) {
   return pw.Container(
     width: double.infinity,
     padding: const pw.EdgeInsets.symmetric(vertical: 16),
-    decoration: const pw.BoxDecoration(color: PaletaInforme.tinta),
-    child: pw.Center(child: pw.Image(logo, height: 52)),
+    decoration: const pw.BoxDecoration(color: PaletaInforme.membrete),
+    child: pw.Center(child: pw.SvgImage(svg: logo, height: 46)),
   );
 }
 
 /// En las paginas siguientes el membrete se reduce: repetir el bloque entero
 /// gastaria un tercio de cada hoja en algo que ya se dijo.
-pw.Widget _membreteContinuacion(pw.MemoryImage logo, DatosInforme datos) {
+pw.Widget _membreteContinuacion(String logo, DatosInforme datos) {
   return pw.Container(
     margin: const pw.EdgeInsets.only(bottom: 14),
     padding: const pw.EdgeInsets.only(bottom: 6),
@@ -167,7 +224,7 @@ pw.Widget _membreteContinuacion(pw.MemoryImage logo, DatosInforme datos) {
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
-        pw.Image(logo, height: 20),
+        pw.SvgImage(svg: logo, height: 18),
         pw.Text(
           datos.finca ?? datos.productor ?? 'Informe de visita',
           style: const pw.TextStyle(
@@ -436,27 +493,26 @@ pw.Widget _lineaCierre(DatosInforme datos) {
   );
 }
 
-pw.Widget _pie(pw.Context ctx) {
+pw.Widget _pie(pw.Context ctx, DatosInforme datos) {
   return pw.Container(
     margin: const pw.EdgeInsets.only(top: 8),
     child: pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
-        pw.Expanded(child: pw.SizedBox()),
+        // Version y fecha de creacion: es lo que permite saber cual de dos
+        // papeles del mismo productor es el ultimo, que es la unica pregunta
+        // que se le hace a un pie de pagina.
+        pw.Text(
+          'Versión ${datos.version}',
+          style: const pw.TextStyle(fontSize: 7.5, color: PaletaInforme.seccion),
+        ),
         pw.Text(
           'Página ${ctx.pageNumber} de ${ctx.pagesCount}',
           style: const pw.TextStyle(fontSize: 7.5, color: PaletaInforme.seccion),
         ),
-        pw.Expanded(
-          child: pw.Align(
-            alignment: pw.Alignment.centerRight,
-            child: pw.Text(
-              _codigoFormato,
-              style: const pw.TextStyle(
-                fontSize: 7.5,
-                color: PaletaInforme.seccion,
-              ),
-            ),
-          ),
+        pw.Text(
+          DateFormat("d 'de' MMMM 'de' y", 'es').format(datos.generadoEn),
+          style: const pw.TextStyle(fontSize: 7.5, color: PaletaInforme.seccion),
         ),
       ],
     ),

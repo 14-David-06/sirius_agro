@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.2.0+3
+version: 1.2.1+4
 
 environment:
   sdk: ^3.13.2
@@ -92,9 +92,34 @@ flutter:
     # Marca: wordmark a color y version blanca para tema oscuro.
     - assets/marca/sirius.png
     - assets/marca/sirius_blanco.png
-    # Roboto (Apache 2.0) para el PDF. Las fuentes que trae el generador de
-    # PDF solo cubren Latin-1 a medias: sin esto, "señor" y "años" salen rotos
-    # en el papel que se le entrega al productor.
+    # Los mismos dos, en vector, para los PDF: el logo del papel se dibuja
+    # desde su contorno y no se pixela por mucho que se amplie o se imprima.
+    - assets/marca/sirius.svg
+    - assets/marca/sirius_blanco.svg
+    # Y el mono blanco —logo y puntos en blanco—, para el membrete: sobre Azul
+    # Cielo el punto Azul Cielo del logo a color desapareceria.
+    - assets/marca/sirius_mono_blanco.svg
+    # Museo Slab: la corporativa de Sirius. Va como asset ademas de como
+    # fuente porque el generador de PDF no lee el registro de fuentes de
+    # Flutter, carga el archivo a mano.
+    #
+    # Convertidas de OTF a TTF: las originales llevan contornos CFF y el
+    # generador de PDF solo sabe leer TrueType. Cubren todo el latin que la
+    # app escribe —tildes, «», —, ², ±— asi que la conversion no pierde nada.
+    - assets/fuentes/MuseoSlab-300.ttf
+    - assets/fuentes/MuseoSlab-500.ttf
+    - assets/fuentes/MuseoSlab-700.ttf
+    - assets/fuentes/MuseoSlab-900.ttf
+    - assets/fuentes/MuseoSlab-500Italic.ttf
+    - assets/fuentes/MuseoSlab-700Italic.ttf
+    # Los 14 iconos de modulo, recortados de la tipografia de Material: 3 KB
+    # en vez de los 350 KB de la fuente entera. Son los mismos glifos que la
+    # app dibuja en pantalla, para que el informe y el telefono no muestren
+    # dos simbolos distintos para «Suelos».
+    - assets/fuentes/IconosModulo.ttf
+    # Roboto (Apache 2.0) queda como reserva del PDF: si algun dia un dato
+    # trae un caracter que Museo Slab no dibuja, sale en Roboto y no como un
+    # cuadro vacio en el papel que se le entrega al productor.
     - assets/fuentes/Roboto-Regular.ttf
     - assets/fuentes/Roboto-Bold.ttf
 
@@ -108,6 +133,33 @@ flutter:
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
+
+  # Museo Slab, la tipografia corporativa. Los pesos de Museo no coinciden
+  # con los de Material —su "regular" es el 500 y su "bold" el 700—, asi que
+  # cada peso se declara contra el numero que el codigo ya usa: un titulo
+  # escrito `FontWeight.w600` tiene que salir en Museo Slab 700, no en una
+  # interpolacion que el motor elija por su cuenta.
+  fonts:
+    - family: MuseoSlab
+      fonts:
+        - asset: assets/fuentes/MuseoSlab-300.ttf
+          weight: 300
+        - asset: assets/fuentes/MuseoSlab-500.ttf
+          weight: 400
+        - asset: assets/fuentes/MuseoSlab-500.ttf
+          weight: 500
+        - asset: assets/fuentes/MuseoSlab-700.ttf
+          weight: 600
+        - asset: assets/fuentes/MuseoSlab-700.ttf
+          weight: 700
+        - asset: assets/fuentes/MuseoSlab-900.ttf
+          weight: 900
+        - asset: assets/fuentes/MuseoSlab-500Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fuentes/MuseoSlab-700Italic.ttf
+          weight: 700
+          style: italic
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

@@ -353,14 +353,19 @@ class ApiClient {
   /// vereda, los insumos que ya se le registraron. Es lo que de verdad mejora
   /// la transcripcion — un termino generico ayuda poco, el apellido de la
   /// persona que esta hablando ayuda mucho.
+  ///
+  /// `diarizar` separa las voces, que es lo que da las citas de la
+  /// conversacion. Una nota de voz del visitador lo apaga: ahi habla uno solo
+  /// y las marcas de hablante solo estorban.
   Future<TranscripcionResult> transcribir({
     required Uint8List audio,
     required String filename,
     List<String> terminos = const [],
     String? idioma,
+    bool diarizar = true,
   }) async {
     final request = http.MultipartRequest('POST', _uri('/v1/transcripciones'))
-      ..fields['diarizar'] = 'true'
+      ..fields['diarizar'] = '$diarizar'
       ..fields['terminos'] = terminos.join(',')
       ..files
           .add(http.MultipartFile.fromBytes('file', audio, filename: filename));
@@ -565,20 +570,67 @@ class ApiClient {
     return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
   }
 
-  /// Baja un archivo por su URL: la foto de un adjunto de Airtable o el audio
-  /// del bucket.
+  /// El indice de visitas de Airtable: solo las fichas, sin hijos.
   ///
-  /// Va sin las cabeceras de la app a proposito: son URL de terceros —Airtable
-  /// y S3— y mandarles la llave de la API seria filtrarla fuera de nuestro
-  /// backend. Devuelve null si falla; un archivo que no se pudo bajar deja un
-  /// hueco en el historial, no cancela la descarga entera.
+  /// Es lo que la app refresca sola para que las visitas del equipo aparezcan
+  /// en la lista sin que nadie toque un boton. Liviano a proposito — por eso
+  /// puede ser automatico.
+  ///
+  /// Timeout corto y del lado de la comodidad: esto corre en segundo plano
+  /// mientras el visitador mira su lista, y si tarda mas de esto ya no es un
+  /// refresco, es una espera.
+  Future<List<Map<String, dynamic>>> indiceDeVisitas({
+    Duration timeout = const Duration(seconds: 25),
+  }) async {
+    final response = await _client
+        .get(_uri('/v1/visitas'), headers: _headers)
+        .timeout(timeout);
+    if (response.statusCode >= 400) _fail(response);
+
+    return (jsonDecode(utf8.decode(response.bodyBytes)) as List)
+        .cast<Map<String, dynamic>>();
+  }
+
+  /// Una visita con todo lo suyo, para cuando alguien la abre.
+  Future<Map<String, dynamic>> detalleDeVisita(
+    String codigoVisita, {
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
+    final response = await _client
+        .get(_uri('/v1/visitas/$codigoVisita'), headers: _headers)
+        .timeout(timeout);
+    if (response.statusCode >= 400) _fail(response);
+
+    return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+  }
+
+  /// Baja un archivo del historial: la foto de un adjunto de Airtable o el
+  /// audio del bucket.
+  ///
+  /// Va POR EL BACKEND y no directo al dominio del archivo. El telefono no
+  /// siempre llega a Airtable ni a S3 —en la finca depende de la red que haya,
+  /// y conectado por USB no tiene mas salida que el backend—, y el resultado
+  /// de intentarlo directo era una foto rota en la galeria: el archivo no
+  /// bajaba pero la fila se escribia igual.
+  ///
+  /// Por el mismo canal que el resto de la API significa una sola red que
+  /// tiene que funcionar y una sola autenticacion. La llave viaja a nuestro
+  /// backend, que es de donde salio, y nunca a un tercero.
+  ///
+  /// Devuelve null si falla: un archivo que no se pudo bajar deja un hueco en
+  /// el historial, no cancela la descarga entera.
   Future<List<int>?> descargarArchivo(
     String url, {
     Duration timeout = const Duration(seconds: 60),
   }) async {
     try {
-      final response =
-          await _client.get(Uri.parse(url)).timeout(timeout);
+      final response = await _client
+          .get(
+            _uri('/v1/archivos/contenido')
+                .replace(queryParameters: {'url': url}),
+            headers: _authHeaders,
+          )
+          .timeout(timeout);
       if (response.statusCode >= 400) return null;
       return response.bodyBytes;
     } catch (_) {

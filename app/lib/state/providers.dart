@@ -119,6 +119,19 @@ final hallazgosProvider =
       .watch();
 });
 
+/// Los tramos de audio de una visita, en orden.
+///
+/// Stream y no future: al bajar el detalle de un espejo los tramos aparecen
+/// mientras la pantalla ya esta abierta.
+final grabacionesProvider =
+    StreamProvider.family<List<Grabacion>, String>((ref, visitaId) {
+  final db = ref.watch(dbProvider);
+  return (db.select(db.grabaciones)
+        ..where((g) => g.visitaId.equals(visitaId))
+        ..orderBy([(g) => OrderingTerm(expression: g.orden)]))
+      .watch();
+});
+
 final evidenciasProvider =
     StreamProvider.family<List<Evidencia>, String>((ref, visitaId) {
   final db = ref.watch(dbProvider);

@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/iconos_modulo.dart';
 import '../core/servicio_grabacion.dart';
 import '../data/db/app_database.dart';
 import '../state/grabacion.dart';
+import '../state/historial.dart';
 import '../state/providers.dart';
 import '../state/sincronizador.dart';
 import 'consentimiento_page.dart';
 import 'marca.dart';
+import 'reproductor_audio.dart';
 import 'theme.dart';
 import 'visita_secciones.dart';
 
@@ -35,6 +38,11 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
     // esta hablando es la peor forma de arrancar una conversacion.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ServicioGrabacion.pedirPermisos();
+      // De una visita de Airtable la lista solo tiene la ficha. El detalle
+      // —hallazgos, fotos, audio, informes— se baja aqui, al abrirla: es
+      // cuando alguien lo va a mirar, y es lo que evita que el refresco
+      // automatico de la lista arrastre cientos de megas por si acaso.
+      ref.read(historialProvider.notifier).asegurarDetalle(widget.visitaId);
     });
   }
 
@@ -43,6 +51,8 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
     final visitaId = widget.visitaId;
     final visita = ref.watch(visitaProvider(visitaId)).valueOrNull;
     final grabacion = ref.watch(grabacionProvider(visitaId));
+    final historial = ref.watch(historialProvider);
+    final bajando = historial.trabajando;
     final ctrl = ref.read(grabacionProvider(visitaId).notifier);
 
     return Scaffold(
@@ -53,7 +63,10 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Center(
-                child: _Completitud(pct: visita.completitudPct),
+                child: _Completitud(
+                  pct: visita.completitudPct,
+                  visitaId: visitaId,
+                ),
               ),
             ),
         ],
@@ -80,10 +93,19 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
                 // creyendo que esta en una visita propia y empiece a hablar
                 // sin grabar pierde la conversacion.
                 if (visita.soloLectura)
-                  const Banda(
-                    texto: 'Visita de consulta, traida de Airtable. No se '
-                        'puede grabar ni corregir: se ve como quedo.',
-                    icono: Icons.cloud_done_outlined,
+                  Banda(
+                    texto: bajando
+                        // Sin esto, una visita recien traida del indice se ve
+                        // vacia mientras baja, y vacia es indistinguible de
+                        // «no se registro nada».
+                        ? (historial.paso.isEmpty
+                            ? 'Bajando la visita completa...'
+                            : historial.paso)
+                        : 'Visita de consulta, traida de Airtable. No se '
+                            'puede grabar ni corregir: se ve como quedo.',
+                    icono: bajando
+                        ? Icons.cloud_download_outlined
+                        : Icons.cloud_done_outlined,
                   ),
                 Expanded(
                   child: ListView(
@@ -118,18 +140,32 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
                       // En un espejo las fotos se ven pero no se toman, y no
                       // hay nada que procesar: la conversacion ya se proceso en
                       // el telefono que la grabo.
-                      if (visita.soloLectura)
-                        SeccionFotosSoloLectura(visitaId: visitaId)
-                      else ...[
+                      if (visita.soloLectura) ...[
+                        SeccionFotosSoloLectura(visitaId: visitaId),
+                        const SizedBox(height: 10),
+                        // La conversacion es lo que no se puede resumir: un
+                        // espejo sin con que oirla deja fuera lo unico que el
+                        // informe no reemplaza.
+                        SeccionAudioSoloLectura(visitaId: visitaId),
+                      ] else ...[
                         SeccionFotos(visitaId: visitaId, visita: visita),
                         const SizedBox(height: 10),
                         SeccionProcesar(visitaId: visitaId),
                       ],
+                      // Antes del terreno y del entregable: subir es lo que
+                      // cierra la visita, y el visitador lo busca apenas queda
+                      // senal. Abajo del todo solo lo encontraba quien bajaba
+                      // hasta el final.
+                      const SizedBox(height: 28),
+                      _EstadoSync(visitaId: visitaId),
                       if (!visita.soloLectura) ...[
                         const SizedBox(height: 28),
                         const TituloSeccion('El terreno'),
                         SeccionTrazados(visitaId: visitaId),
                       ],
+                      const SizedBox(height: 28),
+                      const TituloSeccion('Cobertura de la conversacion'),
+                      _Faltantes(visitaId: visitaId),
                       const SizedBox(height: 28),
                       const TituloSeccion('Entregable'),
                       // Los informes de un espejo se leen; generar uno nuevo
@@ -146,11 +182,6 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
                         // ya salio de la finca y ve los huecos que quedaron.
                         SeccionComplemento(visitaId: visitaId),
                       ],
-                      const SizedBox(height: 28),
-                      const TituloSeccion('Cobertura de la conversacion'),
-                      _Faltantes(visitaId: visitaId),
-                      const SizedBox(height: 28),
-                      _EstadoSync(visitaId: visitaId),
                     ],
                   ),
                 ),
@@ -523,14 +554,29 @@ class _Faltantes extends ConsumerWidget {
               for (final grupo in _porModulo(lista).entries) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
-                  child: Text(
-                    grupo.key.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      letterSpacing: 1,
-                      fontWeight: FontWeight.w700,
-                      color: tema.colorScheme.primary,
-                    ),
+                  // El icono delante del nombre: la lista de faltantes se lee
+                  // de arriba abajo buscando un tema concreto, y el dibujo se
+                  // encuentra antes que once letras en versalitas.
+                  child: Row(
+                    children: [
+                      Icon(
+                        iconoDeModulo(grupo.key),
+                        size: 15,
+                        color: tema.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          grupo.key.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            letterSpacing: 1,
+                            fontWeight: FontWeight.w700,
+                            color: tema.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 for (final campo in grupo.value)
@@ -740,17 +786,31 @@ class _ItemCola extends StatelessWidget {
   }
 }
 
-class _Completitud extends StatelessWidget {
-  const _Completitud({required this.pct});
+class _Completitud extends ConsumerWidget {
+  const _Completitud({required this.pct, required this.visitaId});
 
   final int pct;
+  final String visitaId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final color = AnilloCompletitud.colorDe(context, pct);
+    final productor =
+        ref.watch(productorDeVisitaProvider(visitaId)).valueOrNull;
     return Row(
       children: [
-        AnilloCompletitud(pct: pct, diametro: 20, grosor: 3),
+        // Un poco mas grande que antes: dentro del aro ahora va una cara, y a
+        // 20 px no se distingue de una mancha.
+        AnilloCompletitud(
+          pct: pct,
+          diametro: 30,
+          grosor: 3,
+          child: AvatarAgricultor(
+            fotoPath: productor?.fotoPath,
+            fotoRemota: productor?.fotoRemota,
+            genero: productor?.genero,
+          ),
+        ),
         const SizedBox(width: 8),
         Text(
           '$pct%',

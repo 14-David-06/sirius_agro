@@ -89,6 +89,17 @@ final grabacionProvider =
   (ref, visitaId) => GrabacionController(visitaId, ref.watch(repoProvider)),
 );
 
+/// Si el microfono esta tomado por la grabacion de la visita.
+///
+/// Existe aparte del estado completo para que quien solo necesita saber ESO
+/// —la nota de voz del chat, por ejemplo— no tenga que despertar al grabador
+/// entero con su microfono detras. En un test tampoco: se sobreescribe con un
+/// bool y no hay plugin de audio de por medio.
+final visitaGrabandoProvider = Provider.family<bool, String>(
+  (ref, visitaId) =>
+      ref.watch(grabacionProvider(visitaId).select((s) => s.grabando)),
+);
+
 class GrabacionController extends StateNotifier<GrabacionState> {
   GrabacionController(this.visitaId, this._repo)
       : super(const GrabacionState()) {

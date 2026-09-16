@@ -38,6 +38,15 @@ void main() {
     expect(String.fromCharCodes(bytes).contains('FontFile2'), isTrue);
   });
 
+  test('va en la letra corporativa, igual que el informe del productor',
+      () async {
+    // Los dos documentos de la misma visita se archivan juntos. Uno en Museo
+    // Slab y el otro en la letra por defecto se leen como de dos empresas.
+    final bytes = await construirInformeTecnicoPdf(_datos());
+
+    expect(String.fromCharCodes(bytes).contains('MuseoSlab'), isTrue);
+  });
+
   test('una visita vacia tambien se archiva', () async {
     // Sin GPS, sin trazados, sin hallazgos, sin fotos y sin audio. Es el caso
     // de la charla que quedo a medias, y es justo la que hay que poder
@@ -133,10 +142,13 @@ void main() {
     expect(colores.length, 4);
   });
 
-  test('el codigo de formato es el propio, no el del productor', () {
-    // Son dos formatos distintos del sistema de gestion: FT-AGRO-001 es la
-    // carta al agricultor, FT-AGRO-002 este.
-    expect(codigoFormatoTecnico, 'FT-AGRO-002');
+  test('el documento se identifica por su version, no por un codigo', () {
+    // El codigo de formato (FT-AGRO-002) se saco del documento: al pie va la
+    // version y la fecha de creacion, que es lo que distingue dos informes de
+    // la misma visita. Si alguien lo devuelve, este test lo ve.
+    final md = markdownInformeTecnico(_datos());
+    expect(md, isNot(contains('FT-AGRO')));
+    expect(md, contains('version 1'));
   });
 }
 

@@ -108,6 +108,7 @@ def _visita(**fields) -> dict:
         "Longitud": -72.819044,
         "Consiente audio": True,
         "Visitador": ["recVISITADOR"],
+        "Productor": [REC_PRODUCTOR],
         "Finca": ["recFINCA"],
         "Vereda": ["recVEREDA"],
     }
@@ -299,3 +300,95 @@ class TestHistorial:
         with pytest.raises(Exception) as exc:
             await historial.historial_de_productor(vacio, REC_PRODUCTOR)
         assert "Airtable" in str(exc.value)
+
+
+class TestIndice:
+    """El indice que la app refresca sola: todas las visitas, sin sus hijos.
+
+    Lo que se protege es que siga siendo LIVIANO. Si un dia alguien le cuelga
+    los hijos, la app pasaria de bajar unos KB por su cuenta a bajar cientos de
+    megas sin que nadie lo pida, en el telefono de un visitador que esta en una
+    vereda.
+    """
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_trae_las_visitas_con_sus_nombres(self, settings):
+        _montar()
+        fichas = await historial.indice_de_visitas(settings)
+
+        assert len(fichas) == 1
+        assert fichas[0].codigo_visita == CODIGO
+        assert fichas[0].productor == "Pedro Gomez"
+        assert fichas[0].finca == "La Soledad"
+        assert fichas[0].visitador == "Persona De Prueba"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_el_indice_NO_trae_hijos(self, settings):
+        """Es la propiedad que lo hace automatico."""
+        _montar(
+            hallazgos=[
+                {"id": "recH1", "fields": {"Visita": [REC_VISITA]}},
+            ],
+            evidencias=[
+                {"id": "recE1", "fields": {"Visita": [REC_VISITA]}},
+            ],
+        )
+
+        fichas = await historial.indice_de_visitas(settings)
+
+        assert fichas[0].hallazgos == []
+        assert fichas[0].evidencias == []
+        assert fichas[0].grabaciones == []
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_las_mas_recientes_primero_y_se_recorta(self, settings):
+        visitas = [
+            {
+                "id": f"recV{i}",
+                "fields": {
+                    "Codigo de visita": f"codigo-{i}",
+                    "Inicio": f"2026-09-{i + 1:02d}T09:00:00.000Z",
+                },
+            }
+            for i in range(5)
+        ]
+        _montar(visitas=visitas)
+
+        fichas = await historial.indice_de_visitas(settings, limite=2)
+        assert [f.codigo_visita for f in fichas] == ["codigo-4", "codigo-3"]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_el_detalle_de_una_visita_si_trae_sus_hijos(self, settings):
+        """Lo pesado se baja cuando alguien abre la visita, no antes."""
+        _montar(
+            hallazgos=[
+                {
+                    "id": "recH1",
+                    "fields": {
+                        "Visita": [REC_VISITA],
+                        "Campo": ["recCAMPO"],
+                        "Valor texto": "quebrada",
+                    },
+                }
+            ],
+        )
+
+        ficha = await historial.visita_por_codigo(settings, CODIGO)
+
+        assert ficha.codigo_visita == CODIGO
+        assert len(ficha.hallazgos) == 1
+        assert ficha.hallazgos[0].clave_tecnica == "pozos_cantidad"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_una_visita_que_no_existe_da_404(self, settings):
+        respx.get(f"{API}/{historial.TBL_VISITAS}").mock(
+            return_value=_respuesta([])
+        )
+        with pytest.raises(Exception) as exc:
+            await historial.visita_por_codigo(settings, "no-existe")
+        assert "404" in str(exc.value) or "no esta" in str(exc.value)

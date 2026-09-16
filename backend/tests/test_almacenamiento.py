@@ -244,3 +244,56 @@ class TestEndpointDeFirma:
             data={"codigo_visita": "uuid-1", "nombre": "x.pdf"},
         )
         assert r.status_code in (401, 403)
+
+
+class TestDestinoPermitido:
+    """Que el proxy de descarga no vaya a donde le digan.
+
+    La app baja las fotos y el audio del historial por el backend, porque el
+    telefono no siempre alcanza a Airtable ni al bucket. Eso convierte a
+    `?url=` en la parte mas delicada de la API: sin lista de destinos, quien
+    tenga la llave puede hacer que el servidor traiga lo que quiera de su
+    propia red —el endpoint de metadatos del host, el primero de todos— y se
+    lo devuelva.
+    """
+
+    def test_acepta_un_adjunto_de_airtable(self):
+        assert (
+            alm._destino_permitido(_s(), "https://v5.airtableusercontent.com/v3/u/1/a.jpg")
+            == "v5.airtableusercontent.com"
+        )
+
+    def test_acepta_el_bucket_propio(self):
+        """El mismo dominio al que `url_publica` sube: no dos listas que se
+        desalineen cuando alguien configure un CDN."""
+        url = alm.url_publica(_s(), "visitas/abc/audio/tramo-1.m4a")
+        assert alm._destino_permitido(_s(), url)
+
+    def test_acepta_el_cdn_configurado(self):
+        s = _s(bucket_public_url="https://cdn.sirius.example")
+        assert alm._destino_permitido(s, "https://cdn.sirius.example/visitas/a/x.m4a")
+
+    def test_rechaza_los_metadatos_del_host(self):
+        with pytest.raises(HTTPException) as e:
+            alm._destino_permitido(_s(), "https://169.254.169.254/latest/meta-data/")
+        assert e.value.status_code == 400
+
+    def test_rechaza_un_dominio_cualquiera(self):
+        with pytest.raises(HTTPException) as e:
+            alm._destino_permitido(_s(), "https://evil.example/x.jpg")
+        assert e.value.status_code == 400
+
+    def test_no_se_deja_enganar_por_un_sufijo_pegado(self):
+        """`airtableusercontent.com.evil.example` no es Airtable."""
+        with pytest.raises(HTTPException):
+            alm._destino_permitido(
+                _s(), "https://airtableusercontent.com.evil.example/x.jpg"
+            )
+
+    def test_rechaza_http_en_claro(self):
+        with pytest.raises(HTTPException):
+            alm._destino_permitido(_s(), "http://v5.airtableusercontent.com/a.jpg")
+
+    def test_rechaza_lo_que_no_es_una_url(self):
+        with pytest.raises(HTTPException):
+            alm._destino_permitido(_s(), "file:///etc/passwd")

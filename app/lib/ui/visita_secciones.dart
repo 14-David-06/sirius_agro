@@ -10,6 +10,7 @@ import '../core/geo.dart';
 import '../core/informe_tecnico.dart';
 import '../core/ubicacion.dart';
 import '../data/db/app_database.dart';
+import '../data/nombres_archivo.dart';
 import '../data/visita_repository.dart';
 import '../state/informe.dart';
 import '../state/informe_tecnico.dart';
@@ -983,7 +984,7 @@ class SeccionInformeTecnico extends ConsumerWidget {
             XFile.fromData(
               archivado.pdf,
               mimeType: 'application/pdf',
-              name: _nombreArchivo(informe),
+              name: await _nombreArchivo(ref, informe),
             ),
           ],
           subject: informe.titulo,
@@ -1021,7 +1022,7 @@ class SeccionInformeTecnico extends ConsumerWidget {
           .pdfArchivado(informe);
       await Printing.layoutPdf(
         onLayout: (_) async => archivado.pdf,
-        name: _nombreArchivo(informe),
+        name: await _nombreArchivo(ref, informe),
       );
     } catch (e) {
       mensajero.showSnackBar(
@@ -1030,11 +1031,25 @@ class SeccionInformeTecnico extends ConsumerWidget {
     }
   }
 
-  /// `informe-tecnico-01.pdf`: el mismo nombre que en el telefono y en el
-  /// bucket. Quien reciba el archivo por WhatsApp y quien lo busque en la nube
-  /// tienen que estar mirando el mismo documento.
-  String _nombreArchivo(Informe informe) =>
-      'informe-tecnico-${informe.version.toString().padLeft(2, '0')}.pdf';
+  /// `visita-don-pedro-2026-09-03-tecnico-v1.pdf`: con quien y cuando, no con
+  /// el codigo de la visita.
+  ///
+  /// En el telefono y en el bucket el archivo se sigue llamando
+  /// `informe-tecnico-01.pdf` —ese nombre es el contrato con el backend, que
+  /// renombra por categoria y version— pero el que sale por WhatsApp o a la
+  /// impresora lleva el nombre del productor: es el unico que se busca a mano.
+  /// La version se conserva en el sufijo porque dos informes tecnicos de la
+  /// misma visita el mismo dia son documentos distintos.
+  Future<String> _nombreArchivo(WidgetRef ref, Informe informe) async {
+    final ctx = await ref.read(repoProvider).contextoInforme(visitaId);
+    return nombreArchivoInforme(
+      productor: ctx['productor'] as String?,
+      finca: ctx['finca'] as String?,
+      fecha: DateTime.tryParse(ctx['fecha'] as String? ?? '') ??
+          informe.generadoEn,
+      sufijo: '-tecnico-v${informe.version}',
+    );
+  }
 }
 
 /// Las fotos de una visita traida de Airtable.
@@ -1051,7 +1066,12 @@ class SeccionFotosSoloLectura extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tema = Theme.of(context);
     final scheme = tema.colorScheme;
-    final fotos = ref.watch(evidenciasProvider(visitaId)).valueOrNull ?? [];
+    final todas = ref.watch(evidenciasProvider(visitaId)).valueOrNull ?? [];
+    // Las que de verdad se pueden abrir. Una evidencia sin archivo local
+    // conserva lo que se anoto de ella, pero no es una miniatura: ponerla en
+    // la grilla era el icono de imagen rota que no explicaba nada.
+    final fotos = [for (final f in todas) if (f.archivoPath.isNotEmpty) f];
+    final sinArchivo = todas.length - fotos.length;
 
     return Card(
       child: Padding(
@@ -1065,7 +1085,7 @@ class SeccionFotosSoloLectura extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    fotos.isEmpty
+                    todas.isEmpty
                         ? 'Esta visita no tiene fotos'
                         : '${fotos.length} foto(s) de la visita',
                     style: tema.textTheme.titleMedium,
@@ -1073,6 +1093,21 @@ class SeccionFotosSoloLectura extends ConsumerWidget {
                 ),
               ],
             ),
+            if (sinArchivo > 0) ...[
+              const SizedBox(height: 10),
+              Text(
+                sinArchivo == 1
+                    ? 'A 1 foto no se le pudo bajar la imagen. Vuelve a abrir '
+                        'la visita con señal para reintentarlo.'
+                    : 'A $sinArchivo fotos no se les pudo bajar la imagen. '
+                        'Vuelve a abrir la visita con señal para reintentarlo.',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.35,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             if (fotos.isNotEmpty) ...[
               const SizedBox(height: 14),
               GrillaFotos(fotos: fotos),

@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../core/informe_pdf.dart';
 import '../data/db/app_database.dart';
+import '../data/nombres_archivo.dart';
 import '../state/providers.dart';
 import 'complemento_page.dart';
 import 'marca.dart';
@@ -125,37 +126,40 @@ class InformePage extends ConsumerWidget {
 
   /// El PDF se arma en el telefono, no en el backend: el visitador lo entrega
   /// antes de irse de la finca, y ahi puede no haber señal.
-  Future<Uint8List> _pdf(WidgetRef ref) async {
+  Future<DatosInforme> _datos(WidgetRef ref) async {
     final ctx = await ref.read(repoProvider).contextoPdf(informe.visitaId);
-    return construirInformePdf(
-      DatosInforme(
-        titulo: informe.titulo,
-        contenido: informe.contenido,
-        generadoEn: informe.generadoEn,
-        productor: ctx['productor'] as String?,
-        finca: ctx['finca'] as String?,
-        vereda: ctx['vereda'] as String?,
-        municipio: ctx['municipio'] as String?,
-        visitador: ctx['visitador'] as String?,
-        fechaVisita: DateTime.tryParse(ctx['fecha'] as String? ?? ''),
-        fotos: (ctx['fotos'] as List).cast<String>(),
-      ),
+    return DatosInforme(
+      titulo: informe.titulo,
+      contenido: informe.contenido,
+      generadoEn: informe.generadoEn,
+      version: informe.version,
+      productor: ctx['productor'] as String?,
+      finca: ctx['finca'] as String?,
+      vereda: ctx['vereda'] as String?,
+      municipio: ctx['municipio'] as String?,
+      visitador: ctx['visitador'] as String?,
+      fechaVisita: DateTime.tryParse(ctx['fecha'] as String? ?? ''),
+      fotos: (ctx['fotos'] as List).cast<String>(),
     );
   }
 
-  String get _nombreArchivo {
-    final limpio = informe.titulo
-        .replaceAll(RegExp(r'[^A-Za-z0-9 -]'), '')
-        .replaceAll(' ', '-');
-    return '$limpio.pdf';
-  }
+  /// `visita-don-pedro-2026-09-03.pdf`. El nombre sale de los datos de la
+  /// visita y no del titulo del informe, que cuando falta la finca cae en el
+  /// codigo de la visita — y ese codigo, en la bandeja de WhatsApp del
+  /// productor, no identifica nada.
+  String _nombreArchivo(DatosInforme datos) => nombreArchivoInforme(
+        productor: datos.productor,
+        finca: datos.finca,
+        fecha: datos.fechaVisita ?? datos.generadoEn,
+      );
 
   Future<void> _entregar(BuildContext context, WidgetRef ref) async {
     final mensajero = ScaffoldMessenger.of(context);
     final caja = context.findRenderObject() as RenderBox?;
 
     try {
-      final bytes = await _pdf(ref);
+      final datos = await _datos(ref);
+      final bytes = await construirInformePdf(datos);
 
       // Se guarda en disco y se encola ANTES de compartir: si se hiciera
       // despues, un `share` que el visitador cancela o que tumba la app se
@@ -172,7 +176,7 @@ class InformePage extends ConsumerWidget {
             XFile.fromData(
               bytes,
               mimeType: 'application/pdf',
-              name: _nombreArchivo,
+              name: _nombreArchivo(datos),
             ),
           ],
           subject: informe.titulo,
@@ -217,7 +221,8 @@ class InformePage extends ConsumerWidget {
   Future<void> _imprimir(BuildContext context, WidgetRef ref) async {
     final mensajero = ScaffoldMessenger.of(context);
     try {
-      final bytes = await _pdf(ref);
+      final datos = await _datos(ref);
+      final bytes = await construirInformePdf(datos);
 
       // Tambien se archiva: imprimir es entregar. En el pueblo a veces lo que
       // hay es una impresora, y ese papel es igual de vinculante que el PDF
@@ -226,7 +231,7 @@ class InformePage extends ConsumerWidget {
 
       await Printing.layoutPdf(
         onLayout: (_) async => bytes,
-        name: _nombreArchivo,
+        name: _nombreArchivo(datos),
       );
     } catch (e) {
       mensajero.showSnackBar(

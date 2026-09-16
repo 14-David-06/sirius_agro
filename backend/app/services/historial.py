@@ -444,3 +444,99 @@ def _visita_de(
         if visita is not None:
             return visita
     return None
+
+
+# ------------------------------------------------ el indice de todas las visitas
+
+# Cuantas visitas trae el indice. Es una lista para mirar, no un archivo: mas
+# alla de esto nadie baja con el pulgar, y cada fila cuesta resolver sus
+# enlaces.
+INDICE_POR_DEFECTO = 200
+
+
+async def indice_de_visitas(
+    settings: Settings, limite: int = INDICE_POR_DEFECTO
+) -> list[VisitaRemota]:
+    """Todas las visitas de Airtable, SIN sus hijos.
+
+    Es lo que permite que la app muestre las visitas del equipo sin que nadie
+    toque un boton: la lista se refresca sola cuando hay senal.
+
+    Lo que NO trae es lo que pesa —hallazgos, fotos, audio, informes—, y esa es
+    justamente la razon por la que puede ser automatico. Doscientas visitas con
+    su ficha son unos pocos KB; las mismas con sus fotos son cientos de megas y
+    ningun telefono de campo las quiere.
+
+    El detalle de una visita se pide aparte, cuando alguien la abre.
+    """
+    if not settings.airtable_token or not settings.airtable_base_id:
+        raise HTTPException(status_code=500, detail="Falta configuracion de Airtable.")
+
+    async with httpx.AsyncClient(timeout=40) as cliente:
+        at = Airtable(settings, cliente)
+        registros = await at.listar(TBL_VISITAS, "TRUE()")
+        return await _fichas(at, registros, limite)
+
+
+async def visita_por_codigo(
+    settings: Settings, codigo_visita: str
+) -> VisitaRemota:
+    """Una visita con todo lo suyo, para cuando alguien la abre.
+
+    Separado del indice a proposito: asi lo pesado se baja cuando alguien lo va
+    a mirar, y no doscientas veces por si acaso.
+    """
+    if not settings.airtable_token or not settings.airtable_base_id:
+        raise HTTPException(status_code=500, detail="Falta configuracion de Airtable.")
+
+    async with httpx.AsyncClient(timeout=40) as cliente:
+        at = Airtable(settings, cliente)
+        registro = await at.buscar(
+            TBL_VISITAS,
+            f"{{Codigo de visita}} = '{_escapar(codigo_visita)}'",
+        )
+        if registro is None:
+            raise HTTPException(
+                status_code=404, detail="Esa visita no esta en Airtable."
+            )
+
+        fichas = await _fichas(at, [registro], 1)
+        if not fichas:
+            raise HTTPException(
+                status_code=404, detail="Esa visita no esta en Airtable."
+            )
+
+        await _colgar_hijos(at, {registro["id"]: fichas[0]})
+        return fichas[0]
+
+
+async def _fichas(
+    at: Airtable, registros: list[dict], limite: int
+) -> list[VisitaRemota]:
+    """Convierte registros de `Visitas` en fichas, con sus enlaces resueltos.
+
+    Los enlaces llegan como record id. Resolverlos de a uno serian cuatro
+    peticiones por visita; asi son cuatro en total para todo el indice.
+    """
+
+    def enlazados(campo: str) -> list[str]:
+        return [_primer_id(r.get("fields", {}).get(campo)) or "" for r in registros]
+
+    productores = await _nombres(at, TBL_PRODUCTORES, enlazados("Productor"))
+    visitadores = await _nombres(at, TBL_VISITADORES, enlazados("Visitador"))
+    fincas = await _nombres(at, TBL_FINCAS, enlazados("Finca"))
+    veredas = await _nombres(at, TBL_VEREDAS, enlazados("Vereda"))
+
+    fichas: list[VisitaRemota] = []
+    for r in registros:
+        productor = _texto(
+            productores.get(
+                _primer_id(r.get("fields", {}).get("Productor")) or "", {}
+            ).get("Nombre completo")
+        )
+        ficha = _a_visita(r, visitadores, fincas, veredas, productor)
+        if ficha is not None:
+            fichas.append(ficha)
+
+    fichas.sort(key=_orden, reverse=True)
+    return fichas[:limite]

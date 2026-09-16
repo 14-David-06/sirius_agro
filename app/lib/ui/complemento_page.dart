@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api_client.dart';
+import '../core/iconos_modulo.dart';
 import '../state/complemento.dart';
+import '../state/nota_voz.dart';
 import '../state/providers.dart';
 import 'marca.dart';
 import 'theme.dart';
@@ -43,6 +45,24 @@ class _ComplementoPageState extends ConsumerState<ComplementoPage> {
     ref.read(complementoProvider(widget.visitaId).notifier).enviar(texto);
   }
 
+  /// Cierra la nota de voz y deja lo transcrito EN EL CAMPO, sin enviarlo.
+  ///
+  /// El visitador lee antes de mandar. Lo que sale de este chat entra derecho
+  /// al registro de la visita, y un numero mal transcrito quedaria como dato
+  /// sin que nadie lo haya visto.
+  Future<void> _cerrarNota() async {
+    final texto = await ref
+        .read(notaVozProvider(widget.visitaId).notifier)
+        .detenerYTranscribir();
+    if (texto == null || !mounted) return;
+
+    final previo = _controlador.text.trim();
+    _controlador.text = previo.isEmpty ? texto : '$previo $texto';
+    _controlador.selection = TextSelection.collapsed(
+      offset: _controlador.text.length,
+    );
+  }
+
   void _alFinal() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scroll.hasClients) return;
@@ -58,6 +78,8 @@ class _ComplementoPageState extends ConsumerState<ComplementoPage> {
   Widget build(BuildContext context) {
     final estado = ref.watch(complementoProvider(widget.visitaId));
     final notifier = ref.read(complementoProvider(widget.visitaId).notifier);
+    final nota = ref.watch(notaVozProvider(widget.visitaId));
+    final notaCtrl = ref.read(notaVozProvider(widget.visitaId).notifier);
 
     ref.listen(complementoProvider(widget.visitaId), (_, _) => _alFinal());
 
@@ -71,6 +93,16 @@ class _ComplementoPageState extends ConsumerState<ComplementoPage> {
               icono: Icons.cloud_off,
               tono: TonoPildora.error,
               onCerrar: notifier.limpiarError,
+            ),
+          // La de la nota va aparte de la del chat: que no se pueda transcribir
+          // por falta de señal no dice nada del turno anterior, y pisarlas
+          // haria desaparecer el error que si importa.
+          if (nota.error != null)
+            Banda(
+              texto: nota.error!,
+              icono: Icons.mic_off,
+              tono: TonoPildora.error,
+              onCerrar: notaCtrl.limpiarError,
             ),
           Expanded(
             child: estado.mensajes.isEmpty
@@ -107,6 +139,10 @@ class _ComplementoPageState extends ConsumerState<ComplementoPage> {
             controlador: _controlador,
             habilitado: !estado.esperando,
             onEnviar: _enviar,
+            nota: nota,
+            onDictar: notaCtrl.iniciar,
+            onListo: _cerrarNota,
+            onDescartar: notaCtrl.descartar,
           ),
         ],
       ),
@@ -142,8 +178,9 @@ class _Bienvenida extends ConsumerWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          'Escribi lo que falto de la conversacion y queda registrado en la '
-          'visita. Tambien podes preguntar por lo que ya se registro.',
+          'Escribi —o dicta con el microfono— lo que falto de la '
+          'conversacion y queda registrado en la visita. Tambien podes '
+          'preguntar por lo que ya se registro.',
           style: tema.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
@@ -196,15 +233,15 @@ class _Bienvenida extends ConsumerWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // El icono del modulo en vez de una vineta: son seis
+                  // preguntas sueltas de temas distintos, y el dibujo dice de
+                  // cual es cada una sin tener que escribir el modulo delante.
                   Padding(
-                    padding: const EdgeInsets.only(top: 7, right: 9),
-                    child: Container(
-                      width: 4,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: scheme.primary,
-                        shape: BoxShape.circle,
-                      ),
+                    padding: const EdgeInsets.only(top: 2, right: 9),
+                    child: Icon(
+                      iconoDeModulo(c.modulo),
+                      size: 16,
+                      color: scheme.primary,
                     ),
                   ),
                   Expanded(
@@ -334,11 +371,20 @@ class _Redactor extends StatelessWidget {
     required this.controlador,
     required this.habilitado,
     required this.onEnviar,
+    required this.nota,
+    required this.onDictar,
+    required this.onListo,
+    required this.onDescartar,
   });
 
   final TextEditingController controlador;
   final bool habilitado;
   final VoidCallback onEnviar;
+
+  final NotaVozState nota;
+  final VoidCallback onDictar;
+  final VoidCallback onListo;
+  final VoidCallback onDescartar;
 
   @override
   Widget build(BuildContext context) {
@@ -348,36 +394,171 @@ class _Redactor extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controlador,
-                enabled: habilitado,
-                minLines: 1,
-                maxLines: 4,
-                textCapitalization: TextCapitalization.sentences,
-                onSubmitted: (_) => onEnviar(),
-                decoration: const InputDecoration(
-                  hintText: 'Lo que falto de la visita...',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
+        // Mientras se dicta, la barra REEMPLAZA al campo de escribir. Con el
+        // telefono en la mano y el sol encima, un boton rojo grande que dice
+        // «listo» se acierta; un icono mas en una fila de tres, no.
+        child: nota.grabando
+            ? _BarraNota(
+                segundos: nota.segundos,
+                onListo: onListo,
+                onDescartar: onDescartar,
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: controlador,
+                      enabled: habilitado && !nota.transcribiendo,
+                      minLines: 1,
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                      onSubmitted: (_) => onEnviar(),
+                      decoration: InputDecoration(
+                        hintText: nota.transcribiendo
+                            ? 'Pasando la nota a texto...'
+                            : 'Lo que falto de la visita...',
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  _BotonDictar(
+                    transcribiendo: nota.transcribiendo,
+                    onDictar: habilitado && !nota.transcribiendo
+                        ? onDictar
+                        : null,
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton.filled(
+                    onPressed:
+                        habilitado && !nota.transcribiendo ? onEnviar : null,
+                    icon: const Icon(Icons.send),
+                    style: IconButton.styleFrom(
+                      backgroundColor: scheme.primary,
+                      minimumSize: const Size(48, 48),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filled(
-              onPressed: habilitado ? onEnviar : null,
-              icon: const Icon(Icons.send),
-              style: IconButton.styleFrom(
-                backgroundColor: scheme.primary,
-                minimumSize: const Size(48, 48),
-              ),
-            ),
-          ],
-        ),
       ),
+    );
+  }
+}
+
+class _BotonDictar extends StatelessWidget {
+  const _BotonDictar({required this.transcribiendo, required this.onDictar});
+
+  final bool transcribiendo;
+  final VoidCallback? onDictar;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    if (transcribiendo) {
+      return const SizedBox(
+        width: 48,
+        height: 48,
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    return IconButton.filledTonal(
+      onPressed: onDictar,
+      icon: const Icon(Icons.mic),
+      tooltip: 'Dictar',
+      style: IconButton.styleFrom(
+        backgroundColor: scheme.surfaceContainerHighest,
+        minimumSize: const Size(48, 48),
+      ),
+    );
+  }
+}
+
+/// Lo que se ve mientras se dicta: que se esta grabando, cuanto lleva, y las
+/// dos salidas.
+class _BarraNota extends StatelessWidget {
+  const _BarraNota({
+    required this.segundos,
+    required this.onListo,
+    required this.onDescartar,
+  });
+
+  final int segundos;
+  final VoidCallback onListo;
+  final VoidCallback onDescartar;
+
+  String get _reloj {
+    final m = (segundos ~/ 60).toString();
+    final s = (segundos % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+
+    return Row(
+      children: [
+        IconButton(
+          onPressed: onDescartar,
+          icon: const Icon(Icons.delete_outline),
+          tooltip: 'Descartar la nota',
+          color: scheme.onSurfaceVariant,
+        ),
+        Expanded(
+          child: Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.mic, size: 18, color: scheme.error),
+                const SizedBox(width: 10),
+                Text(
+                  _reloj,
+                  style: tema.textTheme.titleSmall?.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Grabando la nota',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.filled(
+          onPressed: onListo,
+          icon: const Icon(Icons.check),
+          tooltip: 'Listo',
+          style: IconButton.styleFrom(
+            backgroundColor: scheme.primary,
+            minimumSize: const Size(48, 48),
+          ),
+        ),
+      ],
     );
   }
 }

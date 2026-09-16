@@ -5,7 +5,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'fuentes_pdf.dart';
 import 'geo.dart' as geo;
+import 'iconos_modulo.dart';
 import 'informe_pdf.dart' show PaletaInforme;
 import 'informe_tecnico.dart';
 
@@ -41,6 +43,13 @@ class PaletaTecnica {
   static const alertaFondo = PdfColor.fromInt(0xFFF7EAE7);
 }
 
+/// El margen del documento, en puntos: 2,54 cm arriba y abajo, 1,91 cm a los
+/// lados. Es la caja de la papeleria de Sirius — la pulgada completa arriba
+/// para el membrete, y los lados un poco mas angostos para que las tablas no
+/// se aprieten.
+const _margenVertical = 72.0; // 2,54 cm
+const _margenLateral = 54.0; // 1,91 cm
+
 PdfColor _colorCerteza(String certeza) => switch (certeza) {
       'Confirmado' => PaletaTecnica.confirmado,
       'Estimado' => PaletaTecnica.estimado,
@@ -59,18 +68,18 @@ Future<Uint8List> construirInformeTecnicoPdf(DatosInformeTecnico datos) async {
     keywords: datos.codigoVisita,
   );
 
-  final logo = pw.MemoryImage(
-    (await rootBundle.load('assets/marca/sirius.png')).buffer.asUint8List(),
-  );
+  // Vectorial, igual que el informe del productor: este documento se imprime
+  // para archivarlo y se fotocopia, y el logo tiene que aguantar las dos.
+  final logoBlanco =
+      await rootBundle.loadString('assets/marca/sirius_mono_blanco.svg');
+  final logoColor = await rootBundle.loadString('assets/marca/sirius.svg');
 
-  // Roboto empaquetada, no las fuentes internas del generador: esas no cubren
-  // Unicode y este documento esta lleno de grados, comillas de minuto y «±».
-  // Un informe que muestra coordenadas con los simbolos rotos no sirve para
-  // compararlo con un plano.
-  final fuente =
-      pw.Font.ttf(await rootBundle.load('assets/fuentes/Roboto-Regular.ttf'));
-  final fuenteBold =
-      pw.Font.ttf(await rootBundle.load('assets/fuentes/Roboto-Bold.ttf'));
+  // Museo Slab, la corporativa de Sirius, y no las fuentes internas del
+  // generador: esas no cubren Unicode y este documento esta lleno de grados,
+  // comillas de minuto y «±». Un informe que muestra coordenadas con los
+  // simbolos rotos no sirve para compararlo con un plano.
+  final fuentes = await FuentesInforme.cargar();
+  final tema = await fuentes.tema();
 
   // Las fotos que ya no estan en el telefono se omiten sin ruido, igual que en
   // el informe del productor: una foto borrada no puede impedir que se archive
@@ -88,13 +97,18 @@ Future<Uint8List> construirInformeTecnicoPdf(DatosInformeTecnico datos) async {
   doc.addPage(
     pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(18, 20, 18, 26),
-      theme: pw.ThemeData.withFont(base: fuente, bold: fuenteBold),
+      // La misma caja del informe del productor: los dos documentos de la
+      // misma visita se archivan juntos y tienen que verse de la misma casa.
+      margin: const pw.EdgeInsets.symmetric(
+        horizontal: _margenLateral,
+        vertical: _margenVertical,
+      ),
+      theme: tema,
       header: (ctx) =>
-          ctx.pageNumber == 1 ? pw.SizedBox() : _encabezado(logo, datos),
+          ctx.pageNumber == 1 ? pw.SizedBox() : _encabezado(logoColor, datos),
       footer: (ctx) => _pie(ctx, datos),
       build: (ctx) => [
-        _membrete(logo, datos, f),
+        _membrete(logoBlanco, datos, f),
         if (datos.consentimiento.marcadaParaEliminacion) ...[
           pw.SizedBox(height: 12),
           _avisoRevocada(),
@@ -123,7 +137,7 @@ Future<Uint8List> construirInformeTecnicoPdf(DatosInformeTecnico datos) async {
 // --- Membrete, encabezado y pie ---
 
 pw.Widget _membrete(
-  pw.MemoryImage logo,
+  String logo,
   DatosInformeTecnico datos,
   FormatoInforme f,
 ) {
@@ -132,12 +146,12 @@ pw.Widget _membrete(
       pw.Container(
         width: double.infinity,
         padding: const pw.EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: const pw.BoxDecoration(color: PaletaInforme.tinta),
+        decoration: const pw.BoxDecoration(color: PaletaInforme.membrete),
         child: pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
-            pw.Image(logo, height: 40),
+            pw.SvgImage(svg: logo, height: 36),
             pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.end,
               children: [
@@ -146,16 +160,16 @@ pw.Widget _membrete(
                   style: pw.TextStyle(
                     fontSize: 8,
                     fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.white,
+                    color: PaletaInforme.sobreMembrete,
                     letterSpacing: 1.4,
                   ),
                 ),
                 pw.SizedBox(height: 2),
                 pw.Text(
-                  '$codigoFormatoTecnico · versión ${datos.version}',
+                  'Versión ${datos.version}  ·  ${f.fechaLarga(datos.generadoEn)}',
                   style: const pw.TextStyle(
                     fontSize: 8,
-                    color: PaletaInforme.franja,
+                    color: PaletaInforme.sobreMembrete,
                   ),
                 ),
               ],
@@ -198,7 +212,7 @@ pw.Widget _membrete(
 /// alguien la saca de la carpeta: de quien es el documento, de que finca y de
 /// que visita. El codigo de visita es lo que permite volver al audio, a las
 /// fotos y al registro de Airtable.
-pw.Widget _encabezado(pw.MemoryImage logo, DatosInformeTecnico datos) {
+pw.Widget _encabezado(String logo, DatosInformeTecnico datos) {
   return pw.Container(
     margin: const pw.EdgeInsets.only(bottom: 12),
     padding: const pw.EdgeInsets.only(bottom: 5),
@@ -211,7 +225,7 @@ pw.Widget _encabezado(pw.MemoryImage logo, DatosInformeTecnico datos) {
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
-        pw.Image(logo, height: 18),
+        pw.SvgImage(svg: logo, height: 16),
         pw.Text(
           'Informe técnico  ·  '
           '${datos.finca?.nombre ?? datos.productor?.nombre ?? 'Sin registrar'}'
@@ -227,6 +241,7 @@ pw.Widget _encabezado(pw.MemoryImage logo, DatosInformeTecnico datos) {
 }
 
 pw.Widget _pie(pw.Context ctx, DatosInformeTecnico datos) {
+  final f = FormatoInforme();
   return pw.Container(
     margin: const pw.EdgeInsets.only(top: 8),
     padding: const pw.EdgeInsets.only(top: 5),
@@ -247,7 +262,7 @@ pw.Widget _pie(pw.Context ctx, DatosInformeTecnico datos) {
           style: const pw.TextStyle(fontSize: 7.5, color: PaletaInforme.seccion),
         ),
         pw.Text(
-          codigoFormatoTecnico,
+          'Versión ${datos.version}  ·  ${f.fechaLarga(datos.generadoEn)}',
           style: const pw.TextStyle(fontSize: 7.5, color: PaletaInforme.seccion),
         ),
       ],
@@ -634,7 +649,7 @@ List<pw.Widget> _seccionTrazados(DatosInformeTecnico d) {
         'Captura',
         'Precisión',
       ],
-      anchos: [20, 16, 12, 12, 12, 6, 10, 12],
+      anchos: [19, 15, 11, 11, 11, 6, 15, 12],
       filas: [
         for (final t in d.trazados)
           [
@@ -913,20 +928,33 @@ List<pw.Widget> _seccionDatos(DatosInformeTecnico d) {
       ..add(
         pw.Padding(
           padding: const pw.EdgeInsets.only(bottom: 5),
-          child: pw.Text(
-            entrada.key,
-            style: pw.TextStyle(
-              fontSize: 9.5,
-              fontWeight: pw.FontWeight.bold,
-              color: PaletaInforme.tinta,
-            ),
+          // El mismo icono que la app dibuja en pantalla para ese modulo. No
+          // es adorno: quien lee el informe con el telefono al lado tiene que
+          // ver el mismo simbolo en los dos sitios para «Suelos».
+          child: pw.Row(
+            children: [
+              pw.Icon(
+                pw.IconData(iconoModuloPdf(entrada.key)),
+                size: 10,
+                color: PaletaInforme.tinta,
+              ),
+              pw.SizedBox(width: 4),
+              pw.Text(
+                entrada.key,
+                style: pw.TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PaletaInforme.tinta,
+                ),
+              ),
+            ],
           ),
         ),
       )
       ..add(
         _tabla(
           encabezados: ['Campo', 'Valor', 'Certeza', 'Fuente', 'Estado', 'Min'],
-          anchos: [26, 30, 12, 12, 14, 6],
+          anchos: [25, 29, 12, 11, 14, 9],
           columnaColoreada: 2,
           colores: [for (final h in entrada.value) _colorCerteza(h.certeza)],
           filas: [
@@ -1093,7 +1121,7 @@ List<pw.Widget> _seccionEvidencias(
     pw.SizedBox(height: 8),
     _tabla(
       encabezados: ['#', 'Archivo', 'Tomada', 'Coordenada', 'Min', 'Qué es'],
-      anchos: [4, 18, 14, 26, 6, 32],
+      anchos: [5, 17, 14, 25, 9, 30],
       filas: [
         for (var i = 0; i < d.evidencias.length; i++)
           [
@@ -1282,7 +1310,7 @@ List<pw.Widget> _seccionTrazabilidad(DatosInformeTecnico d, FormatoInforme f) {
     pw.SizedBox(height: 8),
     _ficha([
       ['Generado el', '${f.fechaLarga(d.generadoEn)}, ${f.hora(d.generadoEn)}'],
-      ['Formato', codigoFormatoTecnico],
+
       ['Versión del informe', '${d.version}'],
       ['Código de visita', d.codigoVisita],
       ['Origen de los datos', 'Base local de la app'],
@@ -1419,7 +1447,7 @@ List<pw.Widget> _anexoVertices(DatosInformeTecnico d, FormatoInforme f) {
             'Puesto',
             'Nota',
           ],
-          anchos: [5, 16, 16, 10, 11, 12, 10, 20],
+          anchos: [5, 16, 16, 10, 12, 11, 11, 19],
           filas: [
             for (final p in t.puntos)
               [

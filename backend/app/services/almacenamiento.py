@@ -18,9 +18,12 @@ respalda lo acordado es el que el productor tiene en la mano.
 """
 
 import mimetypes
+from collections.abc import AsyncIterator
 from functools import lru_cache
+from urllib.parse import urlparse
 
 import boto3
+import httpx
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import HTTPException
@@ -330,3 +333,97 @@ def borrar_visita(settings: Settings, codigo_visita: str) -> int:
         ) from exc
 
     return borrados
+
+
+# Los unicos destinos de los que el backend acepta traer un archivo ajeno.
+#
+# La lista no es burocracia: sin ella `?url=` convierte al backend en un
+# mensajero que va a donde le digan, incluida la red interna del host. Airtable
+# rota el dominio de sus adjuntos por version (v5, v6...), asi que se compara
+# por sufijo de dominio y no por igualdad.
+_DOMINIOS_DE_ADJUNTOS = ("airtableusercontent.com", "airtable.com")
+
+
+def _destino_permitido(settings: Settings, url: str) -> str:
+    """El host de [url] si se le puede pedir un archivo, o revienta con 400."""
+    partes = urlparse(url)
+    if partes.scheme != "https" or not partes.hostname:
+        raise HTTPException(
+            status_code=400,
+            detail="Solo se bajan archivos por https con dominio explicito.",
+        )
+
+    host = partes.hostname.lower()
+
+    # El host del bucket se deriva de `url_publica` y no se arma aparte: es la
+    # misma funcion que decide donde quedan los archivos al subirlos, asi que
+    # no pueden desalinearse. Configurar un CDN nuevo y que el proxy siga
+    # aceptando el dominio viejo seria justo el fallo que esto evita.
+    propios = {h for h in (urlparse(url_publica(settings, "")).hostname,) if h}
+    propios |= {
+        h
+        for h in (
+            urlparse(settings.bucket_public_url).hostname,
+            urlparse(settings.bucket_endpoint).hostname,
+        )
+        if h
+    }
+
+    permitido = host in propios or any(
+        host == d or host.endswith(f".{d}") for d in _DOMINIOS_DE_ADJUNTOS
+    )
+    if not permitido:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se bajan archivos de {host}.",
+        )
+    return host
+
+
+async def abrir_remoto(settings: Settings, url: str) -> tuple[AsyncIterator[bytes], str, int | None]:
+    """Abre el archivo de [url] y devuelve sus bytes, su tipo y su tamano.
+
+    Existe porque el telefono no siempre alcanza a Airtable ni al bucket: en el
+    campo va por la red de la finca, y conectado por USB no tiene mas salida
+    que este backend. Bajar por el mismo canal que el resto de la API es lo que
+    hace que ver una foto del historial funcione siempre que funcione la app.
+    """
+    _destino_permitido(settings, url)
+
+    cliente = httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0))
+    try:
+        peticion = cliente.build_request("GET", url)
+        respuesta = await cliente.send(peticion, stream=True)
+    except httpx.HTTPError as exc:
+        await cliente.aclose()
+        raise HTTPException(
+            status_code=502, detail=f"No se pudo bajar el archivo: {exc}"
+        ) from exc
+
+    if respuesta.status_code >= 400:
+        estado = respuesta.status_code
+        await respuesta.aclose()
+        await cliente.aclose()
+        # 404 en un adjunto de Airtable casi siempre es una URL vencida: las
+        # rota cada pocas horas y la que guardo el telefono ya no sirve. Hay
+        # que volver a pedir el detalle de la visita, no reintentar esta.
+        raise HTTPException(
+            status_code=502 if estado >= 500 else 404,
+            detail=(
+                f"El origen respondio {estado}. Si es un adjunto de Airtable, "
+                "el enlace ya vencio: vuelve a pedir el detalle de la visita."
+            ),
+        )
+
+    tipo = respuesta.headers.get("content-type", "application/octet-stream")
+    largo = respuesta.headers.get("content-length")
+
+    async def bytes_del_origen() -> AsyncIterator[bytes]:
+        try:
+            async for trozo in respuesta.aiter_bytes():
+                yield trozo
+        finally:
+            await respuesta.aclose()
+            await cliente.aclose()
+
+    return bytes_del_origen(), tipo, int(largo) if largo and largo.isdigit() else None

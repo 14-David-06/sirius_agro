@@ -144,8 +144,24 @@ curl -X POST https://<proyecto>.vercel.app/v1/auth/login \
 ```bash
 cd app
 flutter build apk --release --flavor prod \
-  --dart-define=API_BASE_URL=https://<proyecto>.vercel.app \
+  --dart-define=API_BASE_URL=https://sirius-agro.vercel.app \
   --dart-define=API_KEY=<APP_API_KEY>
+```
+
+`<APP_API_KEY>` es el valor de `APP_API_KEY` en `backend/.env`, el mismo que
+tiene el proyecto en Vercel.
+
+**Los dos `--dart-define` no son opcionales, y olvidarlos no falla
+ruidosamente.** Un `flutter build apk --flavor prod --release` a secas compila
+perfecto y produce un APK que apunta a `http://localhost:8000` sin llave: se
+instala, abre, y no conecta con nada por mucho que el backend este bien
+desplegado. Ya paso una vez y costo dos instalaciones averiguarlo.
+
+Para comprobarlo **antes** de instalar, la URL queda dentro del binario:
+
+```bash
+unzip -p build/app/outputs/flutter-apk/app-prod-release.apk \
+  lib/arm64-v8a/libapp.so | strings | grep -E 'sirius-agro|localhost:8000'
 ```
 
 `--flavor prod` no es opcional: sin el, Gradle no sabe cual de los dos canales

@@ -68,6 +68,67 @@ class HistorialController extends StateNotifier<HistorialState> {
     }
   }
 
+  /// Refresca solo el INDICE de visitas de Airtable, sin archivos.
+  ///
+  /// Corre sola cuando el visitador abre la lista y hay senal. Puede ser
+  /// automatica justamente porque no baja nada pesado: trae fichas, y los
+  /// hallazgos, las fotos y el audio se bajan cuando alguien abre una visita.
+  ///
+  /// Falla en silencio, como el refresco del directorio. El visitador no puede
+  /// hacer nada al respecto y la lista que ya tiene en el telefono sigue
+  /// sirviendo: un error rojo cada vez que se entra a la pantalla principal
+  /// sin senal seria ruido, no informacion.
+  Future<int> refrescarIndice() async {
+    if (state.trabajando) return 0;
+
+    try {
+      final remotas = await _ref.read(apiProvider).indiceDeVisitas();
+      return await _ref.read(repoProvider).importarIndiceVisitas(remotas);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Baja el detalle de un espejo al que solo se le tiene la ficha.
+  ///
+  /// Se llama al abrir la visita. Si ya tiene detalle no hace nada, y si la
+  /// visita es propia tampoco: ahi no hay nada que traer de Airtable.
+  Future<bool> asegurarDetalle(String visitaId) async {
+    final repo = _ref.read(repoProvider);
+    final falta = await repo.faltaElDetalle(visitaId);
+    if (falta != true) return false;
+
+    state = const HistorialState(
+      trabajando: true,
+      paso: 'Bajando la visita completa...',
+    );
+
+    final api = _ref.read(apiProvider);
+    try {
+      final detalle = await api.detalleDeVisita(visitaId);
+      final resultado = await repo.importarHistorial(
+        {
+          'visitas': [detalle],
+        },
+        bajar: api.descargarArchivo,
+        onPaso: (paso) {
+          if (mounted) {
+            state = HistorialState(trabajando: true, paso: paso);
+          }
+        },
+      );
+      await repo.marcarDetalleDescargado(visitaId);
+      state = HistorialState(ultimo: resultado);
+      return true;
+    } on ApiException catch (e) {
+      state = HistorialState(error: e.message);
+      return false;
+    } catch (e) {
+      state = HistorialState(error: '$e');
+      return false;
+    }
+  }
+
   void limpiar() => state = const HistorialState();
 }
 

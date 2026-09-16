@@ -269,11 +269,31 @@ class VisitaRepository {
     double? precisionGps,
   }) {
     return _db.transaction(() async {
-      final existente = productorLocalId == null
+      var existente = productorLocalId == null
           ? null
           : await (_db.select(_db.productores)
                 ..where((p) => p.id.equals(productorLocalId)))
               .getSingleOrNull();
+
+      // Si el visitador tecleo el nombre sin elegir del directorio, se busca
+      // igual entre los que ya estan en el telefono.
+      //
+      // Sin esto se perdia la trazabilidad de la forma mas tonta: dos visitas
+      // a don Pedro escritas a mano quedaban colgadas de DOS don Pedro, cada
+      // uno con su finca y ninguno con la historia del otro. El directorio
+      // existe para evitar eso, pero solo funcionaba si el visitador se
+      // acordaba de tocar la sugerencia.
+      //
+      // Solo cuando hay UNA coincidencia. Con dos homonimos no se adivina:
+      // robarle la ficha a otra persona es peor que crear una de mas, y esa
+      // es la misma regla que sigue el directorio al mezclar.
+      if (existente == null) {
+        final buscado = normalizarBusqueda(nombreProductor);
+        final candidatos = (await _db.select(_db.productores).get())
+            .where((p) => normalizarBusqueda(p.nombreCompleto) == buscado)
+            .toList();
+        if (candidatos.length == 1) existente = candidatos.first;
+      }
 
       final productorId = existente?.id ?? _uuid.v4();
       if (existente == null) {
@@ -287,17 +307,33 @@ class VisitaRepository {
 
       String? fincaId;
       if (nombreFinca != null && nombreFinca.trim().isNotEmpty) {
-        fincaId = _uuid.v4();
-        await _db.into(_db.fincas).insert(
-              FincasCompanion.insert(
-                id: fincaId,
-                productorLocalId: productorId,
-                nombre: nombreFinca.trim(),
-                veredaLocalId: Value(veredaLocalId),
+        // La finca tambien se reusa: la segunda visita a «La Esperanza» de la
+        // misma persona es a la misma finca, y duplicarla parte en dos la
+        // historia del predio.
+        fincaId = await _fincaEspejo(
+          nombreFinca.trim(),
+          productorId,
+          veredaLocalId,
+        );
+
+        // Si ya existia, se le completan las coordenadas que traiga esta
+        // visita y que a la finca le falten. No se pisan las que ya tiene: la
+        // primera medida es tan valida como esta, y el GPS de hoy puede estar
+        // peor.
+        if (fincaId != null && (latitud != null || longitud != null)) {
+          final finca = await (_db.select(_db.fincas)
+                ..where((f) => f.id.equals(fincaId!)))
+              .getSingle();
+          if (finca.latitud == null && finca.longitud == null) {
+            await (_db.update(_db.fincas)..where((f) => f.id.equals(fincaId!)))
+                .write(
+              FincasCompanion(
                 latitud: Value(latitud),
                 longitud: Value(longitud),
               ),
             );
+          }
+        }
       }
 
       return crearVisita(
@@ -1825,6 +1861,10 @@ class VisitaRepository {
           sincronizada: const Value(true),
           soloLectura: const Value(true),
           descargadaEn: Value(DateTime.now()),
+          // Este camino SI baja los hijos y los archivos, asi que la visita
+          // queda completa. El indice automatico, que solo trae la ficha, deja
+          // `detalleEn` en null.
+          detalleEn: Value(DateTime.now()),
         );
 
         if (local == null) {
@@ -1907,6 +1947,98 @@ class VisitaRepository {
     );
   }
 
+  /// Mete en la base el INDICE de visitas de Airtable: solo las fichas.
+  ///
+  /// Es lo que hace que las visitas del equipo aparezcan en la lista sin que
+  /// nadie toque un boton. Puede correr sola justamente porque no baja nada
+  /// pesado: doscientas fichas son unos KB, y las mismas con sus fotos son
+  /// cientos de megas que ningun telefono de campo quiere.
+  ///
+  /// Rige la misma regla que el historial completo, y por la misma razon: una
+  /// visita que ya esta en este telefono y NO es un espejo se salta entera. Un
+  /// refresco automatico que pudiera pisar trabajo de campo seria mucho peor
+  /// que uno manual.
+  ///
+  /// Tampoco toca el detalle de los espejos que ya se bajaron: `detalleEn` y
+  /// los hijos se dejan como estan. Refrescar la ficha no puede borrar las
+  /// fotos que alguien bajo hace un rato.
+  Future<int> importarIndiceVisitas(List<Map<String, dynamic>> remotas) async {
+    if (remotas.isEmpty) return 0;
+
+    var tocadas = 0;
+
+    await _db.transaction(() async {
+      for (final v in remotas) {
+        final codigo = _texto(v['codigo_visita']);
+        if (codigo == null) continue;
+
+        final local = await (_db.select(_db.visitas)
+              ..where((x) => x.id.equals(codigo)))
+            .getSingleOrNull();
+
+        if (local != null && !local.soloLectura) continue;
+
+        final productorId = await _productorEspejo(_texto(v['productor']));
+        final veredaId = await _veredaEspejo(_texto(v['vereda']));
+        final fincaId = await _fincaEspejo(
+          _texto(v['finca']),
+          productorId,
+          veredaId,
+        );
+
+        final ficha = VisitasCompanion(
+          id: Value(codigo),
+          inicio: Value(_fecha(v['inicio']) ?? DateTime.now()),
+          fin: Value(_fecha(v['fin'])),
+          productorLocalId: Value(productorId),
+          fincaLocalId: Value(fincaId),
+          veredaLocalId: Value(veredaId),
+          tipoVisita: Value(_texto(v['tipo_visita'])),
+          estado: Value(_texto(v['estado']) ?? 'Cerrada'),
+          latitud: Value(_decimal(v['latitud'])),
+          longitud: Value(_decimal(v['longitud'])),
+          completitudPct: Value(_entero(v['completitud_pct']) ?? 0),
+          consienteAudio: Value(v['consiente_audio'] == true),
+          consienteFotos: Value(v['consiente_fotos'] == true),
+          consienteUsoDatos: Value(v['consiente_uso_datos'] == true),
+          marcadaParaEliminacion: Value(v['marcada_para_eliminacion'] == true),
+          resumen: Value(_texto(v['resumen'])),
+          temasPendientes: Value(_texto(v['temas_pendientes'])),
+          sincronizada: const Value(true),
+          soloLectura: const Value(true),
+          descargadaEn: Value(DateTime.now()),
+        );
+
+        if (local == null) {
+          await _db.into(_db.visitas).insert(ficha);
+        } else {
+          await (_db.update(_db.visitas)..where((x) => x.id.equals(codigo)))
+              .write(ficha);
+        }
+        tocadas++;
+      }
+    });
+
+    return tocadas;
+  }
+
+  /// Si a este espejo le falta bajar el detalle.
+  ///
+  /// Null significa que la visita no es un espejo —es propia— y entonces no
+  /// hay nada que bajar.
+  Future<bool?> faltaElDetalle(String visitaId) async {
+    final v = await (_db.select(_db.visitas)..where((x) => x.id.equals(visitaId)))
+        .getSingleOrNull();
+    if (v == null || !v.soloLectura) return null;
+    return v.detalleEn == null;
+  }
+
+  /// Marca que a este espejo ya se le bajo todo.
+  Future<void> marcarDetalleDescargado(String visitaId) =>
+      (_db.update(_db.visitas)..where((v) => v.id.equals(visitaId))).write(
+        VisitasCompanion(detalleEn: Value(DateTime.now())),
+      );
+
   /// Borra los hijos de un espejo antes de volver a escribirlo.
   ///
   /// Solo se llama sobre visitas `soloLectura`: si esto corriera sobre una
@@ -1953,14 +2085,17 @@ class VisitaRepository {
         'foto-${orden.toString().padLeft(2, '0')}.jpg',
       );
 
+      var llego = false;
       if (url != null && bajar != null) {
         onPaso?.call('Bajando la foto $orden...');
         final bytes = await bajar(url);
         if (bytes != null) {
           await File(ruta).writeAsBytes(bytes, flush: true);
           bajadas++;
+          llego = true;
         }
       }
+
 
       // La descripcion vuelve con el `[MM:SS]` que le puso la sincronizacion
       // al escribirla, porque `Evidencias` no tiene columna para el segundo
@@ -1975,7 +2110,12 @@ class VisitaRepository {
             EvidenciasCompanion.insert(
               id: _uuid.v4(),
               visitaId: visitaId,
-              archivoPath: ruta,
+              // Vacia si la imagen no bajo. La fila se queda porque lleva lo
+              // que se anoto de la foto —la descripcion, el segundo del audio,
+              // el OCR—, que sirve sin el archivo; lo que no puede quedar es
+              // una ruta donde no hay nada, que era una miniatura rota sin
+              // explicacion.
+              archivoPath: llego ? ruta : '',
               tomadaEn: _fecha(e['tomada_en']) ?? DateTime.now(),
               tipo: Value(_texto(e['tipo'])),
               latitud: Value(_decimal(e['latitud'])),
@@ -2030,12 +2170,14 @@ class VisitaRepository {
       );
       final url = _texto(g['url']);
 
+      var llego = false;
       if (url != null && bajar != null) {
         onPaso?.call('Bajando el audio del tramo $orden...');
         final bytes = await bajar(url);
         if (bytes != null) {
           await File(ruta).writeAsBytes(bytes, flush: true);
           bajados++;
+          llego = true;
         }
       }
 
@@ -2047,7 +2189,11 @@ class VisitaRepository {
               id: _uuid.v4(),
               visitaId: visitaId,
               orden: orden,
-              archivoPath: ruta,
+              // Vacia si el audio no bajo. La fila se queda porque lleva la
+              // transcripcion, que es util sin el archivo; lo que no puede
+              // quedar es una ruta donde no hay nada, que es un reproductor
+              // que falla sin decir por que.
+              archivoPath: llego ? ruta : '',
               inicio: _fecha(g['inicio']) ?? DateTime.now(),
               duracionSeg: Value((minutos * 60).round()),
               tamanoBytes: Value((megas * 1024 * 1024).round()),

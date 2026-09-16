@@ -7,6 +7,13 @@ const azulSirius = Color(0xFF004E9D); // el azul del wordmark
 const azulClaro = Color(0xFF009DFF); // el punto de arriba
 const verdeSirius = Color(0xFF6EB100); // el punto de abajo
 
+/// La tipografia corporativa. Museo Slab es una slab serif: los remates le dan
+/// peso al texto en una pantalla vista al sol, que es donde se usa esta app.
+///
+/// El nombre va aqui como constante y no suelto en cada `TextStyle`: es el
+/// unico sitio donde cambiarlo si algun dia la marca cambia de fuente.
+const fuenteSirius = 'MuseoSlab';
+
 /// Ambar reservado para "a medias". No es de marca a proposito: si el amarillo
 /// fuera corporativo, un semaforo a medio llenar se leeria como estado normal.
 const ambarAviso = Color(0xFFB26B00);
@@ -98,6 +105,10 @@ ThemeData buildTheme(Brightness brightness) {
   return ThemeData(
     colorScheme: scheme,
     useMaterial3: true,
+    // La familia va tambien en el ThemeData y no solo en el TextTheme: lo que
+    // dibujan los widgets de Material sin estilo propio —un DatePicker, el
+    // texto de un dialogo— sale de aqui.
+    fontFamily: fuenteSirius,
     scaffoldBackgroundColor: scheme.surface,
     textTheme: textos,
     splashFactory: InkSparkle.splashFactory,
@@ -163,8 +174,15 @@ ThemeData buildTheme(Brightness brightness) {
         borderRadius: radio,
         borderSide: BorderSide(color: scheme.error),
       ),
-      labelStyle: TextStyle(color: scheme.onSurfaceVariant),
-      helperStyle: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+      labelStyle: TextStyle(
+        fontFamily: fuenteSirius,
+        color: scheme.onSurfaceVariant,
+      ),
+      helperStyle: TextStyle(
+        fontFamily: fuenteSirius,
+        fontSize: 12,
+        color: scheme.onSurfaceVariant,
+      ),
       helperMaxLines: 2,
     ),
 
@@ -175,6 +193,7 @@ ThemeData buildTheme(Brightness brightness) {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         shape: RoundedRectangleBorder(borderRadius: radio),
         textStyle: const TextStyle(
+          fontFamily: fuenteSirius,
           fontSize: 15,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.1,
@@ -188,13 +207,20 @@ ThemeData buildTheme(Brightness brightness) {
         side: BorderSide(color: scheme.outlineVariant),
         foregroundColor: scheme.onSurface,
         shape: RoundedRectangleBorder(borderRadius: radio),
-        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(
+          fontFamily: fuenteSirius,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: scheme.primary,
-        textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(
+          fontFamily: fuenteSirius,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -203,6 +229,7 @@ ThemeData buildTheme(Brightness brightness) {
       elevation: 2,
       highlightElevation: 4,
       extendedTextStyle: const TextStyle(
+        fontFamily: fuenteSirius,
         fontSize: 15,
         fontWeight: FontWeight.w600,
       ),
@@ -242,7 +269,14 @@ ThemeData buildTheme(Brightness brightness) {
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: oscuro ? const Color(0xFF2A323B) : const Color(0xFF13233A),
-      contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
+      // Con familia explicita: el SnackBar no hereda del texto de alrededor,
+      // planta su propio estilo por defecto. Sin esto el unico texto de la app
+      // en otra fuente seria justo el que confirma que algo se guardo.
+      contentTextStyle: const TextStyle(
+        fontFamily: fuenteSirius,
+        color: Colors.white,
+        fontSize: 14,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       insetPadding: const EdgeInsets.all(16),
     ),
@@ -250,7 +284,13 @@ ThemeData buildTheme(Brightness brightness) {
 }
 
 /// Jerarquia tipografica explicita. Material por defecto deja los titulos muy
-/// livianos para leerse al sol; aca pesan mas y se aprietan un poco.
+/// livianos para leerse al sol; aca pesan mas.
+///
+/// El tracking negativo que tenia esta escala era para Roboto, que es
+/// estrecha. Museo Slab ya es ancha y lleva remates: apretarla junta los
+/// remates de dos letras seguidas y el titulo se emborrona. Por eso aqui el
+/// espaciado queda en cero o positivo, y las lineas de texto corrido respiran
+/// un punto mas que antes.
 TextTheme _tipografia(ColorScheme scheme) {
   final base = Typography.material2021(colorScheme: scheme).black;
   final texto = scheme.onSurface;
@@ -258,29 +298,36 @@ TextTheme _tipografia(ColorScheme scheme) {
       .copyWith(
         displaySmall: base.displaySmall?.copyWith(
           fontWeight: FontWeight.w300,
-          letterSpacing: -1,
+          letterSpacing: -0.5,
         ),
         headlineSmall: base.headlineSmall?.copyWith(
           fontWeight: FontWeight.w600,
-          letterSpacing: -0.4,
+          letterSpacing: 0,
         ),
         titleLarge: base.titleLarge?.copyWith(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          letterSpacing: -0.2,
+          letterSpacing: 0,
         ),
         titleMedium: base.titleMedium?.copyWith(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          letterSpacing: -0.1,
+          letterSpacing: 0,
         ),
         titleSmall: base.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-        bodyLarge: base.bodyLarge?.copyWith(fontSize: 15, height: 1.4),
-        bodyMedium: base.bodyMedium?.copyWith(fontSize: 14, height: 1.45),
-        bodySmall: base.bodySmall?.copyWith(fontSize: 12.5, height: 1.4),
+        bodyLarge: base.bodyLarge?.copyWith(fontSize: 15, height: 1.45),
+        bodyMedium: base.bodyMedium?.copyWith(fontSize: 14, height: 1.5),
+        bodySmall: base.bodySmall?.copyWith(fontSize: 12.5, height: 1.45),
         labelLarge: base.labelLarge?.copyWith(fontWeight: FontWeight.w600),
       )
-      .apply(bodyColor: texto, displayColor: texto);
+      // `apply` pisa la familia de las 15 variantes de golpe: la escala de
+      // Material trae Roboto clavada en cada una, y sin esto los estilos que
+      // no se redefinen arriba seguirian saliendo en Roboto.
+      .apply(
+        fontFamily: fuenteSirius,
+        bodyColor: texto,
+        displayColor: texto,
+      );
 }
 
 String formatDuration(int seconds) {

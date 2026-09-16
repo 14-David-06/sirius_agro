@@ -27,9 +27,6 @@ import 'geo.dart' as geo;
 /// `typecast`, asi que Airtable crea la opcion la primera vez.
 const tipoInformeTecnico = 'Informe tecnico de visita';
 
-/// Codigo de formato del documento. El del productor es FT-AGRO-001.
-const codigoFormatoTecnico = 'FT-AGRO-002';
-
 class ProductorTecnico {
   const ProductorTecnico({
     required this.nombre,
@@ -513,8 +510,8 @@ String markdownInformeTecnico(DatosInformeTecnico d) {
 
   l.add('# Informe tecnico de visita de campo');
   l.add('');
-  l.add('Documento interno de Sirius Regenerative · $codigoFormatoTecnico · '
-      'version ${d.version}');
+  l.add('Documento interno de Sirius Regenerative · version ${d.version} · '
+      '${f.fechaLarga(d.generadoEn)}');
 
   if (d.consentimiento.marcadaParaEliminacion) {
     l.add('');
@@ -712,7 +709,6 @@ String markdownInformeTecnico(DatosInformeTecnico d) {
   l.add('');
   l.addAll(_pares([
     ['Generado el', '${f.fechaLarga(d.generadoEn)}, ${f.hora(d.generadoEn)}'],
-    ['Formato', codigoFormatoTecnico],
     ['Version del informe', '${d.version}'],
     ['Origen de los datos', 'Base local de la app, sin intervencion de IA'],
     ['Modelo de IA registrado', d.modeloIa ?? 'No registrado'],

@@ -312,6 +312,52 @@ void main() {
       expect(resultado.fotos, 0);
       expect((await db.select(db.evidencias).get()).length, 1);
     });
+
+    test('la foto que no bajo NO queda apuntando a un archivo inexistente',
+        () async {
+      // Es la diferencia entre un hueco y una mentira. Con la ruta escrita, la
+      // galeria mostraba una miniatura rota y la visita decia tener fotos que
+      // no se podian abrir; la pantalla no tenia como distinguir «no bajo» de
+      // «se corrompio».
+      await repo.importarHistorial(
+        historial(
+          evidencias: [
+            {
+              'titulo': 'Foto 01',
+              'url': 'https://airtable.test/vencida.jpg',
+              'descripcion_visitador': '[12:04] Hoja con sigatoka',
+            },
+          ],
+        ),
+        bajar: (url) async => null,
+      );
+
+      final e = (await db.select(db.evidencias).get()).single;
+      expect(e.archivoPath, isEmpty);
+      // Lo que se anoto de la foto sobrevive: sirve sin la imagen.
+      expect(e.descripcionVisitador, 'Hoja con sigatoka');
+      expect(e.segundoAudio, 724);
+    });
+
+    test('el tramo que no bajo conserva la transcripcion y no finge audio',
+        () async {
+      await repo.importarHistorial(
+        historial(
+          grabaciones: [
+            {
+              'orden': 1,
+              'url': 'https://bucket.test/tramo-01.m4a',
+              'transcripcion': 'El arriendo son 600 mil',
+            },
+          ],
+        ),
+        bajar: (url) async => null,
+      );
+
+      final g = (await db.select(db.grabaciones).get()).single;
+      expect(g.archivoPath, isEmpty);
+      expect(g.transcripcion, 'El arriendo son 600 mil');
+    });
   });
 
   group('agrupar por agricultor', () {
@@ -372,6 +418,167 @@ void main() {
       expect(grupos.length, 1);
       expect(grupos.single.sinFicha, isTrue);
       expect(grupos.single.visitas.length, 2);
+    });
+  });
+
+  group('el indice automatico', () {
+    Map<String, dynamic> ficha({String codigo = codigo, String? productor}) => {
+          'codigo_visita': codigo,
+          'inicio': '2026-09-10T09:30:00.000Z',
+          'estado': 'Cerrada',
+          'productor': productor ?? 'Pedro Rodriguez',
+          'finca': 'La Esperanza',
+          'vereda': 'Guaicaramo',
+          'completitud_pct': 48,
+        };
+
+    test('la visita entra como espejo y SIN detalle', () async {
+      // `detalleEn` en null es lo que distingue «solo la ficha» de «visita
+      // vacia». Sin esa diferencia, una visita a medio bajar se veria igual
+      // que una donde no se registro nada.
+      final tocadas = await repo.importarIndiceVisitas([ficha()]);
+
+      final v = await (db.select(db.visitas)..where((x) => x.id.equals(codigo)))
+          .getSingle();
+
+      expect(tocadas, 1);
+      expect(v.soloLectura, isTrue);
+      expect(v.detalleEn, isNull);
+      expect(await repo.faltaElDetalle(codigo), isTrue);
+    });
+
+    test('el indice NO toca una visita propia', () async {
+      // La misma regla del historial, y mas importante aca: esto corre solo,
+      // sin que nadie lo pida, cada vez que se abre la lista.
+      final propioId = await repo.crearVisitaConProductor(
+        inicio: DateTime(2026, 9, 2, 8),
+        nombreProductor: 'Pedro Rodriguez',
+      );
+
+      await repo.importarIndiceVisitas([ficha(codigo: propioId)]);
+
+      final v = await (db.select(db.visitas)
+            ..where((x) => x.id.equals(propioId)))
+          .getSingle();
+      expect(v.soloLectura, isFalse);
+      expect(await repo.faltaElDetalle(propioId), isNull);
+    });
+
+    test('refrescar el indice no borra el detalle ya bajado', () async {
+      // El indice corre solo y a menudo. Si cada pasada borrara los hijos, las
+      // fotos que alguien acaba de bajar desaparecerian al volver a la lista.
+      await repo.importarHistorial(
+        historial(
+          informes: [
+            {'titulo': 'Informe', 'contenido': 'texto', 'version': 1},
+          ],
+        ),
+      );
+      expect(await repo.faltaElDetalle(codigo), isFalse);
+
+      await repo.importarIndiceVisitas([ficha()]);
+
+      expect((await db.select(db.informes).get()).length, 1);
+      expect(await repo.faltaElDetalle(codigo), isFalse);
+    });
+
+    test('el indice actualiza la ficha de un espejo que ya estaba', () async {
+      await repo.importarIndiceVisitas([ficha()]);
+      await repo.importarIndiceVisitas([
+        {...ficha(), 'completitud_pct': 90, 'estado': 'Validada'},
+      ]);
+
+      final v = await (db.select(db.visitas)..where((x) => x.id.equals(codigo)))
+          .getSingle();
+      expect(v.completitudPct, 90);
+      expect(v.estado, 'Validada');
+      expect((await db.select(db.visitas).get()).length, 1);
+    });
+  });
+
+  group('trazabilidad: la visita cuelga del agricultor', () {
+    test('tecleando el mismo nombre NO se crea un agricultor nuevo', () async {
+      // Era la fuga mas tonta: dos visitas a don Pedro escritas a mano
+      // quedaban colgadas de dos don Pedro, cada uno con su finca y ninguno
+      // con la historia del otro.
+      await repo.crearVisitaConProductor(
+        inicio: DateTime(2026, 9, 1, 8),
+        nombreProductor: 'Pedro Rodriguez',
+        nombreFinca: 'La Esperanza',
+      );
+      await repo.crearVisitaConProductor(
+        inicio: DateTime(2026, 9, 9, 8),
+        nombreProductor: 'pedro  rodriguez',
+        nombreFinca: 'La Esperanza',
+      );
+
+      expect((await db.select(db.productores).get()).length, 1);
+      expect((await db.select(db.fincas).get()).length, 1);
+
+      final grupos = await repo.observarVisitasPorAgricultor().first;
+      expect(grupos.length, 1);
+      expect(grupos.single.visitas.length, 2);
+    });
+
+    test('con dos homonimos no se adivina: se crea uno nuevo', () async {
+      // Robarle la ficha a otra persona es peor que crear una de mas. Es la
+      // misma regla que sigue el directorio al mezclar.
+      await db.into(db.productores).insert(
+            ProductoresCompanion.insert(id: 'p1', nombreCompleto: 'Juan Perez'),
+          );
+      await db.into(db.productores).insert(
+            ProductoresCompanion.insert(id: 'p2', nombreCompleto: 'Juan Perez'),
+          );
+
+      await repo.crearVisitaConProductor(
+        inicio: DateTime(2026, 9, 9, 8),
+        nombreProductor: 'Juan Perez',
+      );
+
+      final juanes = (await db.select(db.productores).get())
+          .where((p) => p.nombreCompleto.toLowerCase().contains('juan'));
+      expect(juanes.length, 3);
+    });
+
+    test('elegir del directorio sigue mandando sobre el nombre', () async {
+      // Si el visitador eligio una ficha, esa es, aunque el nombre tecleado
+      // coincida con otra.
+      await db.into(db.productores).insert(
+            ProductoresCompanion.insert(
+              id: 'elegido',
+              nombreCompleto: 'Pedro Rodriguez',
+            ),
+          );
+
+      final id = await repo.crearVisitaConProductor(
+        inicio: DateTime(2026, 9, 9, 8),
+        nombreProductor: 'Pedro Rodriguez',
+        productorLocalId: 'elegido',
+      );
+
+      final v = await (db.select(db.visitas)..where((x) => x.id.equals(id)))
+          .getSingle();
+      expect(v.productorLocalId, 'elegido');
+      expect((await db.select(db.productores).get()).length, 1);
+    });
+
+    test('la finca reusada se queda con las coordenadas que le faltaban',
+        () async {
+      await repo.crearVisitaConProductor(
+        inicio: DateTime(2026, 9, 1, 8),
+        nombreProductor: 'Pedro Rodriguez',
+        nombreFinca: 'La Esperanza',
+      );
+      await repo.crearVisitaConProductor(
+        inicio: DateTime(2026, 9, 9, 8),
+        nombreProductor: 'Pedro Rodriguez',
+        nombreFinca: 'La Esperanza',
+        latitud: 4.57321,
+        longitud: -72.819044,
+      );
+
+      final finca = (await db.select(db.fincas).get()).single;
+      expect(finca.latitud, closeTo(4.57321, 0.000001));
     });
   });
 }

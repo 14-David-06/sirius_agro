@@ -367,6 +367,19 @@ class Visitas extends Table {
   /// el martes» y saber si vale la pena volver a pedirlo.
   DateTimeColumn get descargadaEn => dateTime().nullable()();
 
+  /// Cuando se bajo el DETALLE de este espejo: hallazgos, fotos, audio,
+  /// informes.
+  ///
+  /// Null significa que del espejo solo esta la ficha, que es como llega desde
+  /// el indice automatico. Esa diferencia es lo que permite que la lista se
+  /// refresque sola sin bajar cientos de megas: doscientas fichas son unos KB,
+  /// y las mismas con sus fotos no caben en un telefono de campo.
+  ///
+  /// Sin esta columna habria que adivinar si una visita sin hallazgos es una
+  /// visita vacia o una que no se ha terminado de bajar — y son cosas
+  /// distintas que se ven igual.
+  DateTimeColumn get detalleEn => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

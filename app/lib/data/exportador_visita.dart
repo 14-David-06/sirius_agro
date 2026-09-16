@@ -208,6 +208,7 @@ class ExportadorVisitas {
             titulo: informe.titulo,
             contenido: informe.contenido,
             generadoEn: informe.generadoEn,
+            version: informe.version,
             productor: ctx['productor'] as String?,
             finca: ctx['finca'] as String?,
             vereda: ctx['vereda'] as String?,

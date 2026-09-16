@@ -123,8 +123,11 @@ class AppDatabase extends _$AppDatabase {
   /// v9: `Visitas.soloLectura` y `Visitas.descargadaEn` — el espejo del
   ///     historial que baja de Airtable. Hasta aqui la sincronizacion era de
   ///     una sola via y toda visita en el telefono era propia.
+  /// v10: `Visitas.detalleEn` — separa la ficha del detalle. El indice de
+  ///     Airtable se refresca solo y trae fichas; los hallazgos, las fotos y
+  ///     el audio se bajan cuando alguien abre la visita.
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -199,6 +202,8 @@ class AppDatabase extends _$AppDatabase {
           // antes de esta version es propio del visitador y sigue siendolo.
           await _asegurarColumna(m, visitas, visitas.soloLectura);
           await _asegurarColumna(m, visitas, visitas.descargadaEn);
+          // v10: el detalle, aparte de la ficha.
+          await _asegurarColumna(m, visitas, visitas.detalleEn);
         },
         beforeOpen: (details) async {
           // Sin esto SQLite ignora las claves foraneas y se pueden quedar

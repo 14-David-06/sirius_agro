@@ -83,12 +83,23 @@ void main() {
       )));
     });
 
-    test('dos visitas seguidas no comparten id ni productor', () async {
+    test('dos visitas al mismo agricultor cuelgan de la MISMA ficha', () async {
+      // Antes esto creaba dos productores, y era la fuga de trazabilidad mas
+      // tonta que tenia la app: dos visitas a don Pedro escritas a mano
+      // quedaban colgadas de dos don Pedro, cada uno con su finca y ninguno
+      // con la historia del otro.
+      //
+      // Lo que sigue siendo cierto es que cada VISITA es un evento propio con
+      // su propio id: la visita es el evento, el agricultor es permanente.
       final a = await crear();
       final b = await crear();
 
       expect(a, isNot(b));
-      expect((await db.select(db.productores).get()).length, 2);
+      expect((await db.select(db.productores).get()).length, 1);
+
+      final visitas = await db.select(db.visitas).get();
+      expect(visitas.length, 2);
+      expect(visitas.first.productorLocalId, visitas.last.productorLocalId);
     });
   });
 

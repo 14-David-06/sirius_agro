@@ -2,7 +2,7 @@ import logging
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from .config import Settings, get_settings
 from .schemas import (
@@ -18,7 +18,7 @@ from .schemas_auth import LoginRequest, LoginResult
 from .schemas_chat import ChatRequest, ChatResult
 from .schemas_complemento import ComplementoRequest, ComplementoResult
 from .schemas_directorio import DirectorioProductores
-from .schemas_historial import HistorialProductor
+from .schemas_historial import HistorialProductor, VisitaRemota
 from .schemas_informe import InformeRequest, InformeResult
 from .schemas_visita import (
     ArchivoSubido,
@@ -308,6 +308,32 @@ async def subir_archivo(
     )
 
 
+@app.get("/v1/archivos/contenido")
+async def bajar_archivo(
+    url: str,
+    settings: Settings = Depends(require_api_key),
+) -> StreamingResponse:
+    """Trae un adjunto de Airtable o del bucket y se lo pasa al telefono.
+
+    El telefono no siempre llega a esos dominios: en la finca va por la red que
+    haya, y conectado por USB al PC no tiene mas salida que este backend. Sin
+    esto, el historial baja la ficha de la visita pero las fotos y el audio se
+    quedan a medias — y lo que queda en el telefono es una foto rota, porque la
+    fila se escribe igual.
+
+    Solo se aceptan los dominios de Airtable y los del bucket propio. Un `?url=`
+    que vaya a donde le digan convertiria a este backend en el mensajero de
+    quien tenga la llave, incluida la red interna del host.
+    """
+    cuerpo, tipo, largo = await almacenamiento.abrir_remoto(settings, url)
+    return StreamingResponse(
+        cuerpo,
+        media_type=tipo,
+        # El telefono lo usa para saber si el archivo llego entero.
+        headers={"Content-Length": str(largo)} if largo else None,
+    )
+
+
 @app.get("/v1/productores", response_model=DirectorioProductores)
 async def listar_productores(
     buscar: str | None = None,
@@ -339,6 +365,36 @@ async def complementar_visita(
     que una alucinacion la desactive.
     """
     return await complemento_service.responder(settings, req)
+
+
+@app.get("/v1/visitas", response_model=list[VisitaRemota])
+async def indice_de_visitas(
+    limite: int = historial_service.INDICE_POR_DEFECTO,
+    settings: Settings = Depends(require_api_key),
+) -> list[VisitaRemota]:
+    """El indice de las visitas de Airtable, sin sus hijos.
+
+    Es lo que la app refresca sola cuando hay senal, para que las visitas del
+    equipo aparezcan en la lista sin que nadie toque un boton.
+
+    Liviano a proposito: sin hallazgos, fotos, audio ni informes. Eso es lo que
+    permite que sea automatico — doscientas fichas son unos KB, y las mismas
+    con sus fotos son cientos de megas que ningun telefono de campo quiere.
+    """
+    return await historial_service.indice_de_visitas(settings, limite)
+
+
+@app.get("/v1/visitas/{codigo_visita}", response_model=VisitaRemota)
+async def detalle_de_visita(
+    codigo_visita: str,
+    settings: Settings = Depends(require_api_key),
+) -> VisitaRemota:
+    """Una visita con todo lo suyo, para cuando alguien la abre.
+
+    Separado del indice para que lo pesado se baje cuando se va a mirar, y no
+    doscientas veces por si acaso.
+    """
+    return await historial_service.visita_por_codigo(settings, codigo_visita)
 
 
 @app.get(

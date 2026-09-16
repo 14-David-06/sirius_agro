@@ -46,11 +46,9 @@ class PaletaInforme {
 
   /// El membrete: la banda donde va el logo, arriba de todo.
   ///
-  /// Azul Cielo y no el azul oscuro. Encima va el logo mono blanco: el logo a
-  /// color se perderia —su azul Barranca compite con este fondo— y el de
-  /// «blanco sobre color» tampoco sirve aca, porque uno de sus dos puntos es
-  /// justamente Azul Cielo y desapareceria contra la banda.
-  static const membrete = ColoresSirius.azulCielo;
+  /// Azul Barranca, el mismo de las bandas de seccion. El logo se apoya
+  /// directamente encima, con sus colores y sin nada detras.
+  static const membrete = ColoresSirius.azulBarranca;
 
   /// Lo que se escribe encima del membrete.
   static const sobreMembrete = PdfColors.white;
@@ -142,8 +140,9 @@ Future<Uint8List> construirInformePdf(DatosInforme datos) async {
   // El logo va como vector y no como PNG: es el activo mas importante de la
   // marca y el manual no perdona que se vea pixelado. Dibujado desde su
   // contorno se imprime nitido a cualquier tamaño y en cualquier impresora.
-  final logoBlanco =
-      await rootBundle.loadString('assets/marca/sirius_mono_blanco.svg');
+  //
+  // Uno solo, y es el de color: el membrete lo apoya sobre una placa blanca en
+  // vez de repintarlo, asi que no hace falta una version mono.
   final logoColor = await rootBundle.loadString('assets/marca/sirius.svg');
 
   // Museo Slab, la corporativa de Sirius, y no las fuentes internas del
@@ -177,7 +176,7 @@ Future<Uint8List> construirInformePdf(DatosInforme datos) async {
           : _membreteContinuacion(logoColor, datos),
       footer: (ctx) => _pie(ctx, datos),
       build: (ctx) => [
-        _membrete(logoBlanco),
+        _membrete(logoColor),
         _franjaTitulo(),
         pw.SizedBox(height: 14),
         _bloqueDatos(datos),
@@ -203,8 +202,7 @@ Future<Uint8List> construirInformePdf(DatosInforme datos) async {
 pw.Widget _membrete(String logo) {
   return pw.Container(
     width: double.infinity,
-    padding: const pw.EdgeInsets.symmetric(vertical: 16),
-    decoration: const pw.BoxDecoration(color: PaletaInforme.membrete),
+    padding: const pw.EdgeInsets.only(top: 4, bottom: 18),
     child: pw.Center(child: pw.SvgImage(svg: logo, height: 46)),
   );
 }
@@ -240,15 +238,15 @@ pw.Widget _membreteContinuacion(String logo, DatosInforme datos) {
 pw.Widget _franjaTitulo() {
   return pw.Container(
     width: double.infinity,
-    padding: const pw.EdgeInsets.symmetric(vertical: 9),
-    decoration: const pw.BoxDecoration(color: PaletaInforme.franja),
+    padding: const pw.EdgeInsets.symmetric(vertical: 11),
+    decoration: const pw.BoxDecoration(color: PaletaInforme.membrete),
     child: pw.Center(
       child: pw.Text(
         'INFORME DE VISITA DE CAMPO',
         style: pw.TextStyle(
           fontSize: 11.5,
           fontWeight: pw.FontWeight.bold,
-          color: PaletaInforme.tinta,
+          color: PaletaInforme.sobreMembrete,
           letterSpacing: 1.8,
         ),
       ),

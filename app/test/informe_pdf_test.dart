@@ -79,9 +79,9 @@ Fue una visita corta. Hablamos del **agua** y de lo que siembra.
     expect(ColoresSirius.cotiledon.toInt(), 0xFFBCD983);
     expect(ColoresSirius.cotiledonClaro.toInt(), 0xFFF2FFDD);
 
-    // El membrete es Azul Cielo, no el azul oscuro, y encima va el logo
-    // blanco: «blanco sobre color», la combinacion principal del manual.
-    expect(PaletaInforme.membrete.toInt(), 0xFF00A3FF);
+    // La banda de encabezado es Azul Barranca, el mismo de las bandas de
+    // seccion: un solo azul sostiene el documento entero.
+    expect(PaletaInforme.membrete.toInt(), 0xFF0154AC);
 
     // Y cada papel del documento se sirve de esa paleta, no de un color suelto.
     for (final usado in [
@@ -120,15 +120,36 @@ Fue una visita corta. Hablamos del **agua** y de lo que siembra.
     expect(color, contains('#0154AC')); // el logotipo, en Azul Barranca
   });
 
-  test('el logo del membrete no tiene un punto del color del membrete', () async {
-    // El membrete es Azul Cielo. Si ahi fuera el logo «blanco sobre color»,
-    // su punto Azul Cielo desapareceria contra la banda y la marca quedaria
-    // con un solo punto: por eso va el mono blanco, con los dos en blanco.
-    final mono =
-        await rootBundle.loadString('assets/marca/sirius_mono_blanco.svg');
-    expect(mono, startsWith('<svg'));
-    expect(mono, isNot(contains('#00A3FF')));
-    expect(mono, isNot(contains('#00B602')));
+  test('el logo del membrete va intacto, no repintado', () async {
+    // El logo va con sus colores sobre el membrete oscuro. Tenirlo de blanco
+    // seria mas simple, pero el manual de marca no lo permite y un logo
+    // repintado deja de ser el logo.
+    //
+    // Lo que este test protege es que no se vuelva a colar una version mono:
+    // el unico SVG que cargan los informes es el de color.
+    final fuente = await File('lib/core/informe_pdf.dart').readAsString();
+    expect(fuente, contains("assets/marca/sirius.svg"));
+    expect(fuente, isNot(contains('sirius_mono_blanco')));
+    expect(fuente, isNot(contains('sirius_blanco')));
+
+    final tecnico =
+        await File('lib/core/informe_tecnico_pdf.dart').readAsString();
+    expect(tecnico, isNot(contains('sirius_mono_blanco')));
+  });
+
+  test('el logo no va sobre la banda de color, sino sobre el blanco', () {
+    // El logotipo de Sirius ES Azul Barranca. Puesto encima de una banda Azul
+    // Barranca desaparece y quedan flotando los dos puntos: pasó, se vio, y
+    // por eso el logo vive sobre el blanco de la hoja y la banda va debajo,
+    // llevando el titulo.
+    //
+    // Lo que fija este test es la condicion que lo hace obligatorio: mientras
+    // el color de la banda sea el del logotipo, el logo no puede ir dentro.
+    expect(PaletaInforme.membrete, ColoresSirius.azulBarranca);
+    expect(ColoresSirius.azulBarranca.toInt(), 0xFF0154AC);
+
+    // Y lo que se escribe sobre esa banda va en blanco, no en tinta.
+    expect(PaletaInforme.sobreMembrete.toInt(), 0xFFFFFFFF);
   });
 
   test('la ficha del modelo no se duplica con la del documento', () async {

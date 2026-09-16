@@ -70,8 +70,8 @@ Future<Uint8List> construirInformeTecnicoPdf(DatosInformeTecnico datos) async {
 
   // Vectorial, igual que el informe del productor: este documento se imprime
   // para archivarlo y se fotocopia, y el logo tiene que aguantar las dos.
-  final logoBlanco =
-      await rootBundle.loadString('assets/marca/sirius_mono_blanco.svg');
+  // Uno solo, y es el de color: el membrete lo apoya sobre una placa blanca en
+  // vez de repintarlo.
   final logoColor = await rootBundle.loadString('assets/marca/sirius.svg');
 
   // Museo Slab, la corporativa de Sirius, y no las fuentes internas del
@@ -108,7 +108,7 @@ Future<Uint8List> construirInformeTecnicoPdf(DatosInformeTecnico datos) async {
           ctx.pageNumber == 1 ? pw.SizedBox() : _encabezado(logoColor, datos),
       footer: (ctx) => _pie(ctx, datos),
       build: (ctx) => [
-        _membrete(logoBlanco, datos, f),
+        _membrete(logoColor, datos, f),
         if (datos.consentimiento.marcadaParaEliminacion) ...[
           pw.SizedBox(height: 12),
           _avisoRevocada(),
@@ -145,8 +145,7 @@ pw.Widget _membrete(
     children: [
       pw.Container(
         width: double.infinity,
-        padding: const pw.EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: const pw.BoxDecoration(color: PaletaInforme.membrete),
+        padding: const pw.EdgeInsets.only(top: 2, bottom: 14, right: 4),
         child: pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -160,7 +159,7 @@ pw.Widget _membrete(
                   style: pw.TextStyle(
                     fontSize: 8,
                     fontWeight: pw.FontWeight.bold,
-                    color: PaletaInforme.sobreMembrete,
+                    color: PaletaInforme.tinta,
                     letterSpacing: 1.4,
                   ),
                 ),
@@ -169,7 +168,7 @@ pw.Widget _membrete(
                   'Versión ${datos.version}  ·  ${f.fechaLarga(datos.generadoEn)}',
                   style: const pw.TextStyle(
                     fontSize: 8,
-                    color: PaletaInforme.sobreMembrete,
+                    color: PaletaInforme.seccion,
                   ),
                 ),
               ],
@@ -179,8 +178,8 @@ pw.Widget _membrete(
       ),
       pw.Container(
         width: double.infinity,
-        padding: const pw.EdgeInsets.symmetric(vertical: 8),
-        decoration: const pw.BoxDecoration(color: PaletaInforme.franja),
+        padding: const pw.EdgeInsets.symmetric(vertical: 10),
+        decoration: const pw.BoxDecoration(color: PaletaInforme.membrete),
         child: pw.Column(
           children: [
             pw.Text(
@@ -188,7 +187,7 @@ pw.Widget _membrete(
               style: pw.TextStyle(
                 fontSize: 11.5,
                 fontWeight: pw.FontWeight.bold,
-                color: PaletaInforme.tinta,
+                color: PaletaInforme.sobreMembrete,
                 letterSpacing: 1.6,
               ),
             ),
@@ -198,7 +197,7 @@ pw.Widget _membrete(
               '  ·  ${f.fechaLarga(datos.inicio)}',
               style: const pw.TextStyle(
                 fontSize: 9,
-                color: PaletaInforme.seccion,
+                color: PaletaInforme.franja,
               ),
             ),
           ],

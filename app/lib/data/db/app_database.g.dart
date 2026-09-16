@@ -2096,6 +2096,28 @@ class $CredencialesLocalesTable extends CredencialesLocales
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _fotoUrlMeta = const VerificationMeta(
+    'fotoUrl',
+  );
+  @override
+  late final GeneratedColumn<String> fotoUrl = GeneratedColumn<String>(
+    'foto_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fotoPathMeta = const VerificationMeta(
+    'fotoPath',
+  );
+  @override
+  late final GeneratedColumn<String> fotoPath = GeneratedColumn<String>(
+    'foto_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     cedula,
@@ -2108,6 +2130,8 @@ class $CredencialesLocalesTable extends CredencialesLocales
     ordenNivel,
     ultimoLoginOnline,
     validoHasta,
+    fotoUrl,
+    fotoPath,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2202,6 +2226,18 @@ class $CredencialesLocalesTable extends CredencialesLocales
     } else if (isInserting) {
       context.missing(_validoHastaMeta);
     }
+    if (data.containsKey('foto_url')) {
+      context.handle(
+        _fotoUrlMeta,
+        fotoUrl.isAcceptableOrUnknown(data['foto_url']!, _fotoUrlMeta),
+      );
+    }
+    if (data.containsKey('foto_path')) {
+      context.handle(
+        _fotoPathMeta,
+        fotoPath.isAcceptableOrUnknown(data['foto_path']!, _fotoPathMeta),
+      );
+    }
     return context;
   }
 
@@ -2251,6 +2287,14 @@ class $CredencialesLocalesTable extends CredencialesLocales
         DriftSqlType.dateTime,
         data['${effectivePrefix}valido_hasta'],
       )!,
+      fotoUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}foto_url'],
+      ),
+      fotoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}foto_path'],
+      ),
     );
   }
 
@@ -2283,6 +2327,15 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
 
   /// Despues de esta fecha el login offline se rechaza y hay que buscar senal.
   final DateTime validoHasta;
+
+  /// La foto de perfil de nomina, tal como la mando el backend en el ultimo
+  /// login con senal. Se guarda para saber si cambio, no para pintarla: la
+  /// URL de Airtable caduca en horas y el visitador pasa dias sin red.
+  final String? fotoUrl;
+
+  /// El archivo ya bajado. Es lo que se pinta, y es lo unico que sigue
+  /// existiendo en una vereda sin senal.
+  final String? fotoPath;
   const CredencialLocal({
     required this.cedula,
     required this.idEmpleado,
@@ -2294,6 +2347,8 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
     required this.ordenNivel,
     required this.ultimoLoginOnline,
     required this.validoHasta,
+    this.fotoUrl,
+    this.fotoPath,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2312,6 +2367,12 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
     map['orden_nivel'] = Variable<int>(ordenNivel);
     map['ultimo_login_online'] = Variable<DateTime>(ultimoLoginOnline);
     map['valido_hasta'] = Variable<DateTime>(validoHasta);
+    if (!nullToAbsent || fotoUrl != null) {
+      map['foto_url'] = Variable<String>(fotoUrl);
+    }
+    if (!nullToAbsent || fotoPath != null) {
+      map['foto_path'] = Variable<String>(fotoPath);
+    }
     return map;
   }
 
@@ -2331,6 +2392,12 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
       ordenNivel: Value(ordenNivel),
       ultimoLoginOnline: Value(ultimoLoginOnline),
       validoHasta: Value(validoHasta),
+      fotoUrl: fotoUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fotoUrl),
+      fotoPath: fotoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fotoPath),
     );
   }
 
@@ -2352,6 +2419,8 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
         json['ultimoLoginOnline'],
       ),
       validoHasta: serializer.fromJson<DateTime>(json['validoHasta']),
+      fotoUrl: serializer.fromJson<String?>(json['fotoUrl']),
+      fotoPath: serializer.fromJson<String?>(json['fotoPath']),
     );
   }
   @override
@@ -2368,6 +2437,8 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
       'ordenNivel': serializer.toJson<int>(ordenNivel),
       'ultimoLoginOnline': serializer.toJson<DateTime>(ultimoLoginOnline),
       'validoHasta': serializer.toJson<DateTime>(validoHasta),
+      'fotoUrl': serializer.toJson<String?>(fotoUrl),
+      'fotoPath': serializer.toJson<String?>(fotoPath),
     };
   }
 
@@ -2382,6 +2453,8 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
     int? ordenNivel,
     DateTime? ultimoLoginOnline,
     DateTime? validoHasta,
+    Value<String?> fotoUrl = const Value.absent(),
+    Value<String?> fotoPath = const Value.absent(),
   }) => CredencialLocal(
     cedula: cedula ?? this.cedula,
     idEmpleado: idEmpleado ?? this.idEmpleado,
@@ -2393,6 +2466,8 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
     ordenNivel: ordenNivel ?? this.ordenNivel,
     ultimoLoginOnline: ultimoLoginOnline ?? this.ultimoLoginOnline,
     validoHasta: validoHasta ?? this.validoHasta,
+    fotoUrl: fotoUrl.present ? fotoUrl.value : this.fotoUrl,
+    fotoPath: fotoPath.present ? fotoPath.value : this.fotoPath,
   );
   CredencialLocal copyWithCompanion(CredencialesLocalesCompanion data) {
     return CredencialLocal(
@@ -2418,6 +2493,8 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
       validoHasta: data.validoHasta.present
           ? data.validoHasta.value
           : this.validoHasta,
+      fotoUrl: data.fotoUrl.present ? data.fotoUrl.value : this.fotoUrl,
+      fotoPath: data.fotoPath.present ? data.fotoPath.value : this.fotoPath,
     );
   }
 
@@ -2433,7 +2510,9 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
           ..write('nivelAcceso: $nivelAcceso, ')
           ..write('ordenNivel: $ordenNivel, ')
           ..write('ultimoLoginOnline: $ultimoLoginOnline, ')
-          ..write('validoHasta: $validoHasta')
+          ..write('validoHasta: $validoHasta, ')
+          ..write('fotoUrl: $fotoUrl, ')
+          ..write('fotoPath: $fotoPath')
           ..write(')'))
         .toString();
   }
@@ -2450,6 +2529,8 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
     ordenNivel,
     ultimoLoginOnline,
     validoHasta,
+    fotoUrl,
+    fotoPath,
   );
   @override
   bool operator ==(Object other) =>
@@ -2464,7 +2545,9 @@ class CredencialLocal extends DataClass implements Insertable<CredencialLocal> {
           other.nivelAcceso == this.nivelAcceso &&
           other.ordenNivel == this.ordenNivel &&
           other.ultimoLoginOnline == this.ultimoLoginOnline &&
-          other.validoHasta == this.validoHasta);
+          other.validoHasta == this.validoHasta &&
+          other.fotoUrl == this.fotoUrl &&
+          other.fotoPath == this.fotoPath);
 }
 
 class CredencialesLocalesCompanion extends UpdateCompanion<CredencialLocal> {
@@ -2478,6 +2561,8 @@ class CredencialesLocalesCompanion extends UpdateCompanion<CredencialLocal> {
   final Value<int> ordenNivel;
   final Value<DateTime> ultimoLoginOnline;
   final Value<DateTime> validoHasta;
+  final Value<String?> fotoUrl;
+  final Value<String?> fotoPath;
   final Value<int> rowid;
   const CredencialesLocalesCompanion({
     this.cedula = const Value.absent(),
@@ -2490,6 +2575,8 @@ class CredencialesLocalesCompanion extends UpdateCompanion<CredencialLocal> {
     this.ordenNivel = const Value.absent(),
     this.ultimoLoginOnline = const Value.absent(),
     this.validoHasta = const Value.absent(),
+    this.fotoUrl = const Value.absent(),
+    this.fotoPath = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CredencialesLocalesCompanion.insert({
@@ -2503,6 +2590,8 @@ class CredencialesLocalesCompanion extends UpdateCompanion<CredencialLocal> {
     this.ordenNivel = const Value.absent(),
     required DateTime ultimoLoginOnline,
     required DateTime validoHasta,
+    this.fotoUrl = const Value.absent(),
+    this.fotoPath = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : cedula = Value(cedula),
        idEmpleado = Value(idEmpleado),
@@ -2521,6 +2610,8 @@ class CredencialesLocalesCompanion extends UpdateCompanion<CredencialLocal> {
     Expression<int>? ordenNivel,
     Expression<DateTime>? ultimoLoginOnline,
     Expression<DateTime>? validoHasta,
+    Expression<String>? fotoUrl,
+    Expression<String>? fotoPath,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2534,6 +2625,8 @@ class CredencialesLocalesCompanion extends UpdateCompanion<CredencialLocal> {
       if (ordenNivel != null) 'orden_nivel': ordenNivel,
       if (ultimoLoginOnline != null) 'ultimo_login_online': ultimoLoginOnline,
       if (validoHasta != null) 'valido_hasta': validoHasta,
+      if (fotoUrl != null) 'foto_url': fotoUrl,
+      if (fotoPath != null) 'foto_path': fotoPath,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2549,6 +2642,8 @@ class CredencialesLocalesCompanion extends UpdateCompanion<CredencialLocal> {
     Value<int>? ordenNivel,
     Value<DateTime>? ultimoLoginOnline,
     Value<DateTime>? validoHasta,
+    Value<String?>? fotoUrl,
+    Value<String?>? fotoPath,
     Value<int>? rowid,
   }) {
     return CredencialesLocalesCompanion(
@@ -2562,6 +2657,8 @@ class CredencialesLocalesCompanion extends UpdateCompanion<CredencialLocal> {
       ordenNivel: ordenNivel ?? this.ordenNivel,
       ultimoLoginOnline: ultimoLoginOnline ?? this.ultimoLoginOnline,
       validoHasta: validoHasta ?? this.validoHasta,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
+      fotoPath: fotoPath ?? this.fotoPath,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2599,6 +2696,12 @@ class CredencialesLocalesCompanion extends UpdateCompanion<CredencialLocal> {
     if (validoHasta.present) {
       map['valido_hasta'] = Variable<DateTime>(validoHasta.value);
     }
+    if (fotoUrl.present) {
+      map['foto_url'] = Variable<String>(fotoUrl.value);
+    }
+    if (fotoPath.present) {
+      map['foto_path'] = Variable<String>(fotoPath.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2618,6 +2721,8 @@ class CredencialesLocalesCompanion extends UpdateCompanion<CredencialLocal> {
           ..write('ordenNivel: $ordenNivel, ')
           ..write('ultimoLoginOnline: $ultimoLoginOnline, ')
           ..write('validoHasta: $validoHasta, ')
+          ..write('fotoUrl: $fotoUrl, ')
+          ..write('fotoPath: $fotoPath, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -13547,6 +13652,8 @@ typedef $$CredencialesLocalesTableCreateCompanionBuilder =
       Value<int> ordenNivel,
       required DateTime ultimoLoginOnline,
       required DateTime validoHasta,
+      Value<String?> fotoUrl,
+      Value<String?> fotoPath,
       Value<int> rowid,
     });
 typedef $$CredencialesLocalesTableUpdateCompanionBuilder =
@@ -13561,6 +13668,8 @@ typedef $$CredencialesLocalesTableUpdateCompanionBuilder =
       Value<int> ordenNivel,
       Value<DateTime> ultimoLoginOnline,
       Value<DateTime> validoHasta,
+      Value<String?> fotoUrl,
+      Value<String?> fotoPath,
       Value<int> rowid,
     });
 
@@ -13620,6 +13729,16 @@ class $$CredencialesLocalesTableFilterComposer
 
   ColumnFilters<DateTime> get validoHasta => $composableBuilder(
     column: $table.validoHasta,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fotoUrl => $composableBuilder(
+    column: $table.fotoUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fotoPath => $composableBuilder(
+    column: $table.fotoPath,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -13682,6 +13801,16 @@ class $$CredencialesLocalesTableOrderingComposer
     column: $table.validoHasta,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get fotoUrl => $composableBuilder(
+    column: $table.fotoUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fotoPath => $composableBuilder(
+    column: $table.fotoPath,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CredencialesLocalesTableAnnotationComposer
@@ -13734,6 +13863,12 @@ class $$CredencialesLocalesTableAnnotationComposer
     column: $table.validoHasta,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get fotoUrl =>
+      $composableBuilder(column: $table.fotoUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get fotoPath =>
+      $composableBuilder(column: $table.fotoPath, builder: (column) => column);
 }
 
 class $$CredencialesLocalesTableTableManager
@@ -13789,6 +13924,8 @@ class $$CredencialesLocalesTableTableManager
                 Value<int> ordenNivel = const Value.absent(),
                 Value<DateTime> ultimoLoginOnline = const Value.absent(),
                 Value<DateTime> validoHasta = const Value.absent(),
+                Value<String?> fotoUrl = const Value.absent(),
+                Value<String?> fotoPath = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CredencialesLocalesCompanion(
                 cedula: cedula,
@@ -13801,6 +13938,8 @@ class $$CredencialesLocalesTableTableManager
                 ordenNivel: ordenNivel,
                 ultimoLoginOnline: ultimoLoginOnline,
                 validoHasta: validoHasta,
+                fotoUrl: fotoUrl,
+                fotoPath: fotoPath,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -13815,6 +13954,8 @@ class $$CredencialesLocalesTableTableManager
                 Value<int> ordenNivel = const Value.absent(),
                 required DateTime ultimoLoginOnline,
                 required DateTime validoHasta,
+                Value<String?> fotoUrl = const Value.absent(),
+                Value<String?> fotoPath = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CredencialesLocalesCompanion.insert(
                 cedula: cedula,
@@ -13827,6 +13968,8 @@ class $$CredencialesLocalesTableTableManager
                 ordenNivel: ordenNivel,
                 ultimoLoginOnline: ultimoLoginOnline,
                 validoHasta: validoHasta,
+                fotoUrl: fotoUrl,
+                fotoPath: fotoPath,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -503,17 +503,9 @@ class _MenuSesion extends ConsumerWidget {
         icon: Stack(
           clipBehavior: Clip.none,
           children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: scheme.primaryContainer,
-              foregroundColor: scheme.onPrimaryContainer,
-              child: Text(
-                _iniciales(credencial.nombre),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
+            AvatarVisitador(
+              nombre: credencial.nombre,
+              fotoPath: credencial.fotoPath,
             ),
             if (sesion.offline)
               Positioned(
@@ -575,13 +567,6 @@ class _MenuSesion extends ConsumerWidget {
     );
   }
 
-  String _iniciales(String nombre) {
-    final partes =
-        nombre.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    if (partes.isEmpty) return '?';
-    if (partes.length == 1) return partes.first[0].toUpperCase();
-    return (partes.first[0] + partes.last[0]).toUpperCase();
-  }
 }
 
 /// La lista de visitas, agrupada por agricultor.

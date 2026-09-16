@@ -143,6 +143,15 @@ class CredencialesLocales extends Table {
   /// Despues de esta fecha el login offline se rechaza y hay que buscar senal.
   DateTimeColumn get validoHasta => dateTime()();
 
+  /// La foto de perfil de nomina, tal como la mando el backend en el ultimo
+  /// login con senal. Se guarda para saber si cambio, no para pintarla: la
+  /// URL de Airtable caduca en horas y el visitador pasa dias sin red.
+  TextColumn get fotoUrl => text().nullable()();
+
+  /// El archivo ya bajado. Es lo que se pinta, y es lo unico que sigue
+  /// existiendo en una vereda sin senal.
+  TextColumn get fotoPath => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {cedula};
 }

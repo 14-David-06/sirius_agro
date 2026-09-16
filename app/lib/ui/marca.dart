@@ -272,6 +272,67 @@ class AvatarAgricultor extends StatelessWidget {
   }
 }
 
+/// La cara de quien tiene la sesion abierta.
+///
+/// La foto viene de su ficha en nomina y se bajo al entrar con senal. Si no
+/// hay archivo —nunca entro con red, no tiene retrato cargado, o la descarga
+/// fallo— quedan las iniciales, que es lo que habia antes.
+///
+/// Las iniciales no son el caso raro: en un telefono compartido en campo, la
+/// mitad de las veces se entra sin senal.
+class AvatarVisitador extends StatelessWidget {
+  const AvatarVisitador({
+    super.key,
+    required this.nombre,
+    this.fotoPath,
+    this.radio = 16,
+  });
+
+  final String nombre;
+  final String? fotoPath;
+  final double radio;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ruta = fotoPath;
+    final archivo = (ruta != null && ruta.isNotEmpty) ? File(ruta) : null;
+    final tiene = archivo != null && archivo.existsSync();
+
+    return CircleAvatar(
+      radius: radio,
+      backgroundColor: scheme.primaryContainer,
+      foregroundColor: scheme.onPrimaryContainer,
+      // Sin truco de cache: cada descarga escribe un archivo con nombre
+      // nuevo, asi que una foto cambiada en nomina es una ruta distinta.
+      backgroundImage: tiene ? FileImage(archivo) : null,
+      child: tiene
+          ? null
+          : Text(
+              inicialesDe(nombre),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: radio * 0.75,
+              ),
+            ),
+    );
+  }
+}
+
+/// Las dos letras con las que se reconoce a alguien cuando no hay foto.
+///
+/// Una sola funcion para toda la app: cuando vivia duplicada, una pantalla
+/// tomaba las dos PRIMERAS palabras y la otra la primera y la ultima, asi que
+/// la misma persona salia como «JF» en un sitio y «JM» en el otro.
+String inicialesDe(String nombre) {
+  final partes =
+      nombre.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (partes.isEmpty) return '?';
+  if (partes.length == 1) return partes.first.characters.first.toUpperCase();
+  return (partes.first.characters.first + partes.last.characters.first)
+      .toUpperCase();
+}
+
 /// Silueta de agricultor o agricultora, segun el genero de la ficha.
 ///
 /// Dibujada y no traida como imagen: son cuatro formas, pesan cero, y asi se

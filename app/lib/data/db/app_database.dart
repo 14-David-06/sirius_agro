@@ -126,8 +126,11 @@ class AppDatabase extends _$AppDatabase {
   /// v10: `Visitas.detalleEn` — separa la ficha del detalle. El indice de
   ///     Airtable se refresca solo y trae fichas; los hallazgos, las fotos y
   ///     el audio se bajan cuando alguien abre la visita.
+  /// v11: `CredencialesLocales.fotoUrl` y `.fotoPath` — la foto del visitador
+  ///     que viene de nomina, y el archivo ya bajado que es lo que se pinta
+  ///     cuando no hay senal.
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -204,6 +207,11 @@ class AppDatabase extends _$AppDatabase {
           await _asegurarColumna(m, visitas, visitas.descargadaEn);
           // v10: el detalle, aparte de la ficha.
           await _asegurarColumna(m, visitas, visitas.detalleEn);
+          // v11: la cara del visitador en la barra, en vez de sus iniciales.
+          await _asegurarColumna(
+            m, credencialesLocales, credencialesLocales.fotoUrl);
+          await _asegurarColumna(
+            m, credencialesLocales, credencialesLocales.fotoPath);
         },
         beforeOpen: (details) async {
           // Sin esto SQLite ignora las claves foraneas y se pueden quedar

@@ -62,6 +62,49 @@ def nomina_responde(monkeypatch):
     return instalar
 
 
+def test_la_foto_de_perfil_sale_como_miniatura(client, auth, nomina_responde):
+    # La app la pinta dentro de un circulo de 32 px y la baja por la red de
+    # una finca: mandar el original de varios megas seria gastar la visita en
+    # un retrato.
+    nomina_responde([
+        _registro(**{
+            nomina.CAMPO_FOTO: [
+                {
+                    "url": "https://v5.airtableusercontent.com/original.jpg",
+                    "thumbnails": {
+                        "small": {"url": "https://v5.airtableusercontent.com/s.jpg"},
+                        "large": {"url": "https://v5.airtableusercontent.com/l.jpg"},
+                    },
+                }
+            ],
+        })
+    ])
+
+    r = client.post(
+        "/v1/auth/login",
+        headers=auth,
+        json={"cedula": CEDULA, "password": PASSWORD},
+    )
+
+    assert r.status_code == 200
+    assert r.json()["foto_url"] == "https://v5.airtableusercontent.com/l.jpg"
+
+
+def test_sin_foto_en_nomina_el_login_igual_pasa(client, auth, nomina_responde):
+    # No todo el mundo tiene retrato cargado. Quedarse fuera de la app por eso
+    # seria absurdo: la app cae a las iniciales y ya.
+    nomina_responde([_registro()])
+
+    r = client.post(
+        "/v1/auth/login",
+        headers=auth,
+        json={"cedula": CEDULA, "password": PASSWORD},
+    )
+
+    assert r.status_code == 200
+    assert r.json()["foto_url"] == ""
+
+
 def test_login_correcto_devuelve_el_empleado_y_el_hash(client, auth, nomina_responde):
     nomina_responde([_registro()])
 

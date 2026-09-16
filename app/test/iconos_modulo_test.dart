@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/pdf.dart';
 import 'package:sirius_agro/core/iconos_modulo.dart';
 
 /// El icono de cada modulo del cuestionario.
@@ -49,6 +50,29 @@ void main() {
   test('el icono del PDF es el mismo glifo que el de la pantalla', () {
     // Dos simbolos distintos para «Suelos» —uno en el telefono y otro en el
     // papel— es peor que no poner ninguno.
-    expect(iconoModuloPdf('Suelos'), Icons.terrain_outlined.codePoint);
+    expect(iconoModuloPdf('Suelos'), Icons.layers_outlined.codePoint);
+  });
+
+  test('la fuente del PDF trae todos los iconos del mapa', () async {
+    // `IconosModulo.ttf` es un recorte de la tipografia de Material hecho a
+    // mano. Agregar un modulo al mapa sin volver a recortarla deja el icono
+    // en blanco SOLO en el papel: en pantalla se ve bien, y por eso nadie lo
+    // nota hasta que el informe ya se archivo.
+    final fuente = TtfParser(
+      await rootBundle.load('assets/fuentes/IconosModulo.ttf'),
+    );
+
+    for (final modulo in [
+      ...modulosConIcono,
+      'Modulo que no existe', // el de reserva tambien tiene que estar
+    ]) {
+      final punto = iconoModuloPdf(modulo);
+      expect(
+        fuente.charToGlyphIndexMap.containsKey(punto),
+        isTrue,
+        reason: 'falta el glifo de «$modulo» (${punto.toRadixString(16)}) en '
+            'IconosModulo.ttf: hay que volver a generarla',
+      );
+    }
   });
 }

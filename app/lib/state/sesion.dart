@@ -59,6 +59,9 @@ class LoginController extends StateNotifier<LoginState> {
     try {
       final remota = await api.login(cedula: cedula, password: password);
       await repo.guardarTrasLoginOnline(cedula, remota);
+      // Despues de guardar la credencial y antes de abrir la sesion: la fila
+      // ya existe, asi que el UPDATE de la ruta encuentra donde escribir.
+      await repo.guardarFotoPerfil(cedula, remota.fotoUrl, api.descargarArchivo);
       await repo.abrirSesion(cedula, offline: false);
       state = const LoginState();
       return true;

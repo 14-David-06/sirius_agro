@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:bcrypt/bcrypt.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'db/app_database.dart';
 
@@ -43,6 +46,7 @@ class CredencialRemota {
     required this.ordenNivel,
     required this.hashBcrypt,
     required this.diasMaxOffline,
+    this.fotoUrl = '',
   });
 
   final String idEmpleado;
@@ -54,6 +58,10 @@ class CredencialRemota {
   final int ordenNivel;
   final String hashBcrypt;
   final int diasMaxOffline;
+
+  /// La foto de perfil que tiene en nomina. Caduca en horas: sirve para
+  /// bajarla al entrar, no para guardarla y volver a pedirla despues.
+  final String fotoUrl;
 }
 
 /// bcrypt tarda ~100 ms a proposito. En el hilo de UI eso es un tiron visible
@@ -97,6 +105,7 @@ class SesionRepository {
       ordenNivel: Value(remota.ordenNivel),
       ultimoLoginOnline: momento,
       validoHasta: momento.add(Duration(days: remota.diasMaxOffline)),
+      fotoUrl: Value(remota.fotoUrl),
     );
 
     await _db
@@ -104,6 +113,60 @@ class SesionRepository {
         .insertOnConflictUpdate(fila);
 
     return leerCredencial(cedula).then((c) => c!);
+  }
+
+  /// Deja la foto de perfil en disco y apunta la credencial al archivo.
+  ///
+  /// Se baja una sola vez por login con senal, y por el backend y no directo
+  /// a Airtable: el telefono conectado por USB al PC no tiene otra salida, y
+  /// en la finca va por la red que haya.
+  ///
+  /// Falla en silencio a proposito. Que no se pueda bajar un retrato no puede
+  /// impedir entrar a trabajar: sin archivo la barra muestra las iniciales,
+  /// que es exactamente lo que mostraba antes.
+  Future<void> guardarFotoPerfil(
+    String cedula,
+    String url,
+    Future<List<int>?> Function(String) bajar,
+  ) async {
+    if (url.isEmpty) return;
+    try {
+      final bytes = await bajar(url);
+      if (bytes == null || bytes.isEmpty) return;
+
+      final base = await getApplicationDocumentsDirectory();
+      final carpeta = Directory('${base.path}/perfiles');
+      await carpeta.create(recursive: true);
+
+      // El nombre lleva la cedula y la hora. La cedula porque el telefono lo
+      // comparten varios visitadores y sus retratos no se pueden pisar; la
+      // hora porque Flutter cachea las imagenes por RUTA: con un nombre fijo,
+      // a quien le cambien la foto en nomina seguiria viendo la vieja hasta
+      // reiniciar la app.
+      final ruta = '${carpeta.path}/${normalizar(cedula)}-'
+          '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await File(ruta).writeAsBytes(bytes, flush: true);
+
+      final anterior = (await leerCredencial(cedula))?.fotoPath;
+
+      await (_db.update(_db.credencialesLocales)
+            ..where((c) => c.cedula.equals(normalizar(cedula))))
+          .write(CredencialesLocalesCompanion(fotoPath: Value(ruta)));
+
+      // El retrato viejo se borra DESPUES de apuntar el nuevo: si se borrara
+      // antes y fallara la escritura, la credencial quedaria apuntando a un
+      // archivo que ya no esta.
+      if (anterior != null && anterior.isNotEmpty && anterior != ruta) {
+        try {
+          await File(anterior).delete();
+        } catch (_) {
+          // Si no se puede borrar, queda un JPEG de 20 kB huerfano. No vale
+          // la pena hacer ruido por eso.
+        }
+      }
+    } catch (e) {
+      debugPrint('No se pudo guardar la foto de perfil: $e');
+    }
   }
 
   Future<CredencialLocal?> leerCredencial(String cedula) =>

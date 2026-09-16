@@ -127,6 +127,7 @@ async def login(
         ),
         hash_offline=empleado.hash_bcrypt,
         dias_max_offline=settings.dias_max_offline,
+        foto_url=empleado.foto_url,
     )
 
 

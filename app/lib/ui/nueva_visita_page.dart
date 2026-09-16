@@ -386,19 +386,15 @@ class _QuienVisita extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    final scheme = tema.colorScheme;
     final credencial = sesion.credencial;
 
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-        leading: CircleAvatar(
-          backgroundColor: scheme.primaryContainer,
-          foregroundColor: scheme.onPrimaryContainer,
-          child: Text(
-            _iniciales(credencial.nombre),
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-          ),
+        leading: AvatarVisitador(
+          nombre: credencial.nombre,
+          fotoPath: credencial.fotoPath,
+          radio: 20,
         ),
         title: Text(credencial.nombre, style: tema.textTheme.titleMedium),
         subtitle: Padding(
@@ -409,13 +405,6 @@ class _QuienVisita extends StatelessWidget {
     );
   }
 
-  String _iniciales(String nombre) {
-    final partes =
-        nombre.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    if (partes.isEmpty) return '?';
-    if (partes.length == 1) return partes.first[0].toUpperCase();
-    return (partes.first[0] + partes.last[0]).toUpperCase();
-  }
 }
 
 
@@ -550,15 +539,9 @@ class _CaraProductor extends StatelessWidget {
       foregroundColor: scheme.onSurfaceVariant,
       backgroundImage: imagen,
       onBackgroundImageError: imagen == null ? null : (_, _) {},
-      child: imagen == null ? Text(_iniciales(productor.nombreCompleto)) : null,
+      child: imagen == null ? Text(inicialesDe(productor.nombreCompleto)) : null,
     );
   }
-}
-
-String _iniciales(String nombre) {
-  final partes = nombre.trim().split(RegExp(r'\s+'));
-  final letras = partes.take(2).map((p) => p.characters.first.toUpperCase());
-  return letras.join();
 }
 
 /// De donde salen las sugerencias, dicho sin rodeos.

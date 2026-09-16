@@ -124,9 +124,13 @@ Future<Uint8List> construirInformeTecnicoPdf(DatosInformeTecnico datos) async {
         ..._seccionAudio(datos, f),
         ..._seccionConsentimiento(datos, f),
         ..._seccionTrazabilidad(datos, f),
+        ..._anexoVertices(datos, f),
+        // Las firmas cierran el documento, despues del anexo. Una hoja
+        // firmada en la mitad deja sin respaldar todo lo que viene detras:
+        // quien firma responde por el documento entero, no por la parte que
+        // le quedaba encima.
         pw.SizedBox(height: 20),
         _firmas(datos),
-        ..._anexoVertices(datos, f),
       ],
     ),
   );
@@ -914,11 +918,8 @@ List<pw.Widget> _seccionDatos(DatosInformeTecnico d) {
     ];
   }
 
-  final conteo = d.conteoPorCerteza;
   final widgets = <pw.Widget>[
     _banda('5.', 'Datos registrados'),
-    pw.SizedBox(height: 8),
-    _resumenCerteza(d.hallazgos.length, conteo),
     pw.SizedBox(height: 10),
   ];
 
@@ -986,62 +987,6 @@ List<pw.Widget> _seccionDatos(DatosInformeTecnico d) {
   return widgets;
 }
 
-/// La barra de certeza: cuantos datos hay de cada clase.
-///
-/// Es el indicador de calidad del dato y va arriba de las tablas a proposito.
-/// Una visita con cuarenta datos de los cuales treinta son Inferido no vale lo
-/// mismo que una con veinte confirmados, y quien lea el informe tiene que
-/// saberlo antes de empezar a leer los numeros.
-pw.Widget _resumenCerteza(int total, Map<String, int> conteo) {
-  const orden = ['Confirmado', 'Estimado', 'Inferido', 'Pendiente'];
-  final otras = conteo.keys.where((k) => !orden.contains(k));
-
-  return pw.Container(
-    padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-    decoration: pw.BoxDecoration(
-      color: PaletaInforme.suave,
-      border: pw.Border.all(color: PaletaInforme.borde, width: 0.8),
-    ),
-    child: pw.Row(
-      children: [
-        pw.Text(
-          '$total dato(s)',
-          style: pw.TextStyle(
-            fontSize: 8.5,
-            fontWeight: pw.FontWeight.bold,
-            color: PaletaInforme.tinta,
-          ),
-        ),
-        pw.SizedBox(width: 14),
-        for (final clase in [...orden, ...otras])
-          if ((conteo[clase] ?? 0) > 0)
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(right: 12),
-              child: pw.Row(
-                children: [
-                  pw.Container(
-                    width: 6,
-                    height: 6,
-                    margin: const pw.EdgeInsets.only(right: 4),
-                    decoration: pw.BoxDecoration(
-                      color: _colorCerteza(clase),
-                      shape: pw.BoxShape.circle,
-                    ),
-                  ),
-                  pw.Text(
-                    '$clase ${conteo[clase]}',
-                    style: const pw.TextStyle(
-                      fontSize: 8,
-                      color: PaletaInforme.cuerpo,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-      ],
-    ),
-  );
-}
 
 List<pw.Widget> _seccionPendientes(DatosInformeTecnico d) {
   final pendientes = d.temasPendientes;
@@ -1331,6 +1276,9 @@ List<pw.Widget> _seccionTrazabilidad(DatosInformeTecnico d, FormatoInforme f) {
 /// y se archiva en carpeta, y una carpeta con hojas sin firmar no respalda
 /// nada. El nombre del visitador va impreso —la app lo sabe— y la linea de
 /// revision queda en blanco porque quien revisa no es quien visita.
+///
+/// Al final del todo, despues del anexo de vertices: lo ultimo que se ve al
+/// pasar la carpeta tiene que ser la firma.
 pw.Widget _firmas(DatosInformeTecnico d) {
   return pw.Row(
     children: [

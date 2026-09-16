@@ -246,6 +246,7 @@ class ApiClient {
       ordenNivel: (json['orden_nivel'] as num?)?.toInt() ?? 99,
       hashBcrypt: json['hash_offline'] as String? ?? '',
       diasMaxOffline: (json['dias_max_offline'] as num?)?.toInt() ?? 30,
+      fotoUrl: json['foto_url'] as String? ?? '',
     );
   }
 

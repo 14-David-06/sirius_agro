@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.3.0+5
+version: 1.3.1+6
 
 environment:
   sdk: ^3.13.2
@@ -140,6 +140,13 @@ flutter:
   # escrito `FontWeight.w600` tiene que salir en Museo Slab 700, no en una
   # interpolacion que el motor elija por su cuenta.
   fonts:
+    # Los iconos de modulo, la misma fuente que carga el PDF. Se declara como
+    # familia para poder dibujarla con `Icon()` en pantalla: asi el telefono y
+    # el papel salen del mismo archivo y no pueden discrepar.
+    - family: IconosModulo
+      fonts:
+        - asset: assets/fuentes/IconosModulo.ttf
+
     - family: MuseoSlab
       fonts:
         - asset: assets/fuentes/MuseoSlab-300.ttf

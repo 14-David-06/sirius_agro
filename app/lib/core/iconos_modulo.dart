@@ -15,6 +15,17 @@ IconData iconoDeModulo(String modulo) =>
 
 const iconoModuloPorDefecto = Icons.label_outlined;
 
+/// El agricultor aplicando insumos, dibujado a mano.
+///
+/// Material no tiene ningun icono de alguien aplicando: lo mas cerca es un
+/// aerosol o un insecto, y ninguno de los dos dice lo que hace un modulo que
+/// se llama «Insumos». Este glifo vive en `assets/fuentes/IconosModulo.ttf`,
+/// en la zona privada de Unicode, y lo dibuja `tool/iconos_modulo.py`.
+///
+/// La misma fuente sirve en pantalla y en el papel, que es lo que garantiza
+/// que el informe y el telefono muestren el mismo simbolo.
+const iconoAplicacion = IconData(0xE900, fontFamily: 'IconosModulo');
+
 /// El mismo icono, para el PDF.
 ///
 /// El generador de PDF no entiende `IconData` de Flutter: quiere el numero del
@@ -23,24 +34,37 @@ const iconoModuloPorDefecto = Icons.label_outlined;
 /// simbolos distintos para el mismo modulo.
 ///
 /// Los glifos estan recortados en `assets/fuentes/IconosModulo.ttf`. Si se
-/// agrega un modulo a [_iconos], hay que volver a generar ese archivo o el
-/// icono nuevo saldra vacio en el papel.
+/// agrega un modulo a [_iconos], hay que volver a generar ese archivo con
+/// `python tool/iconos_modulo.py` o el icono nuevo saldra vacio en el papel.
+/// `iconos_modulo_test.dart` falla si eso pasa.
 int iconoModuloPdf(String modulo) => iconoDeModulo(modulo).codePoint;
+
+/// Los modulos que tienen icono propio. Solo para las pruebas: es lo que
+/// permite comprobar que el recorte de la fuente del PDF no se quedo atras del
+/// mapa sin tener que repetir la lista en dos sitios.
+Iterable<String> get modulosConIcono => _iconos.keys;
 
 const _iconos = <String, IconData>{
   'agua y riego': Icons.water_drop_outlined,
   'cultivos': Icons.grass_outlined,
   'aspiraciones y proyectos': Icons.flag_outlined,
   'identificacion': Icons.badge_outlined,
-  'suelos': Icons.terrain_outlined,
+  // Las capas del perfil del suelo, no una montana: el modulo pregunta
+  // por lo que hay DEBAJO —horizontes, materia organica, pH—, y una
+  // montana habla del relieve, que es otra cosa.
+  'suelos': Icons.layers_outlined,
   'conectividad': Icons.cell_tower_outlined,
   'economia y comercializacion': Icons.payments_outlined,
   'riesgos y clima': Icons.thunderstorm_outlined,
   'familia y social': Icons.groups_outlined,
   'historia y origen': Icons.history_edu_outlined,
   'tierra y tenencia': Icons.map_outlined,
-  'insumos y manejo': Icons.inventory_2_outlined,
+  // Lo que se aplica al cultivo: el modulo llega de Airtable como «Insumos y
+  // manejo» o como «Insumos» a secas, y los dos son lo mismo.
+  'insumos y manejo': iconoAplicacion,
+  'insumos': iconoAplicacion,
   'ganaderia y animales': Icons.pets_outlined,
+  'hogar': Icons.home_outlined,
 };
 
 String _clave(String modulo) {

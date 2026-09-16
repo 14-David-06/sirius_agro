@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:bcrypt/bcrypt.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sirius_agro/data/db/app_database.dart';
 import 'package:sirius_agro/data/sesion_repository.dart';
@@ -11,9 +14,30 @@ import 'package:sirius_agro/data/sesion_repository.dart';
 /// telefono no deje entrar a quien nunca entro con red, y que la copia local
 /// caduque — es lo unico que puede enterarse de que alguien salio de la
 /// empresa cuando el telefono lleva dias en una vereda.
+const _URL = 'https://v5.airtableusercontent.com/retrato.jpg';
+// Los primeros bytes de un JPEG de verdad: lo que importa es que lo que baja
+// es lo que se escribe en disco, byte por byte.
+const _JPEG = [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46];
+
 void main() {
+  // La foto se escribe donde la app guarda sus archivos, y eso lo resuelve
+  // path_provider, que en un test no tiene plataforma detras. Se le da una
+  // carpeta temporal para comprobar que el archivo queda escrito de verdad:
+  // que la credencial tenga ruta y en disco no haya nada es justo el fallo
+  // que hay que atrapar.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late AppDatabase db;
   late SesionRepository repo;
+  late Directory documentos;
+
+  setUpAll(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async => documentos.path,
+    );
+  });
 
   const password = 'Contrasena-de-prueba-1';
   // rounds bajo a proposito: el test corre en CI, no protege nada.
@@ -21,7 +45,8 @@ void main() {
 
   const cedula = '1234567890';
 
-  CredencialRemota remota({int diasMaxOffline = 30}) => CredencialRemota(
+  CredencialRemota remota({int diasMaxOffline = 30, String fotoUrl = ''}) =>
+      CredencialRemota(
         idEmpleado: 'SIRIUS-PER-0007',
         cedula: cedula,
         nombre: 'Persona De Prueba',
@@ -31,14 +56,52 @@ void main() {
         ordenNivel: 3,
         hashBcrypt: hash,
         diasMaxOffline: diasMaxOffline,
+        fotoUrl: fotoUrl,
       );
 
-  setUp(() {
+  setUp(() async {
+    documentos = await Directory.systemTemp.createTemp('docs-sesion-');
     db = AppDatabase.forTesting(NativeDatabase.memory());
     repo = SesionRepository(db);
   });
 
   tearDown(() => db.close());
+
+  group('la foto de perfil del visitador', () {
+    test('se baja al entrar con red y queda apuntada en la credencial',
+        () async {
+      await repo.guardarTrasLoginOnline(cedula, remota(fotoUrl: _URL));
+      await repo.guardarFotoPerfil(cedula, _URL, (_) async => _JPEG);
+
+      final guardada = await repo.leerCredencial(cedula);
+      expect(guardada!.fotoUrl, _URL);
+      expect(guardada.fotoPath, isNotNull);
+      expect(File(guardada.fotoPath!).readAsBytesSync(), _JPEG);
+    });
+
+    test('si no se puede bajar, se entra igual y quedan las iniciales',
+        () async {
+      // Sin red, con la URL ya caducada, o sin retrato cargado en nomina. Un
+      // fallo bajando un retrato no puede dejar a nadie sin poder trabajar.
+      await repo.guardarTrasLoginOnline(cedula, remota(fotoUrl: _URL));
+      await repo.guardarFotoPerfil(cedula, _URL, (_) async => null);
+
+      final guardada = await repo.leerCredencial(cedula);
+      expect(guardada, isNotNull);
+      expect(guardada!.fotoPath, isNull);
+    });
+
+    test('quien no tiene foto en nomina no dispara ninguna descarga', () async {
+      var llamadas = 0;
+      await repo.guardarTrasLoginOnline(cedula, remota());
+      await repo.guardarFotoPerfil(cedula, '', (_) async {
+        llamadas++;
+        return _JPEG;
+      });
+
+      expect(llamadas, 0);
+    });
+  });
 
   group('la credencial que habilita el modo sin red', () {
     test('el primer login con red la deja guardada', () async {

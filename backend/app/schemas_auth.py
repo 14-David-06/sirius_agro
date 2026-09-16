@@ -24,6 +24,13 @@ class LoginResult(BaseModel):
     # Papel dentro de ESTA app, derivado del nivel de nomina.
     rol_app: str
 
+    # La foto de perfil de nomina. Va vacia si la persona no tiene ninguna.
+    #
+    # Es una URL de Airtable, que caduca en horas: el telefono la baja al
+    # entrar y se queda con el archivo. Guardarla y volver a pedirla despues
+    # daria un 403 en la mitad de una visita.
+    foto_url: str = ""
+
     # El hash bcrypt de la persona, para que el telefono pueda validar la
     # contrasena en una vereda sin senal.
     #

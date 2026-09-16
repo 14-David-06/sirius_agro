@@ -35,6 +35,7 @@ CAMPO_ESTADO = "Estado de actividad"
 CAMPO_NIVEL = "Nivel Acceso (from Nivel_Sistema_Nuevo)"
 CAMPO_ORDEN_NIVEL = "Orden Nivel (from Nivel_Sistema_Nuevo)"
 CAMPO_ROL = "Rol (from Rol)"
+CAMPO_FOTO = "Foto Perfil"
 
 ESTADO_ACTIVO = "Activo"
 
@@ -57,6 +58,9 @@ class Empleado:
     nivel_acceso: str
     orden_nivel: int
     hash_bcrypt: str
+    # La miniatura de la foto de perfil en Airtable. Caduca en un par de horas,
+    # asi que es para descargarla UNA vez al entrar, no para guardarla.
+    foto_url: str
 
 
 def _texto(valor: object) -> str:
@@ -66,6 +70,24 @@ def _texto(valor: object) -> str:
     if isinstance(valor, dict):
         return str(valor.get("name", "")).strip()
     return str(valor).strip() if valor is not None else ""
+
+
+def _foto(valor: object) -> str:
+    """La primera miniatura del adjunto `Foto Perfil`, si la hay.
+
+    Se prefiere la miniatura grande a la original, igual que en el directorio
+    de productores: es la cara de alguien dentro de un circulo de 32 px, no un
+    archivo que haya que guardar, y la original puede pesar varios megas en una
+    red que apenas alcanza para sincronizar la visita.
+    """
+    if not isinstance(valor, list) or not valor:
+        return ""
+    primero = valor[0]
+    if not isinstance(primero, dict):
+        return ""
+    miniaturas = primero.get("thumbnails") or {}
+    grande = miniaturas.get("large") or miniaturas.get("full") or {}
+    return _texto(grande.get("url")) or _texto(primero.get("url"))
 
 
 def _entero(valor: object, por_defecto: int) -> int:
@@ -197,4 +219,5 @@ async def autenticar(settings: Settings, cedula: str, password: str) -> Empleado
         # puede convertir a alguien en Super Admin.
         orden_nivel=_entero(campos.get(CAMPO_ORDEN_NIVEL), 99),
         hash_bcrypt=guardado,
+        foto_url=_foto(campos.get(CAMPO_FOTO)),
     )

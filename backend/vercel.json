@@ -6,5 +6,5 @@
       "excludeFiles": "{tests/**,scripts/**,**/__pycache__/**,.venv/**,.pytest_cache/**}"
     }
   },
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./"
+  "ignoreCommand": "git diff --quiet ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} HEAD ./"
 }

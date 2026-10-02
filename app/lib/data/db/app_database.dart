@@ -95,6 +95,7 @@ ProcedenciaResuelta resolverProcedencia({
     Informes,
     Trazados,
     PuntosTrazado,
+    Asistencias,
     SyncQueue,
   ],
 )
@@ -129,8 +130,14 @@ class AppDatabase extends _$AppDatabase {
   /// v11: `CredencialesLocales.fotoUrl` y `.fotoPath` — la foto del visitador
   ///     que viene de nomina, y el archivo ya bajado que es lo que se pinta
   ///     cuando no hay senal.
+  /// v12: `Asistencias` — el registro de asistencia con firma y nota de voz.
+  /// v13: `Asistencias.veredaLocalId`, `.quiereVisita`, `.areaSembradaHa` y
+  ///     `.productorLocalId` — de donde viene, si pide visita y cuanto siembra.
+  /// v14: los datos de la persona pasan a ser opcionales y se agrega
+  ///     `Asistencias.procesado`. En el campo ya no se teclean: se dicen en la
+  ///     nota de voz y los saca el backend cuando hay red.
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -212,6 +219,35 @@ class AppDatabase extends _$AppDatabase {
             m, credencialesLocales, credencialesLocales.fotoUrl);
           await _asegurarColumna(
             m, credencialesLocales, credencialesLocales.fotoPath);
+          // v12: el registro de asistencia. Tabla nueva y sin claves
+          // foraneas, asi que no depende del orden de las demas.
+          final habiaAsistencias =
+              (await columnasDe(asistencias.actualTableName)).isNotEmpty;
+          await _asegurarTabla(m, asistencias);
+          if (habiaAsistencias && desde < 14) {
+            // v13: si la tabla nacio en la v12, le faltan estas tres.
+            for (final columna in [
+              asistencias.veredaLocalId,
+              asistencias.quiereVisita,
+              asistencias.areaSembradaHa,
+            ]) {
+              await _asegurarColumna(m, asistencias, columna);
+            }
+            // v14: nombre y cedula dejan de ser NOT NULL. SQLite no cambia
+            // eso con un ALTER: se reconstruye la tabla copiando las filas,
+            // asi que los registros que ya estaban en el telefono se quedan.
+            final hayProcesado = (await columnasDe(asistencias.actualTableName))
+                .contains(asistencias.procesado.name);
+            await m.alterTable(
+              // Experimental en drift, pero es la unica forma de quitarle el
+              // NOT NULL a una columna sin perder las filas.
+              // ignore: experimental_member_use
+              TableMigration(
+                asistencias,
+                newColumns: [if (!hayProcesado) asistencias.procesado],
+              ),
+            );
+          }
         },
         beforeOpen: (details) async {
           // Sin esto SQLite ignora las claves foraneas y se pueden quedar
@@ -490,7 +526,11 @@ class AppDatabase extends _$AppDatabase {
 
   /// Lo siguiente que toca subir: pendiente o fallido, con el reintento ya
   /// vencido, el audio antes que las fotos y lo mas viejo primero.
-  Future<List<SyncItem>> proximosItems({int limite = 5}) =>
+  ///
+  /// [entidad] acota la corrida. La pantalla de asistencia sube solo sus
+  /// registros: tocar «Subir» ahi no puede arrastrar el audio de tres visitas
+  /// por los datos moviles del visitador sin que lo haya pedido.
+  Future<List<SyncItem>> proximosItems({int limite = 5, String? entidad}) =>
       (select(syncQueue)
             ..where(
               (q) =>
@@ -498,7 +538,10 @@ class AppDatabase extends _$AppDatabase {
                     EstadoSync.pendiente.airtable,
                     EstadoSync.fallida.airtable,
                   ]) &
-                  q.proximoIntentoEn.isSmallerOrEqualValue(DateTime.now()),
+                  q.proximoIntentoEn.isSmallerOrEqualValue(DateTime.now()) &
+                  (entidad == null
+                      ? const Constant(true)
+                      : q.entidad.equals(entidad)),
             )
             ..orderBy([
               (q) => OrderingTerm(expression: q.prioridad),

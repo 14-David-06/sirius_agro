@@ -522,6 +522,41 @@ class ApiClient {
     );
   }
 
+  /// Sube un registro de asistencia con su firma y su nota de voz.
+  ///
+  /// Todo en un multipart: los datos van como JSON en el campo `datos` y los
+  /// dos archivos como partes. Una sola peticion sube todo o nada, asi que la
+  /// cola no tiene que coordinar tres items para una sola persona. Cabe de
+  /// sobra en el cuerpo maximo del host: la nota topa en 2 minutos (~0,5 MB).
+  ///
+  /// Idempotente por `codigo_registro`: reintentar actualiza, no duplica.
+  Future<Map<String, dynamic>> sincronizarAsistencia({
+    required Map<String, dynamic> datos,
+    required Uint8List firma,
+    Uint8List? notaVoz,
+  }) async {
+    final request = http.MultipartRequest('POST', _uri('/v1/asistencias'))
+      ..fields['datos'] = jsonEncode(datos)
+      ..files.add(
+        http.MultipartFile.fromBytes('firma', firma, filename: 'firma.png'),
+      );
+    if (notaVoz != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'nota_voz',
+          notaVoz,
+          filename: 'nota-voz.m4a',
+        ),
+      );
+    }
+    request.headers.addAll(_authHeaders);
+
+    final response = await http.Response.fromStream(await _client.send(request));
+    if (response.statusCode >= 400) _fail(response);
+
+    return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+  }
+
   /// Los agricultores ya registrados en Airtable, para no volver a crearlos.
   ///
   /// Es una ayuda y se trata como tal: quien la llama tiene que dejar seguir

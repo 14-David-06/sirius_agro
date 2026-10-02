@@ -607,6 +607,82 @@ class PuntosTrazado extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Un registro de asistencia: una persona que firmo en un taller o jornada.
+///
+/// No cuelga de ninguna visita a proposito. La asistencia se toma de a muchos
+/// —veinte personas en una caseta comunal— y casi ninguna es el productor de
+/// una visita abierta; amarrarla a `Visitas` obligaria a inventar una.
+///
+/// En el campo solo se captura la nota de voz —donde la persona dice sus datos
+/// siguiendo un guion— y la firma. Nada se procesa en el telefono: el registro
+/// queda en la cola y, cuando hay red, el backend transcribe la nota, saca los
+/// datos y los devuelve. Por eso los datos de la persona son todos opcionales:
+/// estan vacios hasta que el registro se procesa.
+@DataClassName('Asistencia')
+class Asistencias extends Table {
+  /// UUID v4 del dispositivo. Es `Asistencias.Codigo de registro` en Airtable.
+  TextColumn get id => text()();
+
+  // --- Lo que se captura en el campo. ---
+
+  DateTimeColumn get registradoEn => dateTime()();
+
+  /// Taller, jornada o charla. Lo escribe el visitador una vez y la app lo
+  /// propone en el registro siguiente.
+  TextColumn get evento => text().nullable()();
+
+  /// Al enviar, la persona acepta los terminos que se le mostraron. Se guarda
+  /// tambien el enlace exacto: si la politica cambia de direccion, el registro
+  /// sigue diciendo cual fue la que se acepto.
+  BoolColumn get aceptaTerminos =>
+      boolean().withDefault(const Constant(false))();
+  TextColumn get terminosUrl => text().nullable()();
+
+  /// PNG con fondo blanco, en disco.
+  TextColumn get firmaPath => text()();
+
+  /// La nota con los datos de la persona. Sin ella no hay registro que
+  /// procesar; nullable solo porque asi nacio la columna en la v12.
+  TextColumn get notaVozPath => text().nullable()();
+  IntColumn get duracionNotaSeg => integer().nullable()();
+
+  RealColumn get latitud => real().nullable()();
+  RealColumn get longitud => real().nullable()();
+
+  /// Quien tomo la asistencia. Se copia de la sesion y no se referencia: el
+  /// backend lo resuelve contra `Visitadores` por el id de nomina.
+  TextColumn get visitadorIdEmpleado => text().nullable()();
+  TextColumn get visitadorNombre => text().nullable()();
+
+  // --- Lo que devuelve el backend al procesar la nota. ---
+
+  BoolColumn get procesado => boolean().withDefault(const Constant(false))();
+  TextColumn get nombreCompleto => text().nullable()();
+  TextColumn get cedula => text().nullable()();
+  TextColumn get telefono => text().nullable()();
+
+  /// Uno por linea, como el multiselect de Airtable.
+  TextColumn get cultivos => text().withDefault(const Constant(''))();
+
+  /// La vereda que reconocio el backend, resuelta a la del telefono por el
+  /// nombre.
+  TextColumn get veredaLocalId =>
+      text().nullable().references(Veredas, #id)();
+  BoolColumn get quiereVisita =>
+      boolean().withDefault(const Constant(false))();
+  RealColumn get areaSembradaHa => real().nullable()();
+  TextColumn get transcripcionNota => text().nullable()();
+
+  TextColumn get enlaceFirma => text().nullable()();
+  TextColumn get enlaceNotaVoz => text().nullable()();
+  TextColumn get remoteId => text().nullable()();
+  BoolColumn get sincronizado => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get sincronizadoEn => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Cola de sincronizacion. Un item por unidad de trabajo, con reintento propio:
 /// que falle la subida de una foto no puede bloquear la visita entera.
 @DataClassName('SyncItem')

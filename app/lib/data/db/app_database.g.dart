@@ -11771,6 +11771,1526 @@ class PuntosTrazadoCompanion extends UpdateCompanion<PuntoTrazado> {
   }
 }
 
+class $AsistenciasTable extends Asistencias
+    with TableInfo<$AsistenciasTable, Asistencia> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AsistenciasTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _registradoEnMeta = const VerificationMeta(
+    'registradoEn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> registradoEn = GeneratedColumn<DateTime>(
+    'registrado_en',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _eventoMeta = const VerificationMeta('evento');
+  @override
+  late final GeneratedColumn<String> evento = GeneratedColumn<String>(
+    'evento',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _aceptaTerminosMeta = const VerificationMeta(
+    'aceptaTerminos',
+  );
+  @override
+  late final GeneratedColumn<bool> aceptaTerminos = GeneratedColumn<bool>(
+    'acepta_terminos',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("acepta_terminos" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _terminosUrlMeta = const VerificationMeta(
+    'terminosUrl',
+  );
+  @override
+  late final GeneratedColumn<String> terminosUrl = GeneratedColumn<String>(
+    'terminos_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _firmaPathMeta = const VerificationMeta(
+    'firmaPath',
+  );
+  @override
+  late final GeneratedColumn<String> firmaPath = GeneratedColumn<String>(
+    'firma_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notaVozPathMeta = const VerificationMeta(
+    'notaVozPath',
+  );
+  @override
+  late final GeneratedColumn<String> notaVozPath = GeneratedColumn<String>(
+    'nota_voz_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _duracionNotaSegMeta = const VerificationMeta(
+    'duracionNotaSeg',
+  );
+  @override
+  late final GeneratedColumn<int> duracionNotaSeg = GeneratedColumn<int>(
+    'duracion_nota_seg',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _latitudMeta = const VerificationMeta(
+    'latitud',
+  );
+  @override
+  late final GeneratedColumn<double> latitud = GeneratedColumn<double>(
+    'latitud',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _longitudMeta = const VerificationMeta(
+    'longitud',
+  );
+  @override
+  late final GeneratedColumn<double> longitud = GeneratedColumn<double>(
+    'longitud',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _visitadorIdEmpleadoMeta =
+      const VerificationMeta('visitadorIdEmpleado');
+  @override
+  late final GeneratedColumn<String> visitadorIdEmpleado =
+      GeneratedColumn<String>(
+        'visitador_id_empleado',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _visitadorNombreMeta = const VerificationMeta(
+    'visitadorNombre',
+  );
+  @override
+  late final GeneratedColumn<String> visitadorNombre = GeneratedColumn<String>(
+    'visitador_nombre',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _procesadoMeta = const VerificationMeta(
+    'procesado',
+  );
+  @override
+  late final GeneratedColumn<bool> procesado = GeneratedColumn<bool>(
+    'procesado',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("procesado" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _nombreCompletoMeta = const VerificationMeta(
+    'nombreCompleto',
+  );
+  @override
+  late final GeneratedColumn<String> nombreCompleto = GeneratedColumn<String>(
+    'nombre_completo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cedulaMeta = const VerificationMeta('cedula');
+  @override
+  late final GeneratedColumn<String> cedula = GeneratedColumn<String>(
+    'cedula',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _telefonoMeta = const VerificationMeta(
+    'telefono',
+  );
+  @override
+  late final GeneratedColumn<String> telefono = GeneratedColumn<String>(
+    'telefono',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cultivosMeta = const VerificationMeta(
+    'cultivos',
+  );
+  @override
+  late final GeneratedColumn<String> cultivos = GeneratedColumn<String>(
+    'cultivos',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _veredaLocalIdMeta = const VerificationMeta(
+    'veredaLocalId',
+  );
+  @override
+  late final GeneratedColumn<String> veredaLocalId = GeneratedColumn<String>(
+    'vereda_local_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _quiereVisitaMeta = const VerificationMeta(
+    'quiereVisita',
+  );
+  @override
+  late final GeneratedColumn<bool> quiereVisita = GeneratedColumn<bool>(
+    'quiere_visita',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("quiere_visita" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _areaSembradaHaMeta = const VerificationMeta(
+    'areaSembradaHa',
+  );
+  @override
+  late final GeneratedColumn<double> areaSembradaHa = GeneratedColumn<double>(
+    'area_sembrada_ha',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _transcripcionNotaMeta = const VerificationMeta(
+    'transcripcionNota',
+  );
+  @override
+  late final GeneratedColumn<String> transcripcionNota =
+      GeneratedColumn<String>(
+        'transcripcion_nota',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _enlaceFirmaMeta = const VerificationMeta(
+    'enlaceFirma',
+  );
+  @override
+  late final GeneratedColumn<String> enlaceFirma = GeneratedColumn<String>(
+    'enlace_firma',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _enlaceNotaVozMeta = const VerificationMeta(
+    'enlaceNotaVoz',
+  );
+  @override
+  late final GeneratedColumn<String> enlaceNotaVoz = GeneratedColumn<String>(
+    'enlace_nota_voz',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  @override
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sincronizadoMeta = const VerificationMeta(
+    'sincronizado',
+  );
+  @override
+  late final GeneratedColumn<bool> sincronizado = GeneratedColumn<bool>(
+    'sincronizado',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sincronizado" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _sincronizadoEnMeta = const VerificationMeta(
+    'sincronizadoEn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> sincronizadoEn =
+      GeneratedColumn<DateTime>(
+        'sincronizado_en',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    registradoEn,
+    evento,
+    aceptaTerminos,
+    terminosUrl,
+    firmaPath,
+    notaVozPath,
+    duracionNotaSeg,
+    latitud,
+    longitud,
+    visitadorIdEmpleado,
+    visitadorNombre,
+    procesado,
+    nombreCompleto,
+    cedula,
+    telefono,
+    cultivos,
+    veredaLocalId,
+    quiereVisita,
+    areaSembradaHa,
+    transcripcionNota,
+    enlaceFirma,
+    enlaceNotaVoz,
+    remoteId,
+    sincronizado,
+    sincronizadoEn,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'asistencias';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Asistencia> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('registrado_en')) {
+      context.handle(
+        _registradoEnMeta,
+        registradoEn.isAcceptableOrUnknown(
+          data['registrado_en']!,
+          _registradoEnMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_registradoEnMeta);
+    }
+    if (data.containsKey('evento')) {
+      context.handle(
+        _eventoMeta,
+        evento.isAcceptableOrUnknown(data['evento']!, _eventoMeta),
+      );
+    }
+    if (data.containsKey('acepta_terminos')) {
+      context.handle(
+        _aceptaTerminosMeta,
+        aceptaTerminos.isAcceptableOrUnknown(
+          data['acepta_terminos']!,
+          _aceptaTerminosMeta,
+        ),
+      );
+    }
+    if (data.containsKey('terminos_url')) {
+      context.handle(
+        _terminosUrlMeta,
+        terminosUrl.isAcceptableOrUnknown(
+          data['terminos_url']!,
+          _terminosUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('firma_path')) {
+      context.handle(
+        _firmaPathMeta,
+        firmaPath.isAcceptableOrUnknown(data['firma_path']!, _firmaPathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_firmaPathMeta);
+    }
+    if (data.containsKey('nota_voz_path')) {
+      context.handle(
+        _notaVozPathMeta,
+        notaVozPath.isAcceptableOrUnknown(
+          data['nota_voz_path']!,
+          _notaVozPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('duracion_nota_seg')) {
+      context.handle(
+        _duracionNotaSegMeta,
+        duracionNotaSeg.isAcceptableOrUnknown(
+          data['duracion_nota_seg']!,
+          _duracionNotaSegMeta,
+        ),
+      );
+    }
+    if (data.containsKey('latitud')) {
+      context.handle(
+        _latitudMeta,
+        latitud.isAcceptableOrUnknown(data['latitud']!, _latitudMeta),
+      );
+    }
+    if (data.containsKey('longitud')) {
+      context.handle(
+        _longitudMeta,
+        longitud.isAcceptableOrUnknown(data['longitud']!, _longitudMeta),
+      );
+    }
+    if (data.containsKey('visitador_id_empleado')) {
+      context.handle(
+        _visitadorIdEmpleadoMeta,
+        visitadorIdEmpleado.isAcceptableOrUnknown(
+          data['visitador_id_empleado']!,
+          _visitadorIdEmpleadoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('visitador_nombre')) {
+      context.handle(
+        _visitadorNombreMeta,
+        visitadorNombre.isAcceptableOrUnknown(
+          data['visitador_nombre']!,
+          _visitadorNombreMeta,
+        ),
+      );
+    }
+    if (data.containsKey('procesado')) {
+      context.handle(
+        _procesadoMeta,
+        procesado.isAcceptableOrUnknown(data['procesado']!, _procesadoMeta),
+      );
+    }
+    if (data.containsKey('nombre_completo')) {
+      context.handle(
+        _nombreCompletoMeta,
+        nombreCompleto.isAcceptableOrUnknown(
+          data['nombre_completo']!,
+          _nombreCompletoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cedula')) {
+      context.handle(
+        _cedulaMeta,
+        cedula.isAcceptableOrUnknown(data['cedula']!, _cedulaMeta),
+      );
+    }
+    if (data.containsKey('telefono')) {
+      context.handle(
+        _telefonoMeta,
+        telefono.isAcceptableOrUnknown(data['telefono']!, _telefonoMeta),
+      );
+    }
+    if (data.containsKey('cultivos')) {
+      context.handle(
+        _cultivosMeta,
+        cultivos.isAcceptableOrUnknown(data['cultivos']!, _cultivosMeta),
+      );
+    }
+    if (data.containsKey('vereda_local_id')) {
+      context.handle(
+        _veredaLocalIdMeta,
+        veredaLocalId.isAcceptableOrUnknown(
+          data['vereda_local_id']!,
+          _veredaLocalIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quiere_visita')) {
+      context.handle(
+        _quiereVisitaMeta,
+        quiereVisita.isAcceptableOrUnknown(
+          data['quiere_visita']!,
+          _quiereVisitaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('area_sembrada_ha')) {
+      context.handle(
+        _areaSembradaHaMeta,
+        areaSembradaHa.isAcceptableOrUnknown(
+          data['area_sembrada_ha']!,
+          _areaSembradaHaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('transcripcion_nota')) {
+      context.handle(
+        _transcripcionNotaMeta,
+        transcripcionNota.isAcceptableOrUnknown(
+          data['transcripcion_nota']!,
+          _transcripcionNotaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enlace_firma')) {
+      context.handle(
+        _enlaceFirmaMeta,
+        enlaceFirma.isAcceptableOrUnknown(
+          data['enlace_firma']!,
+          _enlaceFirmaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enlace_nota_voz')) {
+      context.handle(
+        _enlaceNotaVozMeta,
+        enlaceNotaVoz.isAcceptableOrUnknown(
+          data['enlace_nota_voz']!,
+          _enlaceNotaVozMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
+    }
+    if (data.containsKey('sincronizado')) {
+      context.handle(
+        _sincronizadoMeta,
+        sincronizado.isAcceptableOrUnknown(
+          data['sincronizado']!,
+          _sincronizadoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sincronizado_en')) {
+      context.handle(
+        _sincronizadoEnMeta,
+        sincronizadoEn.isAcceptableOrUnknown(
+          data['sincronizado_en']!,
+          _sincronizadoEnMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Asistencia map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Asistencia(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      registradoEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}registrado_en'],
+      )!,
+      evento: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}evento'],
+      ),
+      aceptaTerminos: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}acepta_terminos'],
+      )!,
+      terminosUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}terminos_url'],
+      ),
+      firmaPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}firma_path'],
+      )!,
+      notaVozPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nota_voz_path'],
+      ),
+      duracionNotaSeg: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duracion_nota_seg'],
+      ),
+      latitud: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitud'],
+      ),
+      longitud: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitud'],
+      ),
+      visitadorIdEmpleado: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visitador_id_empleado'],
+      ),
+      visitadorNombre: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visitador_nombre'],
+      ),
+      procesado: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}procesado'],
+      )!,
+      nombreCompleto: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nombre_completo'],
+      ),
+      cedula: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cedula'],
+      ),
+      telefono: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}telefono'],
+      ),
+      cultivos: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cultivos'],
+      )!,
+      veredaLocalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vereda_local_id'],
+      ),
+      quiereVisita: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}quiere_visita'],
+      )!,
+      areaSembradaHa: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}area_sembrada_ha'],
+      ),
+      transcripcionNota: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}transcripcion_nota'],
+      ),
+      enlaceFirma: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}enlace_firma'],
+      ),
+      enlaceNotaVoz: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}enlace_nota_voz'],
+      ),
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
+      ),
+      sincronizado: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sincronizado'],
+      )!,
+      sincronizadoEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}sincronizado_en'],
+      ),
+    );
+  }
+
+  @override
+  $AsistenciasTable createAlias(String alias) {
+    return $AsistenciasTable(attachedDatabase, alias);
+  }
+}
+
+class Asistencia extends DataClass implements Insertable<Asistencia> {
+  /// UUID v4 del dispositivo. Es `Asistencias.Codigo de registro` en Airtable.
+  final String id;
+  final DateTime registradoEn;
+
+  /// Taller, jornada o charla. Lo escribe el visitador una vez y la app lo
+  /// propone en el registro siguiente.
+  final String? evento;
+
+  /// Al enviar, la persona acepta los terminos que se le mostraron. Se guarda
+  /// tambien el enlace exacto: si la politica cambia de direccion, el registro
+  /// sigue diciendo cual fue la que se acepto.
+  final bool aceptaTerminos;
+  final String? terminosUrl;
+
+  /// PNG con fondo blanco, en disco.
+  final String firmaPath;
+
+  /// La nota con los datos de la persona. Sin ella no hay registro que
+  /// procesar; nullable solo porque asi nacio la columna en la v12.
+  final String? notaVozPath;
+  final int? duracionNotaSeg;
+  final double? latitud;
+  final double? longitud;
+
+  /// Quien tomo la asistencia. Se copia de la sesion y no se referencia: el
+  /// backend lo resuelve contra `Visitadores` por el id de nomina.
+  final String? visitadorIdEmpleado;
+  final String? visitadorNombre;
+  final bool procesado;
+  final String? nombreCompleto;
+  final String? cedula;
+  final String? telefono;
+
+  /// Uno por linea, como el multiselect de Airtable.
+  final String cultivos;
+
+  /// La vereda que reconocio el backend, resuelta a la del telefono por el
+  /// nombre.
+  final String? veredaLocalId;
+  final bool quiereVisita;
+  final double? areaSembradaHa;
+  final String? transcripcionNota;
+  final String? enlaceFirma;
+  final String? enlaceNotaVoz;
+  final String? remoteId;
+  final bool sincronizado;
+  final DateTime? sincronizadoEn;
+  const Asistencia({
+    required this.id,
+    required this.registradoEn,
+    this.evento,
+    required this.aceptaTerminos,
+    this.terminosUrl,
+    required this.firmaPath,
+    this.notaVozPath,
+    this.duracionNotaSeg,
+    this.latitud,
+    this.longitud,
+    this.visitadorIdEmpleado,
+    this.visitadorNombre,
+    required this.procesado,
+    this.nombreCompleto,
+    this.cedula,
+    this.telefono,
+    required this.cultivos,
+    this.veredaLocalId,
+    required this.quiereVisita,
+    this.areaSembradaHa,
+    this.transcripcionNota,
+    this.enlaceFirma,
+    this.enlaceNotaVoz,
+    this.remoteId,
+    required this.sincronizado,
+    this.sincronizadoEn,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['registrado_en'] = Variable<DateTime>(registradoEn);
+    if (!nullToAbsent || evento != null) {
+      map['evento'] = Variable<String>(evento);
+    }
+    map['acepta_terminos'] = Variable<bool>(aceptaTerminos);
+    if (!nullToAbsent || terminosUrl != null) {
+      map['terminos_url'] = Variable<String>(terminosUrl);
+    }
+    map['firma_path'] = Variable<String>(firmaPath);
+    if (!nullToAbsent || notaVozPath != null) {
+      map['nota_voz_path'] = Variable<String>(notaVozPath);
+    }
+    if (!nullToAbsent || duracionNotaSeg != null) {
+      map['duracion_nota_seg'] = Variable<int>(duracionNotaSeg);
+    }
+    if (!nullToAbsent || latitud != null) {
+      map['latitud'] = Variable<double>(latitud);
+    }
+    if (!nullToAbsent || longitud != null) {
+      map['longitud'] = Variable<double>(longitud);
+    }
+    if (!nullToAbsent || visitadorIdEmpleado != null) {
+      map['visitador_id_empleado'] = Variable<String>(visitadorIdEmpleado);
+    }
+    if (!nullToAbsent || visitadorNombre != null) {
+      map['visitador_nombre'] = Variable<String>(visitadorNombre);
+    }
+    map['procesado'] = Variable<bool>(procesado);
+    if (!nullToAbsent || nombreCompleto != null) {
+      map['nombre_completo'] = Variable<String>(nombreCompleto);
+    }
+    if (!nullToAbsent || cedula != null) {
+      map['cedula'] = Variable<String>(cedula);
+    }
+    if (!nullToAbsent || telefono != null) {
+      map['telefono'] = Variable<String>(telefono);
+    }
+    map['cultivos'] = Variable<String>(cultivos);
+    if (!nullToAbsent || veredaLocalId != null) {
+      map['vereda_local_id'] = Variable<String>(veredaLocalId);
+    }
+    map['quiere_visita'] = Variable<bool>(quiereVisita);
+    if (!nullToAbsent || areaSembradaHa != null) {
+      map['area_sembrada_ha'] = Variable<double>(areaSembradaHa);
+    }
+    if (!nullToAbsent || transcripcionNota != null) {
+      map['transcripcion_nota'] = Variable<String>(transcripcionNota);
+    }
+    if (!nullToAbsent || enlaceFirma != null) {
+      map['enlace_firma'] = Variable<String>(enlaceFirma);
+    }
+    if (!nullToAbsent || enlaceNotaVoz != null) {
+      map['enlace_nota_voz'] = Variable<String>(enlaceNotaVoz);
+    }
+    if (!nullToAbsent || remoteId != null) {
+      map['remote_id'] = Variable<String>(remoteId);
+    }
+    map['sincronizado'] = Variable<bool>(sincronizado);
+    if (!nullToAbsent || sincronizadoEn != null) {
+      map['sincronizado_en'] = Variable<DateTime>(sincronizadoEn);
+    }
+    return map;
+  }
+
+  AsistenciasCompanion toCompanion(bool nullToAbsent) {
+    return AsistenciasCompanion(
+      id: Value(id),
+      registradoEn: Value(registradoEn),
+      evento: evento == null && nullToAbsent
+          ? const Value.absent()
+          : Value(evento),
+      aceptaTerminos: Value(aceptaTerminos),
+      terminosUrl: terminosUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(terminosUrl),
+      firmaPath: Value(firmaPath),
+      notaVozPath: notaVozPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notaVozPath),
+      duracionNotaSeg: duracionNotaSeg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(duracionNotaSeg),
+      latitud: latitud == null && nullToAbsent
+          ? const Value.absent()
+          : Value(latitud),
+      longitud: longitud == null && nullToAbsent
+          ? const Value.absent()
+          : Value(longitud),
+      visitadorIdEmpleado: visitadorIdEmpleado == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visitadorIdEmpleado),
+      visitadorNombre: visitadorNombre == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visitadorNombre),
+      procesado: Value(procesado),
+      nombreCompleto: nombreCompleto == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nombreCompleto),
+      cedula: cedula == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cedula),
+      telefono: telefono == null && nullToAbsent
+          ? const Value.absent()
+          : Value(telefono),
+      cultivos: Value(cultivos),
+      veredaLocalId: veredaLocalId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(veredaLocalId),
+      quiereVisita: Value(quiereVisita),
+      areaSembradaHa: areaSembradaHa == null && nullToAbsent
+          ? const Value.absent()
+          : Value(areaSembradaHa),
+      transcripcionNota: transcripcionNota == null && nullToAbsent
+          ? const Value.absent()
+          : Value(transcripcionNota),
+      enlaceFirma: enlaceFirma == null && nullToAbsent
+          ? const Value.absent()
+          : Value(enlaceFirma),
+      enlaceNotaVoz: enlaceNotaVoz == null && nullToAbsent
+          ? const Value.absent()
+          : Value(enlaceNotaVoz),
+      remoteId: remoteId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteId),
+      sincronizado: Value(sincronizado),
+      sincronizadoEn: sincronizadoEn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sincronizadoEn),
+    );
+  }
+
+  factory Asistencia.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Asistencia(
+      id: serializer.fromJson<String>(json['id']),
+      registradoEn: serializer.fromJson<DateTime>(json['registradoEn']),
+      evento: serializer.fromJson<String?>(json['evento']),
+      aceptaTerminos: serializer.fromJson<bool>(json['aceptaTerminos']),
+      terminosUrl: serializer.fromJson<String?>(json['terminosUrl']),
+      firmaPath: serializer.fromJson<String>(json['firmaPath']),
+      notaVozPath: serializer.fromJson<String?>(json['notaVozPath']),
+      duracionNotaSeg: serializer.fromJson<int?>(json['duracionNotaSeg']),
+      latitud: serializer.fromJson<double?>(json['latitud']),
+      longitud: serializer.fromJson<double?>(json['longitud']),
+      visitadorIdEmpleado: serializer.fromJson<String?>(
+        json['visitadorIdEmpleado'],
+      ),
+      visitadorNombre: serializer.fromJson<String?>(json['visitadorNombre']),
+      procesado: serializer.fromJson<bool>(json['procesado']),
+      nombreCompleto: serializer.fromJson<String?>(json['nombreCompleto']),
+      cedula: serializer.fromJson<String?>(json['cedula']),
+      telefono: serializer.fromJson<String?>(json['telefono']),
+      cultivos: serializer.fromJson<String>(json['cultivos']),
+      veredaLocalId: serializer.fromJson<String?>(json['veredaLocalId']),
+      quiereVisita: serializer.fromJson<bool>(json['quiereVisita']),
+      areaSembradaHa: serializer.fromJson<double?>(json['areaSembradaHa']),
+      transcripcionNota: serializer.fromJson<String?>(
+        json['transcripcionNota'],
+      ),
+      enlaceFirma: serializer.fromJson<String?>(json['enlaceFirma']),
+      enlaceNotaVoz: serializer.fromJson<String?>(json['enlaceNotaVoz']),
+      remoteId: serializer.fromJson<String?>(json['remoteId']),
+      sincronizado: serializer.fromJson<bool>(json['sincronizado']),
+      sincronizadoEn: serializer.fromJson<DateTime?>(json['sincronizadoEn']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'registradoEn': serializer.toJson<DateTime>(registradoEn),
+      'evento': serializer.toJson<String?>(evento),
+      'aceptaTerminos': serializer.toJson<bool>(aceptaTerminos),
+      'terminosUrl': serializer.toJson<String?>(terminosUrl),
+      'firmaPath': serializer.toJson<String>(firmaPath),
+      'notaVozPath': serializer.toJson<String?>(notaVozPath),
+      'duracionNotaSeg': serializer.toJson<int?>(duracionNotaSeg),
+      'latitud': serializer.toJson<double?>(latitud),
+      'longitud': serializer.toJson<double?>(longitud),
+      'visitadorIdEmpleado': serializer.toJson<String?>(visitadorIdEmpleado),
+      'visitadorNombre': serializer.toJson<String?>(visitadorNombre),
+      'procesado': serializer.toJson<bool>(procesado),
+      'nombreCompleto': serializer.toJson<String?>(nombreCompleto),
+      'cedula': serializer.toJson<String?>(cedula),
+      'telefono': serializer.toJson<String?>(telefono),
+      'cultivos': serializer.toJson<String>(cultivos),
+      'veredaLocalId': serializer.toJson<String?>(veredaLocalId),
+      'quiereVisita': serializer.toJson<bool>(quiereVisita),
+      'areaSembradaHa': serializer.toJson<double?>(areaSembradaHa),
+      'transcripcionNota': serializer.toJson<String?>(transcripcionNota),
+      'enlaceFirma': serializer.toJson<String?>(enlaceFirma),
+      'enlaceNotaVoz': serializer.toJson<String?>(enlaceNotaVoz),
+      'remoteId': serializer.toJson<String?>(remoteId),
+      'sincronizado': serializer.toJson<bool>(sincronizado),
+      'sincronizadoEn': serializer.toJson<DateTime?>(sincronizadoEn),
+    };
+  }
+
+  Asistencia copyWith({
+    String? id,
+    DateTime? registradoEn,
+    Value<String?> evento = const Value.absent(),
+    bool? aceptaTerminos,
+    Value<String?> terminosUrl = const Value.absent(),
+    String? firmaPath,
+    Value<String?> notaVozPath = const Value.absent(),
+    Value<int?> duracionNotaSeg = const Value.absent(),
+    Value<double?> latitud = const Value.absent(),
+    Value<double?> longitud = const Value.absent(),
+    Value<String?> visitadorIdEmpleado = const Value.absent(),
+    Value<String?> visitadorNombre = const Value.absent(),
+    bool? procesado,
+    Value<String?> nombreCompleto = const Value.absent(),
+    Value<String?> cedula = const Value.absent(),
+    Value<String?> telefono = const Value.absent(),
+    String? cultivos,
+    Value<String?> veredaLocalId = const Value.absent(),
+    bool? quiereVisita,
+    Value<double?> areaSembradaHa = const Value.absent(),
+    Value<String?> transcripcionNota = const Value.absent(),
+    Value<String?> enlaceFirma = const Value.absent(),
+    Value<String?> enlaceNotaVoz = const Value.absent(),
+    Value<String?> remoteId = const Value.absent(),
+    bool? sincronizado,
+    Value<DateTime?> sincronizadoEn = const Value.absent(),
+  }) => Asistencia(
+    id: id ?? this.id,
+    registradoEn: registradoEn ?? this.registradoEn,
+    evento: evento.present ? evento.value : this.evento,
+    aceptaTerminos: aceptaTerminos ?? this.aceptaTerminos,
+    terminosUrl: terminosUrl.present ? terminosUrl.value : this.terminosUrl,
+    firmaPath: firmaPath ?? this.firmaPath,
+    notaVozPath: notaVozPath.present ? notaVozPath.value : this.notaVozPath,
+    duracionNotaSeg: duracionNotaSeg.present
+        ? duracionNotaSeg.value
+        : this.duracionNotaSeg,
+    latitud: latitud.present ? latitud.value : this.latitud,
+    longitud: longitud.present ? longitud.value : this.longitud,
+    visitadorIdEmpleado: visitadorIdEmpleado.present
+        ? visitadorIdEmpleado.value
+        : this.visitadorIdEmpleado,
+    visitadorNombre: visitadorNombre.present
+        ? visitadorNombre.value
+        : this.visitadorNombre,
+    procesado: procesado ?? this.procesado,
+    nombreCompleto: nombreCompleto.present
+        ? nombreCompleto.value
+        : this.nombreCompleto,
+    cedula: cedula.present ? cedula.value : this.cedula,
+    telefono: telefono.present ? telefono.value : this.telefono,
+    cultivos: cultivos ?? this.cultivos,
+    veredaLocalId: veredaLocalId.present
+        ? veredaLocalId.value
+        : this.veredaLocalId,
+    quiereVisita: quiereVisita ?? this.quiereVisita,
+    areaSembradaHa: areaSembradaHa.present
+        ? areaSembradaHa.value
+        : this.areaSembradaHa,
+    transcripcionNota: transcripcionNota.present
+        ? transcripcionNota.value
+        : this.transcripcionNota,
+    enlaceFirma: enlaceFirma.present ? enlaceFirma.value : this.enlaceFirma,
+    enlaceNotaVoz: enlaceNotaVoz.present
+        ? enlaceNotaVoz.value
+        : this.enlaceNotaVoz,
+    remoteId: remoteId.present ? remoteId.value : this.remoteId,
+    sincronizado: sincronizado ?? this.sincronizado,
+    sincronizadoEn: sincronizadoEn.present
+        ? sincronizadoEn.value
+        : this.sincronizadoEn,
+  );
+  Asistencia copyWithCompanion(AsistenciasCompanion data) {
+    return Asistencia(
+      id: data.id.present ? data.id.value : this.id,
+      registradoEn: data.registradoEn.present
+          ? data.registradoEn.value
+          : this.registradoEn,
+      evento: data.evento.present ? data.evento.value : this.evento,
+      aceptaTerminos: data.aceptaTerminos.present
+          ? data.aceptaTerminos.value
+          : this.aceptaTerminos,
+      terminosUrl: data.terminosUrl.present
+          ? data.terminosUrl.value
+          : this.terminosUrl,
+      firmaPath: data.firmaPath.present ? data.firmaPath.value : this.firmaPath,
+      notaVozPath: data.notaVozPath.present
+          ? data.notaVozPath.value
+          : this.notaVozPath,
+      duracionNotaSeg: data.duracionNotaSeg.present
+          ? data.duracionNotaSeg.value
+          : this.duracionNotaSeg,
+      latitud: data.latitud.present ? data.latitud.value : this.latitud,
+      longitud: data.longitud.present ? data.longitud.value : this.longitud,
+      visitadorIdEmpleado: data.visitadorIdEmpleado.present
+          ? data.visitadorIdEmpleado.value
+          : this.visitadorIdEmpleado,
+      visitadorNombre: data.visitadorNombre.present
+          ? data.visitadorNombre.value
+          : this.visitadorNombre,
+      procesado: data.procesado.present ? data.procesado.value : this.procesado,
+      nombreCompleto: data.nombreCompleto.present
+          ? data.nombreCompleto.value
+          : this.nombreCompleto,
+      cedula: data.cedula.present ? data.cedula.value : this.cedula,
+      telefono: data.telefono.present ? data.telefono.value : this.telefono,
+      cultivos: data.cultivos.present ? data.cultivos.value : this.cultivos,
+      veredaLocalId: data.veredaLocalId.present
+          ? data.veredaLocalId.value
+          : this.veredaLocalId,
+      quiereVisita: data.quiereVisita.present
+          ? data.quiereVisita.value
+          : this.quiereVisita,
+      areaSembradaHa: data.areaSembradaHa.present
+          ? data.areaSembradaHa.value
+          : this.areaSembradaHa,
+      transcripcionNota: data.transcripcionNota.present
+          ? data.transcripcionNota.value
+          : this.transcripcionNota,
+      enlaceFirma: data.enlaceFirma.present
+          ? data.enlaceFirma.value
+          : this.enlaceFirma,
+      enlaceNotaVoz: data.enlaceNotaVoz.present
+          ? data.enlaceNotaVoz.value
+          : this.enlaceNotaVoz,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
+      sincronizado: data.sincronizado.present
+          ? data.sincronizado.value
+          : this.sincronizado,
+      sincronizadoEn: data.sincronizadoEn.present
+          ? data.sincronizadoEn.value
+          : this.sincronizadoEn,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Asistencia(')
+          ..write('id: $id, ')
+          ..write('registradoEn: $registradoEn, ')
+          ..write('evento: $evento, ')
+          ..write('aceptaTerminos: $aceptaTerminos, ')
+          ..write('terminosUrl: $terminosUrl, ')
+          ..write('firmaPath: $firmaPath, ')
+          ..write('notaVozPath: $notaVozPath, ')
+          ..write('duracionNotaSeg: $duracionNotaSeg, ')
+          ..write('latitud: $latitud, ')
+          ..write('longitud: $longitud, ')
+          ..write('visitadorIdEmpleado: $visitadorIdEmpleado, ')
+          ..write('visitadorNombre: $visitadorNombre, ')
+          ..write('procesado: $procesado, ')
+          ..write('nombreCompleto: $nombreCompleto, ')
+          ..write('cedula: $cedula, ')
+          ..write('telefono: $telefono, ')
+          ..write('cultivos: $cultivos, ')
+          ..write('veredaLocalId: $veredaLocalId, ')
+          ..write('quiereVisita: $quiereVisita, ')
+          ..write('areaSembradaHa: $areaSembradaHa, ')
+          ..write('transcripcionNota: $transcripcionNota, ')
+          ..write('enlaceFirma: $enlaceFirma, ')
+          ..write('enlaceNotaVoz: $enlaceNotaVoz, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('sincronizado: $sincronizado, ')
+          ..write('sincronizadoEn: $sincronizadoEn')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    registradoEn,
+    evento,
+    aceptaTerminos,
+    terminosUrl,
+    firmaPath,
+    notaVozPath,
+    duracionNotaSeg,
+    latitud,
+    longitud,
+    visitadorIdEmpleado,
+    visitadorNombre,
+    procesado,
+    nombreCompleto,
+    cedula,
+    telefono,
+    cultivos,
+    veredaLocalId,
+    quiereVisita,
+    areaSembradaHa,
+    transcripcionNota,
+    enlaceFirma,
+    enlaceNotaVoz,
+    remoteId,
+    sincronizado,
+    sincronizadoEn,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Asistencia &&
+          other.id == this.id &&
+          other.registradoEn == this.registradoEn &&
+          other.evento == this.evento &&
+          other.aceptaTerminos == this.aceptaTerminos &&
+          other.terminosUrl == this.terminosUrl &&
+          other.firmaPath == this.firmaPath &&
+          other.notaVozPath == this.notaVozPath &&
+          other.duracionNotaSeg == this.duracionNotaSeg &&
+          other.latitud == this.latitud &&
+          other.longitud == this.longitud &&
+          other.visitadorIdEmpleado == this.visitadorIdEmpleado &&
+          other.visitadorNombre == this.visitadorNombre &&
+          other.procesado == this.procesado &&
+          other.nombreCompleto == this.nombreCompleto &&
+          other.cedula == this.cedula &&
+          other.telefono == this.telefono &&
+          other.cultivos == this.cultivos &&
+          other.veredaLocalId == this.veredaLocalId &&
+          other.quiereVisita == this.quiereVisita &&
+          other.areaSembradaHa == this.areaSembradaHa &&
+          other.transcripcionNota == this.transcripcionNota &&
+          other.enlaceFirma == this.enlaceFirma &&
+          other.enlaceNotaVoz == this.enlaceNotaVoz &&
+          other.remoteId == this.remoteId &&
+          other.sincronizado == this.sincronizado &&
+          other.sincronizadoEn == this.sincronizadoEn);
+}
+
+class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
+  final Value<String> id;
+  final Value<DateTime> registradoEn;
+  final Value<String?> evento;
+  final Value<bool> aceptaTerminos;
+  final Value<String?> terminosUrl;
+  final Value<String> firmaPath;
+  final Value<String?> notaVozPath;
+  final Value<int?> duracionNotaSeg;
+  final Value<double?> latitud;
+  final Value<double?> longitud;
+  final Value<String?> visitadorIdEmpleado;
+  final Value<String?> visitadorNombre;
+  final Value<bool> procesado;
+  final Value<String?> nombreCompleto;
+  final Value<String?> cedula;
+  final Value<String?> telefono;
+  final Value<String> cultivos;
+  final Value<String?> veredaLocalId;
+  final Value<bool> quiereVisita;
+  final Value<double?> areaSembradaHa;
+  final Value<String?> transcripcionNota;
+  final Value<String?> enlaceFirma;
+  final Value<String?> enlaceNotaVoz;
+  final Value<String?> remoteId;
+  final Value<bool> sincronizado;
+  final Value<DateTime?> sincronizadoEn;
+  final Value<int> rowid;
+  const AsistenciasCompanion({
+    this.id = const Value.absent(),
+    this.registradoEn = const Value.absent(),
+    this.evento = const Value.absent(),
+    this.aceptaTerminos = const Value.absent(),
+    this.terminosUrl = const Value.absent(),
+    this.firmaPath = const Value.absent(),
+    this.notaVozPath = const Value.absent(),
+    this.duracionNotaSeg = const Value.absent(),
+    this.latitud = const Value.absent(),
+    this.longitud = const Value.absent(),
+    this.visitadorIdEmpleado = const Value.absent(),
+    this.visitadorNombre = const Value.absent(),
+    this.procesado = const Value.absent(),
+    this.nombreCompleto = const Value.absent(),
+    this.cedula = const Value.absent(),
+    this.telefono = const Value.absent(),
+    this.cultivos = const Value.absent(),
+    this.veredaLocalId = const Value.absent(),
+    this.quiereVisita = const Value.absent(),
+    this.areaSembradaHa = const Value.absent(),
+    this.transcripcionNota = const Value.absent(),
+    this.enlaceFirma = const Value.absent(),
+    this.enlaceNotaVoz = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.sincronizado = const Value.absent(),
+    this.sincronizadoEn = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AsistenciasCompanion.insert({
+    required String id,
+    required DateTime registradoEn,
+    this.evento = const Value.absent(),
+    this.aceptaTerminos = const Value.absent(),
+    this.terminosUrl = const Value.absent(),
+    required String firmaPath,
+    this.notaVozPath = const Value.absent(),
+    this.duracionNotaSeg = const Value.absent(),
+    this.latitud = const Value.absent(),
+    this.longitud = const Value.absent(),
+    this.visitadorIdEmpleado = const Value.absent(),
+    this.visitadorNombre = const Value.absent(),
+    this.procesado = const Value.absent(),
+    this.nombreCompleto = const Value.absent(),
+    this.cedula = const Value.absent(),
+    this.telefono = const Value.absent(),
+    this.cultivos = const Value.absent(),
+    this.veredaLocalId = const Value.absent(),
+    this.quiereVisita = const Value.absent(),
+    this.areaSembradaHa = const Value.absent(),
+    this.transcripcionNota = const Value.absent(),
+    this.enlaceFirma = const Value.absent(),
+    this.enlaceNotaVoz = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.sincronizado = const Value.absent(),
+    this.sincronizadoEn = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       registradoEn = Value(registradoEn),
+       firmaPath = Value(firmaPath);
+  static Insertable<Asistencia> custom({
+    Expression<String>? id,
+    Expression<DateTime>? registradoEn,
+    Expression<String>? evento,
+    Expression<bool>? aceptaTerminos,
+    Expression<String>? terminosUrl,
+    Expression<String>? firmaPath,
+    Expression<String>? notaVozPath,
+    Expression<int>? duracionNotaSeg,
+    Expression<double>? latitud,
+    Expression<double>? longitud,
+    Expression<String>? visitadorIdEmpleado,
+    Expression<String>? visitadorNombre,
+    Expression<bool>? procesado,
+    Expression<String>? nombreCompleto,
+    Expression<String>? cedula,
+    Expression<String>? telefono,
+    Expression<String>? cultivos,
+    Expression<String>? veredaLocalId,
+    Expression<bool>? quiereVisita,
+    Expression<double>? areaSembradaHa,
+    Expression<String>? transcripcionNota,
+    Expression<String>? enlaceFirma,
+    Expression<String>? enlaceNotaVoz,
+    Expression<String>? remoteId,
+    Expression<bool>? sincronizado,
+    Expression<DateTime>? sincronizadoEn,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (registradoEn != null) 'registrado_en': registradoEn,
+      if (evento != null) 'evento': evento,
+      if (aceptaTerminos != null) 'acepta_terminos': aceptaTerminos,
+      if (terminosUrl != null) 'terminos_url': terminosUrl,
+      if (firmaPath != null) 'firma_path': firmaPath,
+      if (notaVozPath != null) 'nota_voz_path': notaVozPath,
+      if (duracionNotaSeg != null) 'duracion_nota_seg': duracionNotaSeg,
+      if (latitud != null) 'latitud': latitud,
+      if (longitud != null) 'longitud': longitud,
+      if (visitadorIdEmpleado != null)
+        'visitador_id_empleado': visitadorIdEmpleado,
+      if (visitadorNombre != null) 'visitador_nombre': visitadorNombre,
+      if (procesado != null) 'procesado': procesado,
+      if (nombreCompleto != null) 'nombre_completo': nombreCompleto,
+      if (cedula != null) 'cedula': cedula,
+      if (telefono != null) 'telefono': telefono,
+      if (cultivos != null) 'cultivos': cultivos,
+      if (veredaLocalId != null) 'vereda_local_id': veredaLocalId,
+      if (quiereVisita != null) 'quiere_visita': quiereVisita,
+      if (areaSembradaHa != null) 'area_sembrada_ha': areaSembradaHa,
+      if (transcripcionNota != null) 'transcripcion_nota': transcripcionNota,
+      if (enlaceFirma != null) 'enlace_firma': enlaceFirma,
+      if (enlaceNotaVoz != null) 'enlace_nota_voz': enlaceNotaVoz,
+      if (remoteId != null) 'remote_id': remoteId,
+      if (sincronizado != null) 'sincronizado': sincronizado,
+      if (sincronizadoEn != null) 'sincronizado_en': sincronizadoEn,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AsistenciasCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? registradoEn,
+    Value<String?>? evento,
+    Value<bool>? aceptaTerminos,
+    Value<String?>? terminosUrl,
+    Value<String>? firmaPath,
+    Value<String?>? notaVozPath,
+    Value<int?>? duracionNotaSeg,
+    Value<double?>? latitud,
+    Value<double?>? longitud,
+    Value<String?>? visitadorIdEmpleado,
+    Value<String?>? visitadorNombre,
+    Value<bool>? procesado,
+    Value<String?>? nombreCompleto,
+    Value<String?>? cedula,
+    Value<String?>? telefono,
+    Value<String>? cultivos,
+    Value<String?>? veredaLocalId,
+    Value<bool>? quiereVisita,
+    Value<double?>? areaSembradaHa,
+    Value<String?>? transcripcionNota,
+    Value<String?>? enlaceFirma,
+    Value<String?>? enlaceNotaVoz,
+    Value<String?>? remoteId,
+    Value<bool>? sincronizado,
+    Value<DateTime?>? sincronizadoEn,
+    Value<int>? rowid,
+  }) {
+    return AsistenciasCompanion(
+      id: id ?? this.id,
+      registradoEn: registradoEn ?? this.registradoEn,
+      evento: evento ?? this.evento,
+      aceptaTerminos: aceptaTerminos ?? this.aceptaTerminos,
+      terminosUrl: terminosUrl ?? this.terminosUrl,
+      firmaPath: firmaPath ?? this.firmaPath,
+      notaVozPath: notaVozPath ?? this.notaVozPath,
+      duracionNotaSeg: duracionNotaSeg ?? this.duracionNotaSeg,
+      latitud: latitud ?? this.latitud,
+      longitud: longitud ?? this.longitud,
+      visitadorIdEmpleado: visitadorIdEmpleado ?? this.visitadorIdEmpleado,
+      visitadorNombre: visitadorNombre ?? this.visitadorNombre,
+      procesado: procesado ?? this.procesado,
+      nombreCompleto: nombreCompleto ?? this.nombreCompleto,
+      cedula: cedula ?? this.cedula,
+      telefono: telefono ?? this.telefono,
+      cultivos: cultivos ?? this.cultivos,
+      veredaLocalId: veredaLocalId ?? this.veredaLocalId,
+      quiereVisita: quiereVisita ?? this.quiereVisita,
+      areaSembradaHa: areaSembradaHa ?? this.areaSembradaHa,
+      transcripcionNota: transcripcionNota ?? this.transcripcionNota,
+      enlaceFirma: enlaceFirma ?? this.enlaceFirma,
+      enlaceNotaVoz: enlaceNotaVoz ?? this.enlaceNotaVoz,
+      remoteId: remoteId ?? this.remoteId,
+      sincronizado: sincronizado ?? this.sincronizado,
+      sincronizadoEn: sincronizadoEn ?? this.sincronizadoEn,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (registradoEn.present) {
+      map['registrado_en'] = Variable<DateTime>(registradoEn.value);
+    }
+    if (evento.present) {
+      map['evento'] = Variable<String>(evento.value);
+    }
+    if (aceptaTerminos.present) {
+      map['acepta_terminos'] = Variable<bool>(aceptaTerminos.value);
+    }
+    if (terminosUrl.present) {
+      map['terminos_url'] = Variable<String>(terminosUrl.value);
+    }
+    if (firmaPath.present) {
+      map['firma_path'] = Variable<String>(firmaPath.value);
+    }
+    if (notaVozPath.present) {
+      map['nota_voz_path'] = Variable<String>(notaVozPath.value);
+    }
+    if (duracionNotaSeg.present) {
+      map['duracion_nota_seg'] = Variable<int>(duracionNotaSeg.value);
+    }
+    if (latitud.present) {
+      map['latitud'] = Variable<double>(latitud.value);
+    }
+    if (longitud.present) {
+      map['longitud'] = Variable<double>(longitud.value);
+    }
+    if (visitadorIdEmpleado.present) {
+      map['visitador_id_empleado'] = Variable<String>(
+        visitadorIdEmpleado.value,
+      );
+    }
+    if (visitadorNombre.present) {
+      map['visitador_nombre'] = Variable<String>(visitadorNombre.value);
+    }
+    if (procesado.present) {
+      map['procesado'] = Variable<bool>(procesado.value);
+    }
+    if (nombreCompleto.present) {
+      map['nombre_completo'] = Variable<String>(nombreCompleto.value);
+    }
+    if (cedula.present) {
+      map['cedula'] = Variable<String>(cedula.value);
+    }
+    if (telefono.present) {
+      map['telefono'] = Variable<String>(telefono.value);
+    }
+    if (cultivos.present) {
+      map['cultivos'] = Variable<String>(cultivos.value);
+    }
+    if (veredaLocalId.present) {
+      map['vereda_local_id'] = Variable<String>(veredaLocalId.value);
+    }
+    if (quiereVisita.present) {
+      map['quiere_visita'] = Variable<bool>(quiereVisita.value);
+    }
+    if (areaSembradaHa.present) {
+      map['area_sembrada_ha'] = Variable<double>(areaSembradaHa.value);
+    }
+    if (transcripcionNota.present) {
+      map['transcripcion_nota'] = Variable<String>(transcripcionNota.value);
+    }
+    if (enlaceFirma.present) {
+      map['enlace_firma'] = Variable<String>(enlaceFirma.value);
+    }
+    if (enlaceNotaVoz.present) {
+      map['enlace_nota_voz'] = Variable<String>(enlaceNotaVoz.value);
+    }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
+    }
+    if (sincronizado.present) {
+      map['sincronizado'] = Variable<bool>(sincronizado.value);
+    }
+    if (sincronizadoEn.present) {
+      map['sincronizado_en'] = Variable<DateTime>(sincronizadoEn.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AsistenciasCompanion(')
+          ..write('id: $id, ')
+          ..write('registradoEn: $registradoEn, ')
+          ..write('evento: $evento, ')
+          ..write('aceptaTerminos: $aceptaTerminos, ')
+          ..write('terminosUrl: $terminosUrl, ')
+          ..write('firmaPath: $firmaPath, ')
+          ..write('notaVozPath: $notaVozPath, ')
+          ..write('duracionNotaSeg: $duracionNotaSeg, ')
+          ..write('latitud: $latitud, ')
+          ..write('longitud: $longitud, ')
+          ..write('visitadorIdEmpleado: $visitadorIdEmpleado, ')
+          ..write('visitadorNombre: $visitadorNombre, ')
+          ..write('procesado: $procesado, ')
+          ..write('nombreCompleto: $nombreCompleto, ')
+          ..write('cedula: $cedula, ')
+          ..write('telefono: $telefono, ')
+          ..write('cultivos: $cultivos, ')
+          ..write('veredaLocalId: $veredaLocalId, ')
+          ..write('quiereVisita: $quiereVisita, ')
+          ..write('areaSembradaHa: $areaSembradaHa, ')
+          ..write('transcripcionNota: $transcripcionNota, ')
+          ..write('enlaceFirma: $enlaceFirma, ')
+          ..write('enlaceNotaVoz: $enlaceNotaVoz, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('sincronizado: $sincronizado, ')
+          ..write('sincronizadoEn: $sincronizadoEn, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncQueueTable extends SyncQueue
     with TableInfo<$SyncQueueTable, SyncItem> {
   @override
@@ -12626,6 +14146,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $InformesTable informes = $InformesTable(this);
   late final $TrazadosTable trazados = $TrazadosTable(this);
   late final $PuntosTrazadoTable puntosTrazado = $PuntosTrazadoTable(this);
+  late final $AsistenciasTable asistencias = $AsistenciasTable(this);
   late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -12647,6 +14168,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     informes,
     trazados,
     puntosTrazado,
+    asistencias,
     syncQueue,
   ];
 }
@@ -17990,6 +19512,637 @@ typedef $$PuntosTrazadoTableProcessedTableManager =
       PuntoTrazado,
       PrefetchHooks Function()
     >;
+typedef $$AsistenciasTableCreateCompanionBuilder =
+    AsistenciasCompanion Function({
+      required String id,
+      required DateTime registradoEn,
+      Value<String?> evento,
+      Value<bool> aceptaTerminos,
+      Value<String?> terminosUrl,
+      required String firmaPath,
+      Value<String?> notaVozPath,
+      Value<int?> duracionNotaSeg,
+      Value<double?> latitud,
+      Value<double?> longitud,
+      Value<String?> visitadorIdEmpleado,
+      Value<String?> visitadorNombre,
+      Value<bool> procesado,
+      Value<String?> nombreCompleto,
+      Value<String?> cedula,
+      Value<String?> telefono,
+      Value<String> cultivos,
+      Value<String?> veredaLocalId,
+      Value<bool> quiereVisita,
+      Value<double?> areaSembradaHa,
+      Value<String?> transcripcionNota,
+      Value<String?> enlaceFirma,
+      Value<String?> enlaceNotaVoz,
+      Value<String?> remoteId,
+      Value<bool> sincronizado,
+      Value<DateTime?> sincronizadoEn,
+      Value<int> rowid,
+    });
+typedef $$AsistenciasTableUpdateCompanionBuilder =
+    AsistenciasCompanion Function({
+      Value<String> id,
+      Value<DateTime> registradoEn,
+      Value<String?> evento,
+      Value<bool> aceptaTerminos,
+      Value<String?> terminosUrl,
+      Value<String> firmaPath,
+      Value<String?> notaVozPath,
+      Value<int?> duracionNotaSeg,
+      Value<double?> latitud,
+      Value<double?> longitud,
+      Value<String?> visitadorIdEmpleado,
+      Value<String?> visitadorNombre,
+      Value<bool> procesado,
+      Value<String?> nombreCompleto,
+      Value<String?> cedula,
+      Value<String?> telefono,
+      Value<String> cultivos,
+      Value<String?> veredaLocalId,
+      Value<bool> quiereVisita,
+      Value<double?> areaSembradaHa,
+      Value<String?> transcripcionNota,
+      Value<String?> enlaceFirma,
+      Value<String?> enlaceNotaVoz,
+      Value<String?> remoteId,
+      Value<bool> sincronizado,
+      Value<DateTime?> sincronizadoEn,
+      Value<int> rowid,
+    });
+
+class $$AsistenciasTableFilterComposer
+    extends Composer<_$AppDatabase, $AsistenciasTable> {
+  $$AsistenciasTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get registradoEn => $composableBuilder(
+    column: $table.registradoEn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get evento => $composableBuilder(
+    column: $table.evento,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get aceptaTerminos => $composableBuilder(
+    column: $table.aceptaTerminos,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get terminosUrl => $composableBuilder(
+    column: $table.terminosUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get firmaPath => $composableBuilder(
+    column: $table.firmaPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notaVozPath => $composableBuilder(
+    column: $table.notaVozPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get duracionNotaSeg => $composableBuilder(
+    column: $table.duracionNotaSeg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitud => $composableBuilder(
+    column: $table.latitud,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitud => $composableBuilder(
+    column: $table.longitud,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visitadorIdEmpleado => $composableBuilder(
+    column: $table.visitadorIdEmpleado,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visitadorNombre => $composableBuilder(
+    column: $table.visitadorNombre,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get procesado => $composableBuilder(
+    column: $table.procesado,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nombreCompleto => $composableBuilder(
+    column: $table.nombreCompleto,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cedula => $composableBuilder(
+    column: $table.cedula,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get telefono => $composableBuilder(
+    column: $table.telefono,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cultivos => $composableBuilder(
+    column: $table.cultivos,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get veredaLocalId => $composableBuilder(
+    column: $table.veredaLocalId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get quiereVisita => $composableBuilder(
+    column: $table.quiereVisita,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get areaSembradaHa => $composableBuilder(
+    column: $table.areaSembradaHa,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get transcripcionNota => $composableBuilder(
+    column: $table.transcripcionNota,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get enlaceFirma => $composableBuilder(
+    column: $table.enlaceFirma,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get enlaceNotaVoz => $composableBuilder(
+    column: $table.enlaceNotaVoz,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sincronizado => $composableBuilder(
+    column: $table.sincronizado,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get sincronizadoEn => $composableBuilder(
+    column: $table.sincronizadoEn,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AsistenciasTableOrderingComposer
+    extends Composer<_$AppDatabase, $AsistenciasTable> {
+  $$AsistenciasTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get registradoEn => $composableBuilder(
+    column: $table.registradoEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get evento => $composableBuilder(
+    column: $table.evento,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get aceptaTerminos => $composableBuilder(
+    column: $table.aceptaTerminos,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get terminosUrl => $composableBuilder(
+    column: $table.terminosUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get firmaPath => $composableBuilder(
+    column: $table.firmaPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notaVozPath => $composableBuilder(
+    column: $table.notaVozPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get duracionNotaSeg => $composableBuilder(
+    column: $table.duracionNotaSeg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitud => $composableBuilder(
+    column: $table.latitud,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitud => $composableBuilder(
+    column: $table.longitud,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visitadorIdEmpleado => $composableBuilder(
+    column: $table.visitadorIdEmpleado,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visitadorNombre => $composableBuilder(
+    column: $table.visitadorNombre,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get procesado => $composableBuilder(
+    column: $table.procesado,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nombreCompleto => $composableBuilder(
+    column: $table.nombreCompleto,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cedula => $composableBuilder(
+    column: $table.cedula,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get telefono => $composableBuilder(
+    column: $table.telefono,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cultivos => $composableBuilder(
+    column: $table.cultivos,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get veredaLocalId => $composableBuilder(
+    column: $table.veredaLocalId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get quiereVisita => $composableBuilder(
+    column: $table.quiereVisita,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get areaSembradaHa => $composableBuilder(
+    column: $table.areaSembradaHa,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get transcripcionNota => $composableBuilder(
+    column: $table.transcripcionNota,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get enlaceFirma => $composableBuilder(
+    column: $table.enlaceFirma,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get enlaceNotaVoz => $composableBuilder(
+    column: $table.enlaceNotaVoz,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get sincronizado => $composableBuilder(
+    column: $table.sincronizado,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get sincronizadoEn => $composableBuilder(
+    column: $table.sincronizadoEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AsistenciasTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AsistenciasTable> {
+  $$AsistenciasTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get registradoEn => $composableBuilder(
+    column: $table.registradoEn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get evento =>
+      $composableBuilder(column: $table.evento, builder: (column) => column);
+
+  GeneratedColumn<bool> get aceptaTerminos => $composableBuilder(
+    column: $table.aceptaTerminos,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get terminosUrl => $composableBuilder(
+    column: $table.terminosUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get firmaPath =>
+      $composableBuilder(column: $table.firmaPath, builder: (column) => column);
+
+  GeneratedColumn<String> get notaVozPath => $composableBuilder(
+    column: $table.notaVozPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get duracionNotaSeg => $composableBuilder(
+    column: $table.duracionNotaSeg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get latitud =>
+      $composableBuilder(column: $table.latitud, builder: (column) => column);
+
+  GeneratedColumn<double> get longitud =>
+      $composableBuilder(column: $table.longitud, builder: (column) => column);
+
+  GeneratedColumn<String> get visitadorIdEmpleado => $composableBuilder(
+    column: $table.visitadorIdEmpleado,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get visitadorNombre => $composableBuilder(
+    column: $table.visitadorNombre,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get procesado =>
+      $composableBuilder(column: $table.procesado, builder: (column) => column);
+
+  GeneratedColumn<String> get nombreCompleto => $composableBuilder(
+    column: $table.nombreCompleto,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get cedula =>
+      $composableBuilder(column: $table.cedula, builder: (column) => column);
+
+  GeneratedColumn<String> get telefono =>
+      $composableBuilder(column: $table.telefono, builder: (column) => column);
+
+  GeneratedColumn<String> get cultivos =>
+      $composableBuilder(column: $table.cultivos, builder: (column) => column);
+
+  GeneratedColumn<String> get veredaLocalId => $composableBuilder(
+    column: $table.veredaLocalId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get quiereVisita => $composableBuilder(
+    column: $table.quiereVisita,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get areaSembradaHa => $composableBuilder(
+    column: $table.areaSembradaHa,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get transcripcionNota => $composableBuilder(
+    column: $table.transcripcionNota,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get enlaceFirma => $composableBuilder(
+    column: $table.enlaceFirma,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get enlaceNotaVoz => $composableBuilder(
+    column: $table.enlaceNotaVoz,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
+  GeneratedColumn<bool> get sincronizado => $composableBuilder(
+    column: $table.sincronizado,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get sincronizadoEn => $composableBuilder(
+    column: $table.sincronizadoEn,
+    builder: (column) => column,
+  );
+}
+
+class $$AsistenciasTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AsistenciasTable,
+          Asistencia,
+          $$AsistenciasTableFilterComposer,
+          $$AsistenciasTableOrderingComposer,
+          $$AsistenciasTableAnnotationComposer,
+          $$AsistenciasTableCreateCompanionBuilder,
+          $$AsistenciasTableUpdateCompanionBuilder,
+          (
+            Asistencia,
+            BaseReferences<_$AppDatabase, $AsistenciasTable, Asistencia>,
+          ),
+          Asistencia,
+          PrefetchHooks Function()
+        > {
+  $$AsistenciasTableTableManager(_$AppDatabase db, $AsistenciasTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AsistenciasTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AsistenciasTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AsistenciasTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> registradoEn = const Value.absent(),
+                Value<String?> evento = const Value.absent(),
+                Value<bool> aceptaTerminos = const Value.absent(),
+                Value<String?> terminosUrl = const Value.absent(),
+                Value<String> firmaPath = const Value.absent(),
+                Value<String?> notaVozPath = const Value.absent(),
+                Value<int?> duracionNotaSeg = const Value.absent(),
+                Value<double?> latitud = const Value.absent(),
+                Value<double?> longitud = const Value.absent(),
+                Value<String?> visitadorIdEmpleado = const Value.absent(),
+                Value<String?> visitadorNombre = const Value.absent(),
+                Value<bool> procesado = const Value.absent(),
+                Value<String?> nombreCompleto = const Value.absent(),
+                Value<String?> cedula = const Value.absent(),
+                Value<String?> telefono = const Value.absent(),
+                Value<String> cultivos = const Value.absent(),
+                Value<String?> veredaLocalId = const Value.absent(),
+                Value<bool> quiereVisita = const Value.absent(),
+                Value<double?> areaSembradaHa = const Value.absent(),
+                Value<String?> transcripcionNota = const Value.absent(),
+                Value<String?> enlaceFirma = const Value.absent(),
+                Value<String?> enlaceNotaVoz = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
+                Value<bool> sincronizado = const Value.absent(),
+                Value<DateTime?> sincronizadoEn = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AsistenciasCompanion(
+                id: id,
+                registradoEn: registradoEn,
+                evento: evento,
+                aceptaTerminos: aceptaTerminos,
+                terminosUrl: terminosUrl,
+                firmaPath: firmaPath,
+                notaVozPath: notaVozPath,
+                duracionNotaSeg: duracionNotaSeg,
+                latitud: latitud,
+                longitud: longitud,
+                visitadorIdEmpleado: visitadorIdEmpleado,
+                visitadorNombre: visitadorNombre,
+                procesado: procesado,
+                nombreCompleto: nombreCompleto,
+                cedula: cedula,
+                telefono: telefono,
+                cultivos: cultivos,
+                veredaLocalId: veredaLocalId,
+                quiereVisita: quiereVisita,
+                areaSembradaHa: areaSembradaHa,
+                transcripcionNota: transcripcionNota,
+                enlaceFirma: enlaceFirma,
+                enlaceNotaVoz: enlaceNotaVoz,
+                remoteId: remoteId,
+                sincronizado: sincronizado,
+                sincronizadoEn: sincronizadoEn,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime registradoEn,
+                Value<String?> evento = const Value.absent(),
+                Value<bool> aceptaTerminos = const Value.absent(),
+                Value<String?> terminosUrl = const Value.absent(),
+                required String firmaPath,
+                Value<String?> notaVozPath = const Value.absent(),
+                Value<int?> duracionNotaSeg = const Value.absent(),
+                Value<double?> latitud = const Value.absent(),
+                Value<double?> longitud = const Value.absent(),
+                Value<String?> visitadorIdEmpleado = const Value.absent(),
+                Value<String?> visitadorNombre = const Value.absent(),
+                Value<bool> procesado = const Value.absent(),
+                Value<String?> nombreCompleto = const Value.absent(),
+                Value<String?> cedula = const Value.absent(),
+                Value<String?> telefono = const Value.absent(),
+                Value<String> cultivos = const Value.absent(),
+                Value<String?> veredaLocalId = const Value.absent(),
+                Value<bool> quiereVisita = const Value.absent(),
+                Value<double?> areaSembradaHa = const Value.absent(),
+                Value<String?> transcripcionNota = const Value.absent(),
+                Value<String?> enlaceFirma = const Value.absent(),
+                Value<String?> enlaceNotaVoz = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
+                Value<bool> sincronizado = const Value.absent(),
+                Value<DateTime?> sincronizadoEn = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AsistenciasCompanion.insert(
+                id: id,
+                registradoEn: registradoEn,
+                evento: evento,
+                aceptaTerminos: aceptaTerminos,
+                terminosUrl: terminosUrl,
+                firmaPath: firmaPath,
+                notaVozPath: notaVozPath,
+                duracionNotaSeg: duracionNotaSeg,
+                latitud: latitud,
+                longitud: longitud,
+                visitadorIdEmpleado: visitadorIdEmpleado,
+                visitadorNombre: visitadorNombre,
+                procesado: procesado,
+                nombreCompleto: nombreCompleto,
+                cedula: cedula,
+                telefono: telefono,
+                cultivos: cultivos,
+                veredaLocalId: veredaLocalId,
+                quiereVisita: quiereVisita,
+                areaSembradaHa: areaSembradaHa,
+                transcripcionNota: transcripcionNota,
+                enlaceFirma: enlaceFirma,
+                enlaceNotaVoz: enlaceNotaVoz,
+                remoteId: remoteId,
+                sincronizado: sincronizado,
+                sincronizadoEn: sincronizadoEn,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AsistenciasTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AsistenciasTable,
+      Asistencia,
+      $$AsistenciasTableFilterComposer,
+      $$AsistenciasTableOrderingComposer,
+      $$AsistenciasTableAnnotationComposer,
+      $$AsistenciasTableCreateCompanionBuilder,
+      $$AsistenciasTableUpdateCompanionBuilder,
+      (
+        Asistencia,
+        BaseReferences<_$AppDatabase, $AsistenciasTable, Asistencia>,
+      ),
+      Asistencia,
+      PrefetchHooks Function()
+    >;
 typedef $$SyncQueueTableCreateCompanionBuilder =
     SyncQueueCompanion Function({
       required String id,
@@ -18400,6 +20553,8 @@ class $AppDatabaseManager {
       $$TrazadosTableTableManager(_db, _db.trazados);
   $$PuntosTrazadoTableTableManager get puntosTrazado =>
       $$PuntosTrazadoTableTableManager(_db, _db.puntosTrazado);
+  $$AsistenciasTableTableManager get asistencias =>
+      $$AsistenciasTableTableManager(_db, _db.asistencias);
   $$SyncQueueTableTableManager get syncQueue =>
       $$SyncQueueTableTableManager(_db, _db.syncQueue);
 }

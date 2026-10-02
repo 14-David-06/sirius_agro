@@ -3,6 +3,7 @@ import logging
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import ValidationError
 
 from .config import Settings, get_settings
 from .schemas import (
@@ -14,6 +15,7 @@ from .schemas import (
     ReportRequest,
     TranscriptionResult,
 )
+from .schemas_asistencia import AsistenciaPayload, AsistenciaSyncResult
 from .schemas_auth import LoginRequest, LoginResult
 from .schemas_chat import ChatRequest, ChatResult
 from .schemas_complemento import ComplementoRequest, ComplementoResult
@@ -29,6 +31,7 @@ from .schemas_visita import (
 from .services import (
     airtable,
     almacenamiento,
+    asistencia as asistencia_service,
     chat as chat_service,
     complemento as complemento_service,
     directorio as directorio_service,
@@ -435,3 +438,42 @@ async def sincronizar_visita(
     nunca duplica.
     """
     return await sincronizacion.sincronizar(settings, payload)
+
+
+@app.post("/v1/asistencias", response_model=AsistenciaSyncResult)
+async def sincronizar_asistencia(
+    # El registro en JSON. Va como campo del multipart y no como cuerpo aparte
+    # porque la firma y la nota viajan en la misma peticion: un solo reintento
+    # sube todo o no sube nada.
+    datos: str = Form(...),
+    firma: UploadFile | None = File(None),
+    nota_voz: UploadFile | None = File(None),
+    settings: Settings = Depends(require_api_key),
+) -> AsistenciaSyncResult:
+    """Sube un registro de asistencia con su firma y su nota de voz.
+
+    Idempotente por `codigo_registro`, el UUID que genero el telefono: un
+    reintento desde una vereda con senal intermitente actualiza el registro en
+    vez de duplicar a la persona.
+    """
+    try:
+        payload = AsistenciaPayload.model_validate_json(datos)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    contenido_firma = await firma.read() if firma else None
+    contenido_nota = await nota_voz.read() if nota_voz else None
+
+    total = len(contenido_firma or b"") + len(contenido_nota or b"")
+    if total > settings.max_audio_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"La firma y la nota pesan {total / (1024 * 1024):.1f} MB y el "
+                f"limite es {settings.max_audio_bytes / (1024 * 1024):.0f} MB."
+            ),
+        )
+
+    return await asistencia_service.sincronizar(
+        settings, payload, firma=contenido_firma, nota_voz=contenido_nota
+    )

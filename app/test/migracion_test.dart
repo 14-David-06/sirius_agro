@@ -138,6 +138,74 @@ void main() {
       expect(productor.fotoPath, isNull);
     });
 
+    test('crea la tabla de asistencia de la v12', () async {
+      // Un telefono en la v11 no tiene la tabla: el primer registro de
+      // asistencia fallaria al INSERT si la migracion no la crea.
+      await db.customStatement('DROP TABLE asistencias');
+      expect(await existeTabla('asistencias'), isFalse);
+
+      await db.migration.onUpgrade(Migrator(db), 11, db.schemaVersion);
+
+      expect(await existeTabla('asistencias'), isTrue);
+      expect(
+        await db.columnasDe('asistencias'),
+        containsAll(['firma_path', 'nota_voz_path', 'acepta_terminos']),
+      );
+    });
+
+    test('la v14 vuelve opcionales nombre y cedula sin perder registros',
+        () async {
+      // La tabla como la dejo la v12: nombre y cedula NOT NULL, sin las
+      // columnas de la v13 ni `procesado`. Con un registro adentro.
+      await db.customStatement('DROP TABLE asistencias');
+      await db.customStatement('''
+        CREATE TABLE asistencias (
+          id TEXT NOT NULL PRIMARY KEY,
+          nombre_completo TEXT NOT NULL,
+          cedula TEXT NOT NULL,
+          telefono TEXT,
+          cultivos TEXT NOT NULL DEFAULT '',
+          evento TEXT,
+          registrado_en INTEGER NOT NULL,
+          acepta_terminos INTEGER NOT NULL DEFAULT 0,
+          terminos_url TEXT,
+          firma_path TEXT NOT NULL,
+          nota_voz_path TEXT,
+          duracion_nota_seg INTEGER,
+          latitud REAL,
+          longitud REAL,
+          visitador_id_empleado TEXT,
+          visitador_nombre TEXT,
+          enlace_firma TEXT,
+          enlace_nota_voz TEXT,
+          transcripcion_nota TEXT,
+          remote_id TEXT,
+          sincronizado INTEGER NOT NULL DEFAULT 0,
+          sincronizado_en INTEGER
+        )''');
+      await db.customStatement(
+        "INSERT INTO asistencias (id, nombre_completo, cedula, registrado_en, "
+        "firma_path) VALUES ('a1', 'Maria Lopez', '1234567', 0, '/f.png')",
+      );
+
+      await db.migration.onUpgrade(Migrator(db), 12, db.schemaVersion);
+
+      final fila = await (db.select(db.asistencias)
+            ..where((a) => a.id.equals('a1')))
+          .getSingle();
+      expect(fila.nombreCompleto, 'Maria Lopez');
+      expect(fila.procesado, isFalse);
+      // Y ya se puede guardar un registro sin nombre, que es lo normal ahora.
+      await db.into(db.asistencias).insert(
+            AsistenciasCompanion.insert(
+              id: 'a2',
+              registradoEn: DateTime(2026, 10, 2),
+              firmaPath: '/f2.png',
+            ),
+          );
+      expect(await db.select(db.asistencias).get(), hasLength(2));
+    });
+
     test('crea las tablas del login de la v3', () async {
       await envejecer();
       expect(await existeTabla('credenciales_locales'), isFalse);

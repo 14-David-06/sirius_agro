@@ -45,6 +45,7 @@ Endpoints (todos piden `X-API-Key`, salvo `/health`):
 | POST   | `/v1/transcriptions` | multipart `file` + `language` → texto (ElevenLabs) |
 | POST   | `/v1/reports`        | meta + transcripción + respuestas → informe JSON |
 | POST   | `/v1/meetings`       | crea el registro en Airtable                     |
+| POST   | `/v1/asistencias`    | multipart `datos` (JSON) + `firma` + `nota_voz` → registro en `Asistencias` |
 
 Documentación interactiva en `http://localhost:8000/docs`.
 

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api_client.dart';
+import '../data/asistencia_repository.dart';
 import '../data/db/app_database.dart';
 import '../data/visita_repository.dart';
 import 'providers.dart';
@@ -19,11 +20,17 @@ import 'providers.dart';
 /// todas fallan a la vez y el retroceso exponencial las manda a todas al mismo
 /// reintento lejano. De a uno, lo que entra queda subido.
 class Sincronizador {
-  Sincronizador(this._db, this._repo, this._api);
+  Sincronizador(
+    this._db,
+    this._repo,
+    this._api, {
+    AsistenciaRepository? asistencias,
+  }) : _asistencias = asistencias ?? AsistenciaRepository(_db);
 
   final AppDatabase _db;
   final VisitaRepository _repo;
   final ApiClient _api;
+  final AsistenciaRepository _asistencias;
 
   bool _corriendo = false;
 
@@ -32,13 +39,15 @@ class Sincronizador {
   /// No lanza: un fallo de red no puede tumbar la pantalla del visitador. Lo
   /// que falla queda en la cola con su motivo y su proximo intento, que es
   /// justo lo que la pantalla de estado muestra.
-  Future<int> procesar({int limite = 20}) async {
+  ///
+  /// [entidad] acota la corrida a un tipo de item (ver [AppDatabase.proximosItems]).
+  Future<int> procesar({int limite = 20, String? entidad}) async {
     if (_corriendo) return 0;
     _corriendo = true;
 
     var completados = 0;
     try {
-      final items = await _db.proximosItems(limite: limite);
+      final items = await _db.proximosItems(limite: limite, entidad: entidad);
       for (final item in items) {
         try {
           await _procesarItem(item);
@@ -66,6 +75,8 @@ class Sincronizador {
         await _subirInforme(item);
       case 'upsert':
         await _sincronizarVisita(item);
+      case 'upsert_asistencia':
+        await _sincronizarAsistencia(item);
       default:
         throw StateError('Operacion desconocida en la cola: ${item.operacion}');
     }
@@ -183,12 +194,31 @@ class Sincronizador {
     await _api.sincronizarVisita(payload);
     await _repo.marcarSincronizada(item.entidadId);
   }
+
+  /// Nota, firma y contexto en una sola peticion. El backend guarda los
+  /// archivos, transcribe la nota y saca los datos de la persona; si algo de
+  /// eso falla responde error, el item queda fallido y se reintenta solo.
+  Future<void> _sincronizarAsistencia(SyncItem item) async {
+    final asistencia = await _asistencias.asistencia(item.entidadId);
+    final archivos = await archivosDeAsistencia(asistencia);
+    final resultado = await _api.sincronizarAsistencia(
+      datos: _asistencias.payloadDe(asistencia),
+      firma: archivos.firma,
+      notaVoz: archivos.nota,
+    );
+    await _asistencias.marcarSincronizada(item.entidadId, resultado);
+    await _db.registrarAvance(
+      item.id,
+      archivos.firma.length + archivos.nota.length,
+    );
+  }
 }
 
 final sincronizadorProvider = Provider<Sincronizador>((ref) => Sincronizador(
       ref.watch(dbProvider),
       ref.watch(repoProvider),
       ref.watch(apiProvider),
+      asistencias: ref.watch(asistenciaRepoProvider),
     ));
 
 /// Estado de una corrida manual de la cola, para la pantalla de la visita.

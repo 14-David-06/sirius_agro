@@ -186,6 +186,26 @@ def subir(
     nombre: str,
     orden: int | None = None,
 ) -> ArchivoSubido:
+    return subir_a_clave(
+        settings, contenido, clave_de(codigo_visita, categoria, nombre, orden), nombre
+    )
+
+
+def clave_de_asistencia(codigo_registro: str, nombre: str) -> str:
+    """Ruta de la firma y la nota de voz de un registro de asistencia.
+
+    Prefijo propio y no `visitas/`: la asistencia no cuelga de ninguna visita,
+    y si la persona pide que se borren sus datos tiene que bastar con barrer
+    `asistencias/<codigo>/`, igual que con una visita revocada.
+    """
+    limpio = nombre.replace("/", "-").replace("\\", "-").strip() or "archivo"
+    return f"asistencias/{codigo_registro}/{limpio}"
+
+
+def subir_a_clave(
+    settings: Settings, contenido: bytes, clave: str, nombre: str
+) -> ArchivoSubido:
+    """Escribe [contenido] en [clave]. El tipo sale de la extension de [nombre]."""
     if not configurado(settings):
         raise HTTPException(
             status_code=500,
@@ -197,7 +217,6 @@ def subir(
     if not contenido:
         raise HTTPException(status_code=400, detail="El archivo llego vacio.")
 
-    clave = clave_de(codigo_visita, categoria, nombre, orden)
     cliente = _cliente(
         settings.bucket_endpoint,
         settings.bucket_access_key,

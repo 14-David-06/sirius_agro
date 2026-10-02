@@ -33,6 +33,7 @@ PRODUCTOR -> FINCA -> VISITA -> GRABACION + EVIDENCIA -> HALLAZGOS (IA)
 | Oportunidades | `tblDOQaOgzprlEZB4` | Recomendaciones e intervenciones |
 | Informes | `tblczDOcHeq9taOQ9` | Entregables (PDF en el bucket) |
 | Unidades | `tbl8JhwAVnNvVxAuB` | Factores de conversión a kilogramos |
+| Asistencias | `tbl5WgavTPiRHyu8W` | Registro de asistencia a talleres y jornadas: datos, cultivos, nota de voz y firma |
 
 ## Decisiones de modelado
 
@@ -550,3 +551,42 @@ la única copia del lindero: lo que se manda es lo que se caminó.
 - Catalogo de Campos → **V1** (`Activo` = on) — son las 55 variables que se le piden al modelo.
 - Catalogo de Campos → **MVP** (`Activo` = on y `Obligatorio MVP` = on) — son los 23 campos que definen la completitud.
 - Hallazgos → **Sin procedencia** (`Cita textual` vacía) — control de calidad del pipeline.
+
+## Asistencias
+
+Registro de asistencia tomado en campo (talleres, jornadas, charlas). No cuelga
+de ninguna visita: cada registro es una persona.
+
+**En el campo solo se graba y se firma.** La persona dice sus datos en una nota de
+voz, guiada por un guion que la app muestra todo el tiempo (también mientras graba):
+nombre, cédula, teléfono, vereda, cultivos, hectáreas sembradas y si quiere visita
+técnica. Después firma. El teléfono no procesa nada: guarda la nota y la firma, y el
+registro queda en la cola hasta que haya red.
+
+Al subir (`POST /v1/asistencias`), el backend:
+
+1. sube la firma y la nota al bucket, bajo `asistencias/<codigo>/` (`firma.png`,
+   `nota-voz.m4a`);
+2. crea el registro con `Estado = Por procesar`, la nota y la firma. Si lo que sigue
+   falla, la asistencia ya existe;
+3. transcribe la nota (ElevenLabs, Whisper de respaldo) y guarda la transcripción;
+4. Claude saca los datos de la transcripción y el código los valida (cédula y
+   teléfono solo dígitos con largo razonable, vereda que exista en `Veredas`, cultivos
+   llevados a las opciones del multiselect). Lo dudoso no entra: va a
+   `Datos por confirmar`;
+5. completa el registro y lo deja `Procesado`.
+
+Si 3 o 4 fallan, el registro queda `Error al procesar` con el motivo en
+`Error de procesamiento` y la app reintenta sola. Un reintento no vuelve a pagar la
+transcripción, y un registro `Procesado` no se vuelve a procesar: si alguien corrigió
+un dato a mano en Airtable, no se le pisa.
+
+- **Llave de idempotencia:** `Codigo de registro`, el UUID que genera el teléfono.
+- `Enlace firma` y `Enlace nota de voz` son la fuente de verdad; `Firma` y
+  `Nota de voz` son adjuntos de respaldo.
+- **Términos:** la persona acepta al enviar, con el aviso a la vista.
+  `Acepta terminos` siempre llega marcado (el backend rechaza un registro sin él) y
+  `Terminos aceptados` guarda la URL exacta de la política que se mostró.
+- **Productor:** si la cédula coincide con el `Documento` de un productor, se enlaza
+  a su ficha. Nunca se crean productores.
+- `Municipio` es un lookup de la vereda.

@@ -11,6 +11,7 @@ import '../state/providers.dart';
 import '../state/red.dart';
 import '../state/sesion.dart';
 import 'acciones_visitas.dart';
+import 'asistencia_page.dart';
 import 'chat_page.dart';
 import 'marca.dart';
 import 'nueva_visita_page.dart';
@@ -115,6 +116,13 @@ class _VisitasPageState extends ConsumerState<VisitasPage> {
           : AppBarMarca(
               titulo: 'Visitas de campo',
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.how_to_reg_outlined),
+                  tooltip: 'Registro de asistencia',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AsistenciaPage()),
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.cloud_download_outlined),
                   tooltip: 'Traer visitas de Airtable',

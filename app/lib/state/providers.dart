@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api_client.dart';
+import '../data/asistencia_repository.dart';
 import '../data/db/app_database.dart';
 import '../data/exportador_visita.dart';
 import '../data/semilla.dart';
@@ -19,6 +20,15 @@ final repoProvider =
     Provider<VisitaRepository>((ref) => VisitaRepository(ref.watch(dbProvider)));
 
 final apiProvider = Provider<ApiClient>((ref) => ApiClient());
+
+final asistenciaRepoProvider = Provider<AsistenciaRepository>(
+  (ref) => AsistenciaRepository(ref.watch(dbProvider)),
+);
+
+/// Los registros de asistencia del telefono, el mas reciente primero.
+final asistenciasProvider = StreamProvider<List<Asistencia>>(
+  (ref) => ref.watch(asistenciaRepoProvider).observarAsistencias(),
+);
 
 /// Los poligonos de lote y los recorridos. Depende del repo de visitas porque
 /// el KML lleva la ficha de la visita (productor, finca, vereda): un archivo

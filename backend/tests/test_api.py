@@ -133,7 +133,7 @@ def _campos(request) -> dict[str, list[str]]:
 
 
 def test_health_no_pide_llave(client):
-    assert client.get("/health").json() == {"status": "ok"}
+    assert client.get("/health").json()["status"] == "ok"
 
 
 @pytest.mark.parametrize(

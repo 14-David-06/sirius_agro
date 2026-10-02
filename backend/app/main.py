@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -100,7 +101,8 @@ def require_api_key(
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok"}
+    # Vercel inyecta el commit desplegado: deja ver desde fuera que version corre.
+    return {"status": "ok", "commit": os.environ.get("VERCEL_GIT_COMMIT_SHA", "")[:7]}
 
 
 @app.post("/v1/auth/login", response_model=LoginResult)

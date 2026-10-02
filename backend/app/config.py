@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_api_key: str = ""
-
+    # prueba
     # Transcripcion diarizada. Whisper no es el motor porque no separa voces,
     # y sin voces separadas no se puede aplicar la regla de que lo dicho por el
     # visitador nunca queda Confirmado. Queda solo como respaldo, ver abajo.

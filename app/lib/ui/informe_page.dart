@@ -143,7 +143,7 @@ class InformePage extends ConsumerWidget {
     );
   }
 
-  /// `visita-don-pedro-2026-09-03.pdf`. El nombre sale de los datos de la
+  /// `don-pedro-2026-09-03.pdf`. El nombre sale de los datos de la
   /// visita y no del titulo del informe, que cuando falta la finca cae en el
   /// codigo de la visita — y ese codigo, en la bandeja de WhatsApp del
   /// productor, no identifica nada.
@@ -170,15 +170,16 @@ class InformePage extends ConsumerWidget {
       // `share` abre WhatsApp, correo o lo que el telefono tenga. No se fuerza
       // un canal: en el llano el productor a veces solo tiene WhatsApp, y a
       // veces solo el papel del pueblo.
+      // `fileNameOverrides` y no solo el `name` del XFile: cross_file ignora
+      // ese `name` en Android y en iOS, y ahi share_plus le inventa al archivo
+      // un UUID. El productor recibia `1fa-11f1-9dbc-....pdf` por WhatsApp.
+      final nombre = _nombreArchivo(datos);
       await SharePlus.instance.share(
         ShareParams(
           files: [
-            XFile.fromData(
-              bytes,
-              mimeType: 'application/pdf',
-              name: _nombreArchivo(datos),
-            ),
+            XFile.fromData(bytes, mimeType: 'application/pdf', name: nombre),
           ],
+          fileNameOverrides: [nombre],
           subject: informe.titulo,
           sharePositionOrigin:
               caja == null ? null : caja.localToGlobal(Offset.zero) & caja.size,

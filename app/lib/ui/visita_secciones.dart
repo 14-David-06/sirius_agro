@@ -978,15 +978,19 @@ class SeccionInformeTecnico extends ConsumerWidget {
           .read(informeTecnicoProvider(visitaId).notifier)
           .pdfArchivado(informe);
 
+      // `fileNameOverrides` ademas del `name`: cross_file ignora ese `name`
+      // fuera de la web, y sin el override el informe sale con un UUID.
+      final nombre = await _nombreArchivo(ref, informe);
       await SharePlus.instance.share(
         ShareParams(
           files: [
             XFile.fromData(
               archivado.pdf,
               mimeType: 'application/pdf',
-              name: await _nombreArchivo(ref, informe),
+              name: nombre,
             ),
           ],
+          fileNameOverrides: [nombre],
           subject: informe.titulo,
           sharePositionOrigin:
               caja == null ? null : caja.localToGlobal(Offset.zero) & caja.size,
@@ -1031,7 +1035,7 @@ class SeccionInformeTecnico extends ConsumerWidget {
     }
   }
 
-  /// `visita-don-pedro-2026-09-03-tecnico-v1.pdf`: con quien y cuando, no con
+  /// `don-pedro-2026-09-03-tecnico-v1.pdf`: con quien y cuando, no con
   /// el codigo de la visita.
   ///
   /// En el telefono y en el bucket el archivo se sigue llamando

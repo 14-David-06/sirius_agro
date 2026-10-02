@@ -14,7 +14,7 @@ void main() {
           finca: 'La Soledad',
           fecha: DateTime(2026, 9, 2, 17, 12),
         ),
-        'visita-senor-rumi-2026-09-02.pdf',
+        'senor-rumi-2026-09-02.pdf',
       );
     });
 
@@ -24,14 +24,14 @@ void main() {
           finca: 'La Soledad',
           fecha: DateTime(2026, 9, 2),
         ),
-        'visita-la-soledad-2026-09-02.pdf',
+        'la-soledad-2026-09-02.pdf',
       );
     });
 
     test('sin nombre de nadie sigue siendo un nombre legible', () {
       expect(
         nombreArchivoInforme(fecha: DateTime(2026, 9, 2)),
-        'visita-sin-nombre-2026-09-02.pdf',
+        'sin-nombre-2026-09-02.pdf',
       );
     });
 
@@ -45,7 +45,7 @@ void main() {
         fecha: DateTime(2026, 9, 14),
         sufijo: '-tecnico-v1',
       );
-      expect(tecnico, 'visita-senora-de-prueba-2026-09-14-tecnico-v1.pdf');
+      expect(tecnico, 'senora-de-prueba-2026-09-14-tecnico-v1.pdf');
       expect(agricultor, isNot(tecnico));
     });
 

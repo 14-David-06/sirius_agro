@@ -36,7 +36,7 @@ String selloDia(DateTime d) {
   return '${l.year}-${dd(l.month)}-${dd(l.day)}';
 }
 
-/// `visita-don-pedro-2026-09-03.pdf`: con quien y cuando, no con el serial.
+/// `don-pedro-2026-09-03.pdf`: con quien y cuando, no con el serial.
 ///
 /// El nombre con el que sale el PDF al compartirlo, imprimirlo o bajarlo. El
 /// codigo de la visita se quedo adentro del documento, que es donde sirve: en
@@ -54,6 +54,6 @@ String nombreArchivoInforme({
   // La finca como respaldo y no el UUID: si no quedo el nombre del productor,
   // «la soledad» todavia le dice algo a quien busca el archivo.
   final quien = slugArchivo(productor ?? finca ?? '');
-  return 'visita-${quien.isEmpty ? 'sin-nombre' : quien}'
+  return '${quien.isEmpty ? 'sin-nombre' : quien}'
       '-${selloDia(fecha)}$sufijo.pdf';
 }

@@ -22,9 +22,8 @@ const guionAsistencia = [
   'Su nombre completo',
   'Su numero de cedula',
   'Su telefono',
+  'Su correo electronico',
   'La vereda donde vive',
-  'Que cultivos tiene sembrados',
-  'Cuantas hectareas tiene sembradas',
   'Si quiere que lo visite un tecnico',
 ];
 
@@ -456,8 +455,8 @@ class _NotaDeVoz extends ConsumerWidget {
             const SizedBox(height: 6),
             Text(
               'Ejemplo: «Me llamo Maria Lopez, mi cedula es 1 234 567, mi '
-              'telefono es 300 123 4567, vivo en la vereda Guaicaramo, '
-              'siembro cafe y platano, tengo 3 hectareas y si quiero la '
+              'telefono es 300 123 4567, mi correo es maria lopez arroba '
+              'gmail punto com, vivo en la vereda Guaicaramo y si quiero la '
               'visita».',
               style: TextStyle(
                 fontSize: 12.5,

@@ -665,8 +665,10 @@ class Asistencias extends Table {
   TextColumn get nombreCompleto => text().nullable()();
   TextColumn get cedula => text().nullable()();
   TextColumn get telefono => text().nullable()();
+  TextColumn get correo => text().nullable()();
 
-  /// Uno por linea, como el multiselect de Airtable.
+  /// Uno por linea, como el multiselect de Airtable. Ya no se preguntan en la
+  /// nota; quedan con lo que traian los registros anteriores.
   TextColumn get cultivos => text().withDefault(const Constant(''))();
 
   /// La vereda que reconocio el backend, resuelta a la del telefono por el

@@ -82,9 +82,8 @@ def claude(monkeypatch):
             nombre_completo="Maria Lopez",
             cedula="1234567",
             telefono="3001234567",
+            correo="maria@gmail.com",
             vereda="Guaicaramo",
-            cultivos=["Cafe", "Platano"],
-            area_sembrada_ha=3.5,
             quiere_visita=True,
         )
 
@@ -165,7 +164,10 @@ async def test_nuevo_se_guarda_por_procesar_y_se_completa(
     assert final["Estado"] == "Procesado"
     assert final["Nombre completo"] == "Maria Lopez"
     assert final["Vereda"] == ["recGua"]
-    assert final["Area sembrada (ha)"] == 3.5
+    assert final["Correo electronico"] == "maria@gmail.com"
+    # Ya no se preguntan: un registro nuevo no los escribe.
+    assert "Cultivos sembrados" not in final
+    assert "Area sembrada (ha)" not in final
     assert final["Quiere visita tecnica"] is True
     assert "Productor" not in final
     assert r.datos.cedula == "1234567"
@@ -311,9 +313,8 @@ class TestValidar:
                 "nombre_completo": " Maria Lopez ",
                 "cedula": "1.234.567",
                 "telefono": "300 123 4567",
+                "correo": "Maria.Lopez @Gmail.com",
                 "vereda": "guaicaramo",
-                "cultivos": ["café", "Platano", "cafe", "lulo"],
-                "area_sembrada_ha": "2.5",
                 "quiere_visita": True,
                 "por_confirmar": [],
             },
@@ -323,8 +324,7 @@ class TestValidar:
         assert d.cedula == "1234567"
         assert d.telefono == "3001234567"
         assert d.vereda == "Guaicaramo"
-        assert d.cultivos == ["Cafe", "Platano", "Lulo"]
-        assert d.area_sembrada_ha == 2.5
+        assert d.correo == "maria.lopez@gmail.com"
         assert d.por_confirmar == []
 
     def test_lo_dudoso_no_entra_y_queda_anotado(self):
@@ -333,15 +333,14 @@ class TestValidar:
                 "nombre_completo": None,
                 "cedula": "123",
                 "telefono": None,
+                "correo": "maria arroba gmail",
                 "vereda": "El Porvenir",
-                "cultivos": [],
-                "area_sembrada_ha": -4,
                 "quiere_visita": "si",
                 "por_confirmar": ["No dijo el nombre."],
             },
             VEREDAS,
         )
-        assert d.cedula is None and d.vereda is None and d.area_sembrada_ha is None
+        assert d.cedula is None and d.vereda is None and d.correo is None
         assert d.quiere_visita is None
         assert len(d.por_confirmar) == 4
         assert any("El Porvenir" in x for x in d.por_confirmar)

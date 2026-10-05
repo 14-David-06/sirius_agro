@@ -139,8 +139,9 @@ class AppDatabase extends _$AppDatabase {
   ///     nota de voz y los saca el backend cuando hay red.
   /// v15: `EventosAsistencia` y `Asistencias.eventoId` — la asistencia se toma
   ///     dentro de un evento para que los registros no queden sueltos.
+  /// v16: `Asistencias.correo` — el correo que la persona dice en la nota.
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -250,7 +251,11 @@ class AppDatabase extends _$AppDatabase {
               TableMigration(
                 asistencias,
                 newColumns: [
-                  for (final c in [asistencias.procesado, asistencias.eventoId])
+                  for (final c in [
+                    asistencias.procesado,
+                    asistencias.eventoId,
+                    asistencias.correo,
+                  ])
                     if (!existentes.contains(c.name)) c,
                 ],
               ),
@@ -259,6 +264,8 @@ class AppDatabase extends _$AppDatabase {
           // v15: los eventos de asistencia.
           await _asegurarTabla(m, eventosAsistencia);
           await _asegurarColumna(m, asistencias, asistencias.eventoId);
+          // v16: el correo.
+          await _asegurarColumna(m, asistencias, asistencias.correo);
         },
         beforeOpen: (details) async {
           // Sin esto SQLite ignora las claves foraneas y se pueden quedar

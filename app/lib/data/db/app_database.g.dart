@@ -11966,6 +11966,15 @@ class $AsistenciasTable extends Asistencias
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _correoMeta = const VerificationMeta('correo');
+  @override
+  late final GeneratedColumn<String> correo = GeneratedColumn<String>(
+    'correo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _cultivosMeta = const VerificationMeta(
     'cultivos',
   );
@@ -12106,6 +12115,7 @@ class $AsistenciasTable extends Asistencias
     nombreCompleto,
     cedula,
     telefono,
+    correo,
     cultivos,
     veredaLocalId,
     quiereVisita,
@@ -12256,6 +12266,12 @@ class $AsistenciasTable extends Asistencias
       context.handle(
         _telefonoMeta,
         telefono.isAcceptableOrUnknown(data['telefono']!, _telefonoMeta),
+      );
+    }
+    if (data.containsKey('correo')) {
+      context.handle(
+        _correoMeta,
+        correo.isAcceptableOrUnknown(data['correo']!, _correoMeta),
       );
     }
     if (data.containsKey('cultivos')) {
@@ -12419,6 +12435,10 @@ class $AsistenciasTable extends Asistencias
         DriftSqlType.string,
         data['${effectivePrefix}telefono'],
       ),
+      correo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}correo'],
+      ),
       cultivos: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}cultivos'],
@@ -12506,8 +12526,10 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
   final String? nombreCompleto;
   final String? cedula;
   final String? telefono;
+  final String? correo;
 
-  /// Uno por linea, como el multiselect de Airtable.
+  /// Uno por linea, como el multiselect de Airtable. Ya no se preguntan en la
+  /// nota; quedan con lo que traian los registros anteriores.
   final String cultivos;
 
   /// La vereda que reconocio el backend, resuelta a la del telefono por el
@@ -12539,6 +12561,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     this.nombreCompleto,
     this.cedula,
     this.telefono,
+    this.correo,
     required this.cultivos,
     this.veredaLocalId,
     required this.quiereVisita,
@@ -12593,6 +12616,9 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     }
     if (!nullToAbsent || telefono != null) {
       map['telefono'] = Variable<String>(telefono);
+    }
+    if (!nullToAbsent || correo != null) {
+      map['correo'] = Variable<String>(correo);
     }
     map['cultivos'] = Variable<String>(cultivos);
     if (!nullToAbsent || veredaLocalId != null) {
@@ -12664,6 +12690,9 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       telefono: telefono == null && nullToAbsent
           ? const Value.absent()
           : Value(telefono),
+      correo: correo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(correo),
       cultivos: Value(cultivos),
       veredaLocalId: veredaLocalId == null && nullToAbsent
           ? const Value.absent()
@@ -12716,6 +12745,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       nombreCompleto: serializer.fromJson<String?>(json['nombreCompleto']),
       cedula: serializer.fromJson<String?>(json['cedula']),
       telefono: serializer.fromJson<String?>(json['telefono']),
+      correo: serializer.fromJson<String?>(json['correo']),
       cultivos: serializer.fromJson<String>(json['cultivos']),
       veredaLocalId: serializer.fromJson<String?>(json['veredaLocalId']),
       quiereVisita: serializer.fromJson<bool>(json['quiereVisita']),
@@ -12751,6 +12781,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       'nombreCompleto': serializer.toJson<String?>(nombreCompleto),
       'cedula': serializer.toJson<String?>(cedula),
       'telefono': serializer.toJson<String?>(telefono),
+      'correo': serializer.toJson<String?>(correo),
       'cultivos': serializer.toJson<String>(cultivos),
       'veredaLocalId': serializer.toJson<String?>(veredaLocalId),
       'quiereVisita': serializer.toJson<bool>(quiereVisita),
@@ -12782,6 +12813,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     Value<String?> nombreCompleto = const Value.absent(),
     Value<String?> cedula = const Value.absent(),
     Value<String?> telefono = const Value.absent(),
+    Value<String?> correo = const Value.absent(),
     String? cultivos,
     Value<String?> veredaLocalId = const Value.absent(),
     bool? quiereVisita,
@@ -12818,6 +12850,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
         : this.nombreCompleto,
     cedula: cedula.present ? cedula.value : this.cedula,
     telefono: telefono.present ? telefono.value : this.telefono,
+    correo: correo.present ? correo.value : this.correo,
     cultivos: cultivos ?? this.cultivos,
     veredaLocalId: veredaLocalId.present
         ? veredaLocalId.value
@@ -12874,6 +12907,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
           : this.nombreCompleto,
       cedula: data.cedula.present ? data.cedula.value : this.cedula,
       telefono: data.telefono.present ? data.telefono.value : this.telefono,
+      correo: data.correo.present ? data.correo.value : this.correo,
       cultivos: data.cultivos.present ? data.cultivos.value : this.cultivos,
       veredaLocalId: data.veredaLocalId.present
           ? data.veredaLocalId.value
@@ -12923,6 +12957,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
           ..write('nombreCompleto: $nombreCompleto, ')
           ..write('cedula: $cedula, ')
           ..write('telefono: $telefono, ')
+          ..write('correo: $correo, ')
           ..write('cultivos: $cultivos, ')
           ..write('veredaLocalId: $veredaLocalId, ')
           ..write('quiereVisita: $quiereVisita, ')
@@ -12956,6 +12991,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     nombreCompleto,
     cedula,
     telefono,
+    correo,
     cultivos,
     veredaLocalId,
     quiereVisita,
@@ -12988,6 +13024,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
           other.nombreCompleto == this.nombreCompleto &&
           other.cedula == this.cedula &&
           other.telefono == this.telefono &&
+          other.correo == this.correo &&
           other.cultivos == this.cultivos &&
           other.veredaLocalId == this.veredaLocalId &&
           other.quiereVisita == this.quiereVisita &&
@@ -13018,6 +13055,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
   final Value<String?> nombreCompleto;
   final Value<String?> cedula;
   final Value<String?> telefono;
+  final Value<String?> correo;
   final Value<String> cultivos;
   final Value<String?> veredaLocalId;
   final Value<bool> quiereVisita;
@@ -13047,6 +13085,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     this.nombreCompleto = const Value.absent(),
     this.cedula = const Value.absent(),
     this.telefono = const Value.absent(),
+    this.correo = const Value.absent(),
     this.cultivos = const Value.absent(),
     this.veredaLocalId = const Value.absent(),
     this.quiereVisita = const Value.absent(),
@@ -13077,6 +13116,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     this.nombreCompleto = const Value.absent(),
     this.cedula = const Value.absent(),
     this.telefono = const Value.absent(),
+    this.correo = const Value.absent(),
     this.cultivos = const Value.absent(),
     this.veredaLocalId = const Value.absent(),
     this.quiereVisita = const Value.absent(),
@@ -13109,6 +13149,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     Expression<String>? nombreCompleto,
     Expression<String>? cedula,
     Expression<String>? telefono,
+    Expression<String>? correo,
     Expression<String>? cultivos,
     Expression<String>? veredaLocalId,
     Expression<bool>? quiereVisita,
@@ -13140,6 +13181,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
       if (nombreCompleto != null) 'nombre_completo': nombreCompleto,
       if (cedula != null) 'cedula': cedula,
       if (telefono != null) 'telefono': telefono,
+      if (correo != null) 'correo': correo,
       if (cultivos != null) 'cultivos': cultivos,
       if (veredaLocalId != null) 'vereda_local_id': veredaLocalId,
       if (quiereVisita != null) 'quiere_visita': quiereVisita,
@@ -13172,6 +13214,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     Value<String?>? nombreCompleto,
     Value<String?>? cedula,
     Value<String?>? telefono,
+    Value<String?>? correo,
     Value<String>? cultivos,
     Value<String?>? veredaLocalId,
     Value<bool>? quiereVisita,
@@ -13202,6 +13245,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
       nombreCompleto: nombreCompleto ?? this.nombreCompleto,
       cedula: cedula ?? this.cedula,
       telefono: telefono ?? this.telefono,
+      correo: correo ?? this.correo,
       cultivos: cultivos ?? this.cultivos,
       veredaLocalId: veredaLocalId ?? this.veredaLocalId,
       quiereVisita: quiereVisita ?? this.quiereVisita,
@@ -13272,6 +13316,9 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     if (telefono.present) {
       map['telefono'] = Variable<String>(telefono.value);
     }
+    if (correo.present) {
+      map['correo'] = Variable<String>(correo.value);
+    }
     if (cultivos.present) {
       map['cultivos'] = Variable<String>(cultivos.value);
     }
@@ -13328,6 +13375,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
           ..write('nombreCompleto: $nombreCompleto, ')
           ..write('cedula: $cedula, ')
           ..write('telefono: $telefono, ')
+          ..write('correo: $correo, ')
           ..write('cultivos: $cultivos, ')
           ..write('veredaLocalId: $veredaLocalId, ')
           ..write('quiereVisita: $quiereVisita, ')
@@ -19897,6 +19945,7 @@ typedef $$AsistenciasTableCreateCompanionBuilder =
       Value<String?> nombreCompleto,
       Value<String?> cedula,
       Value<String?> telefono,
+      Value<String?> correo,
       Value<String> cultivos,
       Value<String?> veredaLocalId,
       Value<bool> quiereVisita,
@@ -19928,6 +19977,7 @@ typedef $$AsistenciasTableUpdateCompanionBuilder =
       Value<String?> nombreCompleto,
       Value<String?> cedula,
       Value<String?> telefono,
+      Value<String?> correo,
       Value<String> cultivos,
       Value<String?> veredaLocalId,
       Value<bool> quiereVisita,
@@ -20032,6 +20082,11 @@ class $$AsistenciasTableFilterComposer
 
   ColumnFilters<String> get telefono => $composableBuilder(
     column: $table.telefono,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get correo => $composableBuilder(
+    column: $table.correo,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -20180,6 +20235,11 @@ class $$AsistenciasTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get correo => $composableBuilder(
+    column: $table.correo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get cultivos => $composableBuilder(
     column: $table.cultivos,
     builder: (column) => ColumnOrderings(column),
@@ -20307,6 +20367,9 @@ class $$AsistenciasTableAnnotationComposer
   GeneratedColumn<String> get telefono =>
       $composableBuilder(column: $table.telefono, builder: (column) => column);
 
+  GeneratedColumn<String> get correo =>
+      $composableBuilder(column: $table.correo, builder: (column) => column);
+
   GeneratedColumn<String> get cultivos =>
       $composableBuilder(column: $table.cultivos, builder: (column) => column);
 
@@ -20402,6 +20465,7 @@ class $$AsistenciasTableTableManager
                 Value<String?> nombreCompleto = const Value.absent(),
                 Value<String?> cedula = const Value.absent(),
                 Value<String?> telefono = const Value.absent(),
+                Value<String?> correo = const Value.absent(),
                 Value<String> cultivos = const Value.absent(),
                 Value<String?> veredaLocalId = const Value.absent(),
                 Value<bool> quiereVisita = const Value.absent(),
@@ -20431,6 +20495,7 @@ class $$AsistenciasTableTableManager
                 nombreCompleto: nombreCompleto,
                 cedula: cedula,
                 telefono: telefono,
+                correo: correo,
                 cultivos: cultivos,
                 veredaLocalId: veredaLocalId,
                 quiereVisita: quiereVisita,
@@ -20462,6 +20527,7 @@ class $$AsistenciasTableTableManager
                 Value<String?> nombreCompleto = const Value.absent(),
                 Value<String?> cedula = const Value.absent(),
                 Value<String?> telefono = const Value.absent(),
+                Value<String?> correo = const Value.absent(),
                 Value<String> cultivos = const Value.absent(),
                 Value<String?> veredaLocalId = const Value.absent(),
                 Value<bool> quiereVisita = const Value.absent(),
@@ -20491,6 +20557,7 @@ class $$AsistenciasTableTableManager
                 nombreCompleto: nombreCompleto,
                 cedula: cedula,
                 telefono: telefono,
+                correo: correo,
                 cultivos: cultivos,
                 veredaLocalId: veredaLocalId,
                 quiereVisita: quiereVisita,

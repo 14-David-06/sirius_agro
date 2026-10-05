@@ -37,9 +37,12 @@ class DatosAsistencia(BaseModel):
     nombre_completo: str | None = None
     cedula: str | None = None
     telefono: str | None = None
+    correo: str | None = None
     # Nombre exacto de la vereda en la tabla Veredas, o None si no se
     # reconocio.
     vereda: str | None = None
+    # Ya no se preguntan en la nota. Quedan por los registros viejos, que
+    # los traen en Airtable.
     cultivos: list[str] = Field(default_factory=list)
     area_sembrada_ha: float | None = None
     quiere_visita: bool | None = None

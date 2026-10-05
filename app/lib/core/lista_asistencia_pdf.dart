@@ -45,9 +45,8 @@ class FilaListaAsistencia {
     this.nombre,
     this.cedula,
     this.telefono,
+    this.correo,
     this.vereda,
-    this.cultivos = const [],
-    this.areaSembradaHa,
     this.quiereVisita = false,
   });
 
@@ -61,9 +60,8 @@ class FilaListaAsistencia {
   final String? nombre;
   final String? cedula;
   final String? telefono;
+  final String? correo;
   final String? vereda;
-  final List<String> cultivos;
-  final double? areaSembradaHa;
   final bool quiereVisita;
 }
 
@@ -111,13 +109,10 @@ final _fechaLarga = DateFormat("EEEE d 'de' MMMM 'de' y", 'es');
 final _fechaCorta = DateFormat("d 'de' MMMM 'de' y", 'es');
 final _hora = DateFormat('h:mm a', 'es');
 
-String _numero(double v) =>
-    v.toStringAsFixed(v == v.roundToDouble() ? 0 : 2).replaceAll('.', ',');
-
 String _capital(String s) =>
     s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
-/// Arma la lista de asistencia. Horizontal: son diez columnas y la firma
+/// Arma la lista de asistencia. Horizontal: son nueve columnas y la firma
 /// necesita ancho para que se reconozca.
 Future<Uint8List> construirListaAsistenciaPdf(DatosListaAsistencia datos) async {
   final doc = pw.Document(
@@ -390,13 +385,12 @@ const _encabezados = [
   'Nombre completo',
   'Cédula',
   'Teléfono',
+  'Correo electrónico',
   'Vereda',
-  'Cultivos',
-  'Área (ha)',
   'Visita',
   'Firma',
 ];
-const _anchos = [3, 6, 17, 9, 9, 13, 15, 5, 5, 13];
+const _anchos = [3, 6, 17, 9, 9, 17, 13, 5, 14];
 
 pw.Widget _tabla(
   List<FilaListaAsistencia> filas,
@@ -472,11 +466,8 @@ pw.Widget _tabla(
             ),
             texto(f.cedula),
             texto(f.telefono),
+            texto(f.correo),
             texto(f.vereda),
-            texto(f.cultivos.isEmpty ? null : f.cultivos.join(', ')),
-            texto(
-              f.areaSembradaHa == null ? null : _numero(f.areaSembradaHa!),
-            ),
             celda(
               !f.procesado
                   ? pw.Text('—', style: pendiente)

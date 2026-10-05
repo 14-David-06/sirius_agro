@@ -181,9 +181,10 @@ void main() {
                 'nombre_completo': 'Maria Lopez',
                 'cedula': '1234567',
                 'telefono': '3001234567',
+                'correo': 'maria@gmail.com',
                 'vereda': 'Guaicaramo',
-                'cultivos': ['Cafe', 'Platano'],
-                'area_sembrada_ha': 3.5,
+                'cultivos': [],
+                'area_sembrada_ha': null,
                 'quiere_visita': true,
                 'por_confirmar': [],
               },
@@ -212,9 +213,8 @@ void main() {
       expect(a.remoteId, 'recAsis');
       expect(a.nombreCompleto, 'Maria Lopez');
       expect(a.cedula, '1234567');
-      expect(a.cultivos, 'Cafe\nPlatano');
+      expect(a.correo, 'maria@gmail.com');
       expect(a.veredaLocalId, 'ver-1');
-      expect(a.areaSembradaHa, 3.5);
       expect(a.quiereVisita, isTrue);
       expect(await repo.pendientes(), isEmpty);
     });

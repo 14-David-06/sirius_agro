@@ -33,7 +33,7 @@ PRODUCTOR -> FINCA -> VISITA -> GRABACION + EVIDENCIA -> HALLAZGOS (IA)
 | Oportunidades | `tblDOQaOgzprlEZB4` | Recomendaciones e intervenciones |
 | Informes | `tblczDOcHeq9taOQ9` | Entregables (PDF en el bucket) |
 | Unidades | `tbl8JhwAVnNvVxAuB` | Factores de conversión a kilogramos |
-| Asistencias | `tbl5WgavTPiRHyu8W` | Registro de asistencia a talleres y jornadas: datos, cultivos, nota de voz y firma |
+| Asistencias | `tbl5WgavTPiRHyu8W` | Registro de asistencia a talleres y jornadas: datos, correo, nota de voz y firma |
 
 ## Decisiones de modelado
 
@@ -559,9 +559,9 @@ de ninguna visita: cada registro es una persona.
 
 **En el campo solo se graba y se firma.** La persona dice sus datos en una nota de
 voz, guiada por un guion que la app muestra todo el tiempo (también mientras graba):
-nombre, cédula, teléfono, vereda, cultivos, hectáreas sembradas y si quiere visita
-técnica. Después firma. El teléfono no procesa nada: guarda la nota y la firma, y el
-registro queda en la cola hasta que haya red.
+nombre, cédula, teléfono, correo electrónico, vereda y si quiere visita técnica.
+Después firma. El teléfono no procesa nada: guarda la nota y la firma, y el registro
+queda en la cola hasta que haya red.
 
 Al subir (`POST /v1/asistencias`), el backend:
 
@@ -571,9 +571,8 @@ Al subir (`POST /v1/asistencias`), el backend:
    falla, la asistencia ya existe;
 3. transcribe la nota (ElevenLabs, Whisper de respaldo) y guarda la transcripción;
 4. Claude saca los datos de la transcripción y el código los valida (cédula y
-   teléfono solo dígitos con largo razonable, vereda que exista en `Veredas`, cultivos
-   llevados a las opciones del multiselect). Lo dudoso no entra: va a
-   `Datos por confirmar`;
+   teléfono solo dígitos con largo razonable, correo con forma de correo, vereda que
+   exista en `Veredas`). Lo dudoso no entra: va a `Datos por confirmar`;
 5. completa el registro y lo deja `Procesado`.
 
 Si 3 o 4 fallan, el registro queda `Error al procesar` con el motivo en
@@ -590,3 +589,6 @@ un dato a mano en Airtable, no se le pisa.
 - **Productor:** si la cédula coincide con el `Documento` de un productor, se enlaza
   a su ficha. Nunca se crean productores.
 - `Municipio` es un lookup de la vereda.
+- `Cultivos sembrados` y `Area sembrada (ha)` ya no se preguntan en la nota; quedan
+  con lo que traían los registros anteriores.
+- `Evento o actividad` lleva el nombre del evento de la app donde se tomó el registro.

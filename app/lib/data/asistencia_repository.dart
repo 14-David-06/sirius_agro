@@ -275,6 +275,7 @@ class AsistenciaRepository {
         nombreCompleto: Value(datos?['nombre_completo'] as String?),
         cedula: Value(datos?['cedula'] as String?),
         telefono: Value(datos?['telefono'] as String?),
+        correo: Value(datos?['correo'] as String?),
         cultivos: Value(cultivos.join('\n')),
         veredaLocalId: Value(vereda?.id),
         quiereVisita: Value(datos?['quiere_visita'] == true),

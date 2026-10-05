@@ -504,7 +504,6 @@ class FilaAsistencia extends StatelessWidget {
     final tema = Theme.of(context);
     final scheme = tema.colorScheme;
     final a = asistencia;
-    final cultivos = a.cultivos.split('\n').where((c) => c.isNotEmpty);
     final fallo = pendiente?.estado == EstadoSync.fallida;
 
     final pildora = a.procesado && pendiente == null
@@ -574,6 +573,15 @@ class FilaAsistencia extends StatelessWidget {
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
+                  if (a.correo != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      a.correo!,
+                      style: tema.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                   if (vereda != null) ...[
                     const SizedBox(height: 2),
                     Text(
@@ -594,9 +602,6 @@ class FilaAsistencia extends StatelessWidget {
                           tono: TonoPildora.exito,
                           icono: Icons.agriculture_outlined,
                         ),
-                      for (final c in cultivos) Pildora(texto: c),
-                      if (a.areaSembradaHa != null)
-                        Pildora(texto: '${a.areaSembradaHa} ha'),
                       const Pildora(
                         texto: 'Firmado',
                         tono: TonoPildora.info,

@@ -9,7 +9,7 @@ hay red:
      Si lo que sigue falla, la asistencia ya existe y nadie la pierde;
   3. la transcripcion de la nota (una sola vez: un reintento reusa la que ya
      quedo guardada y no vuelve a pagarle al motor);
-  4. Claude saca nombre, cedula, telefono, vereda, cultivos, area y si quiere
+  4. Claude saca nombre, cedula, telefono, correo, vereda y si quiere
      visita, y el codigo valida lo que devuelve;
   5. el registro se completa con esos datos y queda «Procesado».
 
@@ -98,7 +98,6 @@ def campos_datos(
     fields: dict = {
         "Nombre completo": d.nombre_completo or "",
         "Cedula": d.cedula or "",
-        "Cultivos sembrados": d.cultivos,
         "Quiere visita tecnica": bool(d.quiere_visita),
         "Datos por confirmar": "\n".join(f"- {x}" for x in d.por_confirmar),
         "Estado": PROCESADO,
@@ -106,8 +105,8 @@ def campos_datos(
     }
     if d.telefono:
         fields["Telefono"] = d.telefono
-    if d.area_sembrada_ha is not None:
-        fields["Area sembrada (ha)"] = d.area_sembrada_ha
+    if d.correo:
+        fields["Correo electronico"] = d.correo
     if vereda_id:
         fields["Vereda"] = [vereda_id]
     if productor_id:
@@ -124,6 +123,7 @@ def datos_de_registro(fields: dict, veredas: dict[str, str]) -> DatosAsistencia:
         nombre_completo=fields.get("Nombre completo") or None,
         cedula=fields.get("Cedula") or None,
         telefono=fields.get("Telefono") or None,
+        correo=fields.get("Correo electronico") or None,
         vereda=veredas.get(vereda_ids[0]) if vereda_ids else None,
         cultivos=fields.get("Cultivos sembrados") or [],
         area_sembrada_ha=float(area) if area is not None else None,

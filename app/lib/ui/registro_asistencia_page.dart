@@ -36,7 +36,16 @@ const guionAsistencia = [
 /// Todo queda guardado en el telefono y, cuando hay red, el backend transcribe
 /// la nota, saca los datos y llena el registro en Airtable.
 class RegistroAsistenciaPage extends ConsumerStatefulWidget {
-  const RegistroAsistenciaPage({super.key});
+  const RegistroAsistenciaPage({
+    super.key,
+    required this.eventoId,
+    required this.eventoNombre,
+  });
+
+  /// El evento donde queda el registro. Se elige antes de abrir esta
+  /// pantalla, asi que aqui solo se graba y se firma.
+  final String eventoId;
+  final String eventoNombre;
 
   @override
   ConsumerState<RegistroAsistenciaPage> createState() =>
@@ -116,6 +125,7 @@ class _RegistroAsistenciaPageState
             notaVozTemporal: nota.path!,
             duracionNotaSeg: nota.segundos,
             firmaPng: png,
+            eventoId: widget.eventoId,
             latitud: _lat,
             longitud: _lng,
             visitadorIdEmpleado: sesion?.credencial.idEmpleado,
@@ -162,6 +172,21 @@ class _RegistroAsistenciaPageState
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
+          Row(
+            children: [
+              Icon(Icons.event_outlined, size: 18, color: tema.colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  widget.eventoNombre,
+                  style: tema.textTheme.titleSmall?.copyWith(
+                    color: tema.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           const TituloSeccion('1. Nota de voz'),
           _NotaDeVoz(reproductor: _reproductor),
           const SizedBox(height: 24),

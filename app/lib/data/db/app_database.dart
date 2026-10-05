@@ -96,6 +96,7 @@ ProcedenciaResuelta resolverProcedencia({
     Trazados,
     PuntosTrazado,
     Asistencias,
+    EventosAsistencia,
     SyncQueue,
   ],
 )
@@ -136,8 +137,10 @@ class AppDatabase extends _$AppDatabase {
   /// v14: los datos de la persona pasan a ser opcionales y se agrega
   ///     `Asistencias.procesado`. En el campo ya no se teclean: se dicen en la
   ///     nota de voz y los saca el backend cuando hay red.
+  /// v15: `EventosAsistencia` y `Asistencias.eventoId` — la asistencia se toma
+  ///     dentro de un evento para que los registros no queden sueltos.
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -236,18 +239,26 @@ class AppDatabase extends _$AppDatabase {
             // v14: nombre y cedula dejan de ser NOT NULL. SQLite no cambia
             // eso con un ALTER: se reconstruye la tabla copiando las filas,
             // asi que los registros que ya estaban en el telefono se quedan.
-            final hayProcesado = (await columnasDe(asistencias.actualTableName))
-                .contains(asistencias.procesado.name);
+            // La tabla se reconstruye con el esquema de HOY, asi que toda
+            // columna que el archivo no tenga va como nueva — si no, drift
+            // intenta copiarla de la tabla vieja y la migracion revienta.
+            final existentes = await columnasDe(asistencias.actualTableName);
             await m.alterTable(
               // Experimental en drift, pero es la unica forma de quitarle el
               // NOT NULL a una columna sin perder las filas.
               // ignore: experimental_member_use
               TableMigration(
                 asistencias,
-                newColumns: [if (!hayProcesado) asistencias.procesado],
+                newColumns: [
+                  for (final c in [asistencias.procesado, asistencias.eventoId])
+                    if (!existentes.contains(c.name)) c,
+                ],
               ),
             );
           }
+          // v15: los eventos de asistencia.
+          await _asegurarTabla(m, eventosAsistencia);
+          await _asegurarColumna(m, asistencias, asistencias.eventoId);
         },
         beforeOpen: (details) async {
           // Sin esto SQLite ignora las claves foraneas y se pueden quedar

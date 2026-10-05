@@ -8,13 +8,14 @@ import '../data/db/app_database.dart';
 import '../state/asistencia.dart';
 import '../state/providers.dart';
 import '../state/red.dart';
-import 'lista_asistencia_pdf_sheet.dart';
+import 'evento_asistencia_page.dart';
 import 'marca.dart';
-import 'registro_asistencia_page.dart';
-import 'theme.dart';
 
-/// Los registros de asistencia tomados en este telefono, y su estado de
-/// subida a Airtable.
+/// Los eventos donde se tomo asistencia en este telefono.
+///
+/// La asistencia se toma dentro de un evento para que los registros no queden
+/// sueltos: el visitador abre el evento al llegar al taller, registra ahi a
+/// todos, y la lista en PDF sale del evento.
 class AsistenciaPage extends ConsumerStatefulWidget {
   const AsistenciaPage({super.key});
 
@@ -36,15 +37,19 @@ class _AsistenciaPageState extends ConsumerState<AsistenciaPage> {
     await ref.read(subidaAsistenciasProvider.notifier).subir();
   }
 
-  Future<void> _nuevo() async {
-    final mensaje = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const RegistroAsistenciaPage()),
-    );
-    if (mensaje != null && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(mensaje)));
-    }
+  Future<void> _nuevoEvento() async {
+    final datos = await pedirDatosEvento(context);
+    if (datos == null || !mounted) return;
+    final id = await ref
+        .read(asistenciaRepoProvider)
+        .crearEvento(nombre: datos.nombre, fecha: datos.fecha);
+    if (!mounted) return;
+    _abrir(id);
   }
+
+  void _abrir(String? eventoId) => Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => EventoAsistenciaPage(eventoId: eventoId)),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -63,42 +68,39 @@ class _AsistenciaPageState extends ConsumerState<AsistenciaPage> {
       }
     });
 
-    final registros = ref.watch(asistenciasProvider);
+    final eventos = ref.watch(eventosAsistenciaProvider);
+    final registros =
+        ref.watch(asistenciasProvider).valueOrNull ?? const <Asistencia>[];
     final pendientes =
         ref.watch(asistenciasPendientesProvider).valueOrNull ?? const [];
-    final porId = {for (final p in pendientes) p.entidadId: p};
+    final pendientesIds = {for (final p in pendientes) p.entidadId};
     final subida = ref.watch(subidaAsistenciasProvider);
     final red = ref.watch(redProvider);
-    final veredas = {
-      for (final v in ref.watch(veredasProvider).valueOrNull ?? const <Vereda>[])
-        v.id: '${v.vereda} · ${v.municipio}',
-    };
+
+    final porEvento = <String?, List<Asistencia>>{};
+    for (final a in registros) {
+      porEvento.putIfAbsent(a.eventoId, () => []).add(a);
+    }
+    final ids = {for (final e in eventos.valueOrNull ?? const []) e.id};
+    // Los registros de antes de los eventos se juntan en «Sin evento» para
+    // que nadie quede escondido.
+    final sueltos = [
+      for (final MapEntry(:key, :value) in porEvento.entries)
+        if (key == null || !ids.contains(key)) ...value,
+    ];
 
     return Scaffold(
-      appBar: AppBarMarca(
-        titulo: 'Asistencia',
-        actions: [
-          IconButton(
-            tooltip: 'Lista en PDF',
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            onPressed: () => abrirListaAsistenciaPdf(
-              context,
-              ref,
-              registros.valueOrNull ?? const [],
-            ),
-          ),
-        ],
-      ),
+      appBar: const AppBarMarca(titulo: 'Asistencia'),
       floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'nueva-asistencia',
-        onPressed: _nuevo,
-        icon: const Icon(Icons.how_to_reg),
-        label: const Text('Registrar asistencia'),
+        heroTag: 'nuevo-evento',
+        onPressed: _nuevoEvento,
+        icon: const Icon(Icons.add),
+        label: const Text('Nuevo evento'),
       ),
       body: Column(
         children: [
           if (pendientes.isNotEmpty)
-            _BarraPendientes(
+            BarraPendientesAsistencia(
               cantidad: pendientes.length,
               enLinea: red == EstadoRed.enLinea,
               trabajando: subida.trabajando,
@@ -106,30 +108,45 @@ class _AsistenciaPageState extends ConsumerState<AsistenciaPage> {
                   ref.read(subidaAsistenciasProvider.notifier).subir(),
             ),
           Expanded(
-            child: switch (registros) {
+            child: switch (eventos) {
               AsyncError(:final error) => EstadoVacio(
-                  icono: Icons.error_outline,
-                  titulo: 'No se pudieron leer los registros',
-                  detalle: '$error',
-                  tono: TonoPildora.error,
-                ),
-              AsyncData(value: final lista) when lista.isEmpty =>
+                icono: Icons.error_outline,
+                titulo: 'No se pudieron leer los eventos',
+                detalle: '$error',
+                tono: TonoPildora.error,
+              ),
+              AsyncData(value: final lista)
+                  when lista.isEmpty && sueltos.isEmpty =>
                 const EstadoVacio(
-                  icono: Icons.how_to_reg_outlined,
-                  titulo: 'Todavia no hay registros',
-                  detalle: 'Toca «Registrar asistencia» para tomar los datos y '
-                      'la firma de cada persona.\nFunciona sin senal.',
+                  icono: Icons.event_available_outlined,
+                  titulo: 'Todavia no hay eventos',
+                  detalle:
+                      'Toca «Nuevo evento» al llegar al taller o la jornada, '
+                      'y registra ahi a cada persona.\nFunciona sin senal.',
                 ),
-              AsyncData(value: final lista) => ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                  itemCount: lista.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (_, i) => _FilaAsistencia(
-                    asistencia: lista[i],
-                    vereda: veredas[lista[i].veredaLocalId],
-                    pendiente: porId[lista[i].id],
-                  ),
-                ),
+              AsyncData(value: final lista) => ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                children: [
+                  for (final e in lista) ...[
+                    _TarjetaEvento(
+                      titulo: e.nombre,
+                      fecha: e.fecha,
+                      registros: porEvento[e.id] ?? const [],
+                      pendientes: pendientesIds,
+                      onTap: () => _abrir(e.id),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (sueltos.isNotEmpty)
+                    _TarjetaEvento(
+                      titulo: 'Sin evento',
+                      fecha: null,
+                      registros: sueltos,
+                      pendientes: pendientesIds,
+                      onTap: () => _abrir(null),
+                    ),
+                ],
+              ),
               _ => const Center(child: CircularProgressIndicator()),
             },
           ),
@@ -139,180 +156,95 @@ class _AsistenciaPageState extends ConsumerState<AsistenciaPage> {
   }
 }
 
-class _BarraPendientes extends StatelessWidget {
-  const _BarraPendientes({
-    required this.cantidad,
-    required this.enLinea,
-    required this.trabajando,
-    required this.onSubir,
+class _TarjetaEvento extends StatelessWidget {
+  const _TarjetaEvento({
+    required this.titulo,
+    required this.fecha,
+    required this.registros,
+    required this.pendientes,
+    required this.onTap,
   });
 
-  final int cantidad;
-  final bool enLinea;
-  final bool trabajando;
-  final VoidCallback onSubir;
-
-  @override
-  Widget build(BuildContext context) {
-    final tema = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      color: tema.marca.avisoSuave,
-      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-      child: Row(
-        children: [
-          Icon(Icons.cloud_upload_outlined, size: 18, color: tema.marca.aviso),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              enLinea
-                  ? '$cantidad registro(s) por subir a Airtable.'
-                  : '$cantidad registro(s) guardados. Suben solos cuando '
-                      'haya senal.',
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: tema.marca.aviso,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: enLinea && !trabajando ? onSubir : null,
-            child: trabajando
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Subir ahora'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilaAsistencia extends StatelessWidget {
-  const _FilaAsistencia({
-    required this.asistencia,
-    this.pendiente,
-    this.vereda,
-  });
-
-  final Asistencia asistencia;
-  final String? vereda;
-  final SyncItem? pendiente;
+  final String titulo;
+  final DateTime? fecha;
+  final List<Asistencia> registros;
+  final Set<String> pendientes;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final scheme = tema.colorScheme;
-    final a = asistencia;
-    final cultivos = a.cultivos.split('\n').where((c) => c.isNotEmpty);
-    final fallo = pendiente?.estado == EstadoSync.fallida;
-
-    final pildora = a.procesado && pendiente == null
-        ? const Pildora(
-            texto: 'En Airtable',
-            tono: TonoPildora.exito,
-            icono: Icons.cloud_done_outlined,
-          )
-        : fallo
-            ? const Pildora(
-                texto: 'Reintentando',
-                tono: TonoPildora.error,
-                icono: Icons.error_outline,
-              )
-            : const Pildora(
-                texto: 'Por procesar',
-                tono: TonoPildora.aviso,
-                icono: Icons.cloud_off_outlined,
-              );
-    final hora = DateFormat('d MMM yyyy, HH:mm', 'es').format(a.registradoEn);
+    final n = registros.length;
+    final porSubir = registros.where((a) => pendientes.contains(a.id)).length;
+    final piden = registros.where((a) => a.quiereVisita).length;
 
     return Card(
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: scheme.outlineVariant),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  // Hasta que el backend procese la nota no se sabe quien
-                  // es: se muestra la hora, que es como el visitador lo
-                  // recuerda en la fila del taller.
-                  child: Text(
-                    a.nombreCompleto ?? 'Registro de las $hora',
-                    style: tema.textTheme.titleMedium,
-                  ),
-                ),
-                pildora,
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              [
-                if (a.cedula != null) 'CC ${a.cedula}',
-                if (a.telefono != null) a.telefono!,
-                if (a.nombreCompleto != null)
-                  hora
-                else
-                  'Los datos salen de la nota al subir',
-              ].join(' · '),
-              style: tema.textTheme.bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
-            ),
-            if (vereda != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                vereda!,
-                style: tema.textTheme.bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: fecha == null
+                    ? Icon(
+                        Icons.inventory_2_outlined,
+                        color: scheme.onSurfaceVariant,
+                      )
+                    : const PuntosSirius(),
               ),
-            ],
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                if (a.quiereVisita)
-                  const Pildora(
-                    texto: 'Pide visita',
-                    tono: TonoPildora.exito,
-                    icono: Icons.agriculture_outlined,
-                  ),
-                for (final c in cultivos) Pildora(texto: c),
-                if (a.areaSembradaHa != null)
-                  Pildora(texto: '${a.areaSembradaHa} ha'),
-                const Pildora(
-                  texto: 'Firmado',
-                  tono: TonoPildora.info,
-                  icono: Icons.draw_outlined,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(titulo, style: tema.textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        if (fecha != null)
+                          DateFormat("d 'de' MMMM 'de' y", 'es').format(fecha!)
+                        else
+                          'Registros de antes de los eventos',
+                        '$n ${n == 1 ? 'persona' : 'personas'}',
+                      ].join(' · '),
+                      style: tema.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (porSubir > 0 || piden > 0) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          if (porSubir > 0)
+                            Pildora(
+                              texto: '$porSubir por subir',
+                              tono: TonoPildora.aviso,
+                              icono: Icons.cloud_upload_outlined,
+                            ),
+                          if (piden > 0)
+                            Pildora(
+                              texto: '$piden piden visita',
+                              tono: TonoPildora.exito,
+                              icono: Icons.agriculture_outlined,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
-                if (a.notaVozPath != null)
-                  Pildora(
-                    texto: 'Nota de voz'
-                        '${a.duracionNotaSeg != null ? ' ${a.duracionNotaSeg}s' : ''}',
-                    tono: TonoPildora.info,
-                    icono: Icons.mic_none,
-                  ),
-              ],
-            ),
-            if (fallo && pendiente?.ultimoError != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                pendiente!.ultimoError!,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, color: scheme.error),
               ),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
             ],
-          ],
+          ),
         ),
       ),
     );

@@ -627,8 +627,13 @@ class Asistencias extends Table {
 
   DateTimeColumn get registradoEn => dateTime()();
 
-  /// Taller, jornada o charla. Ya no se captura —en el campo solo se graba y
-  /// se firma—; la columna queda por los registros viejos y para no migrar.
+  /// El evento al que pertenece el registro. Nullable: los registros
+  /// tomados antes de que existieran los eventos quedan «Sin evento».
+  TextColumn get eventoId => text().nullable()();
+
+  /// El nombre del evento tal como se subio a Airtable (`Evento o
+  /// actividad`). Se copia al registrar en vez de leerse del evento: si
+  /// alguien borra el evento del telefono, lo que ya subio no cambia.
   TextColumn get evento => text().nullable()();
 
   /// Al enviar, la persona acepta los terminos que se le mostraron. Se guarda
@@ -678,6 +683,26 @@ class Asistencias extends Table {
   TextColumn get remoteId => text().nullable()();
   BoolColumn get sincronizado => boolean().withDefault(const Constant(false))();
   DateTimeColumn get sincronizadoEn => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Un taller, jornada o charla donde se toma asistencia.
+///
+/// Existe para que los registros no queden sueltos: el visitador abre el
+/// evento al llegar, registra ahi a todas las personas, y la lista en PDF sale
+/// del evento. Vive solo en el telefono; a Airtable llega su nombre en cada
+/// registro.
+@DataClassName('EventoAsistencia')
+class EventosAsistencia extends Table {
+  TextColumn get id => text()();
+  TextColumn get nombre => text()();
+
+  /// El dia del evento. Se elige al crearlo y no se deduce de los registros:
+  /// un evento recien creado todavia no tiene ninguno.
+  DateTimeColumn get fecha => dateTime()();
+  DateTimeColumn get creadoEn => dateTime()();
 
   @override
   Set<Column> get primaryKey => {id};

@@ -7,7 +7,33 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'fuentes_pdf.dart';
-import 'informe_pdf.dart' show PaletaInforme;
+import 'informe_pdf.dart' show ColoresSirius;
+
+/// Los colores de la lista, del manual de marca de Sirius (2023, «Paleta de
+/// colores primarios»), SIN los azules oscuros: ni Azul Barranca ni Imperial.
+///
+/// Es una hoja que se imprime en el pueblo y se fotocopia, asi que va clara:
+/// verde y azul cielo de acento, y los fondos en los gradientes suaves de
+/// sutileza, cotiledon y primer retoño, que es lo que el manual pide
+/// («gradientes muy sutiles dentro de la misma escala cromatica»). El texto va
+/// en un gris casi negro y no en Imperial, que es un azul.
+class PaletaLista {
+  static const verde = ColoresSirius.verdeAlegria;
+  static const cielo = ColoresSirius.azulCielo;
+  static const sutileza = ColoresSirius.sutileza;
+  static const sutilezaClara = ColoresSirius.sutilezaClara;
+  static const cotiledon = ColoresSirius.cotiledon;
+  static const cotiledonClaro = ColoresSirius.cotiledonClaro;
+
+  /// Primer retoño y su gradiente claro.
+  static const retono = PdfColor.fromInt(0xFFCFE4BF);
+  static const retonoClaro = PdfColor.fromInt(0xFFF3F9F0);
+
+  /// Texto. Neutros, no azules.
+  static const tinta = PdfColor.fromInt(0xFF2B2E33);
+  static const apoyo = PdfColor.fromInt(0xFF5E656E);
+  static const tenue = PdfColor.fromInt(0xFF9AA1A9);
+}
 
 /// Una persona en la lista. Se arma desde la fila de `Asistencias` y la
 /// vereda ya resuelta: el PDF no sabe nada de la base del telefono.
@@ -46,11 +72,15 @@ class DatosListaAsistencia {
   const DatosListaAsistencia({
     required this.filas,
     required this.generadoEn,
+    this.evento,
     this.responsable,
   });
 
   final List<FilaListaAsistencia> filas;
   final DateTime generadoEn;
+
+  /// El taller o la jornada. Es el titular de la hoja.
+  final String? evento;
 
   /// Quien tomo la asistencia, de la sesion del telefono.
   final String? responsable;
@@ -72,7 +102,9 @@ List<({DateTime dia, List<FilaListaAsistencia> filas})> agruparPorDia(
   return [for (final e in grupos.entries) (dia: e.key, filas: e.value)];
 }
 
-const _margenVertical = 40.0;
+typedef _Grupos = List<({DateTime dia, List<FilaListaAsistencia> filas})>;
+
+const _margenVertical = 36.0;
 const _margenLateral = 36.0;
 
 final _fechaLarga = DateFormat("EEEE d 'de' MMMM 'de' y", 'es');
@@ -89,11 +121,14 @@ String _capital(String s) =>
 /// necesita ancho para que se reconozca.
 Future<Uint8List> construirListaAsistenciaPdf(DatosListaAsistencia datos) async {
   final doc = pw.Document(
-    title: 'Lista de asistencia',
+    title: datos.evento == null
+        ? 'Lista de asistencia'
+        : 'Lista de asistencia · ${datos.evento}',
     author: 'Sirius Regenerative',
     subject: 'Lista de asistencia',
   );
 
+  // El logo a color, sin tocar: el manual no permite recolorearlo.
   final logo = await rootBundle.loadString('assets/marca/sirius.svg');
   final fuentes = await FuentesInforme.cargar();
   final tema = await fuentes.tema();
@@ -118,9 +153,10 @@ Future<Uint8List> construirListaAsistenciaPdf(DatosListaAsistencia datos) async 
         vertical: _margenVertical,
       ),
       theme: tema,
-      header: (ctx) =>
-          ctx.pageNumber == 1 ? pw.SizedBox() : _encabezado(logo, grupos),
-      footer: (ctx) => _pie(ctx, datos),
+      header: (ctx) => ctx.pageNumber == 1
+          ? pw.SizedBox()
+          : _encabezado(logo, datos, grupos),
+      footer: (ctx) => _pie(ctx),
       build: (ctx) => [
         _membrete(logo, datos, grupos),
         pw.SizedBox(height: 12),
@@ -128,14 +164,20 @@ Future<Uint8List> construirListaAsistenciaPdf(DatosListaAsistencia datos) async 
         for (final g in grupos) ...[
           pw.SizedBox(height: 16),
           if (grupos.length > 1) ...[
-            pw.Text(
-              '${_capital(_fechaLarga.format(g.dia))}  ·  '
-              '${g.filas.length} ${g.filas.length == 1 ? 'persona' : 'personas'}',
-              style: pw.TextStyle(
-                fontSize: 10,
-                fontWeight: pw.FontWeight.bold,
-                color: PaletaInforme.seccion,
-              ),
+            pw.Row(
+              children: [
+                _punto(PaletaLista.verde, 6),
+                pw.SizedBox(width: 6),
+                pw.Text(
+                  '${_capital(_fechaLarga.format(g.dia))}  ·  '
+                  '${g.filas.length} ${g.filas.length == 1 ? 'persona' : 'personas'}',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PaletaLista.tinta,
+                  ),
+                ),
+              ],
             ),
             pw.SizedBox(height: 6),
           ],
@@ -148,7 +190,14 @@ Future<Uint8List> construirListaAsistenciaPdf(DatosListaAsistencia datos) async 
   return doc.save();
 }
 
-String _rango(List<({DateTime dia, List<FilaListaAsistencia> filas})> grupos) {
+/// Un punto de color, la forma del logo.
+pw.Widget _punto(PdfColor color, double tamano) => pw.Container(
+  width: tamano,
+  height: tamano,
+  decoration: pw.BoxDecoration(color: color, shape: pw.BoxShape.circle),
+);
+
+String _rango(_Grupos grupos) {
   if (grupos.isEmpty) return 'Sin registros';
   final primero = grupos.first.dia;
   final ultimo = grupos.last.dia;
@@ -156,15 +205,11 @@ String _rango(List<({DateTime dia, List<FilaListaAsistencia> filas})> grupos) {
   return 'Del ${_fechaCorta.format(primero)} al ${_fechaCorta.format(ultimo)}';
 }
 
-pw.Widget _membrete(
-  String logo,
-  DatosListaAsistencia datos,
-  List<({DateTime dia, List<FilaListaAsistencia> filas})> grupos,
-) {
+pw.Widget _membrete(String logo, DatosListaAsistencia datos, _Grupos grupos) {
   return pw.Column(
     children: [
       pw.Padding(
-        padding: const pw.EdgeInsets.only(bottom: 10, right: 4),
+        padding: const pw.EdgeInsets.only(bottom: 12),
         child: pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
@@ -178,7 +223,7 @@ pw.Widget _membrete(
                     style: pw.TextStyle(
                       fontSize: 8.5,
                       fontWeight: pw.FontWeight.bold,
-                      color: PaletaInforme.tinta,
+                      color: PaletaLista.tinta,
                     ),
                   ),
                 pw.SizedBox(height: 2),
@@ -187,7 +232,7 @@ pw.Widget _membrete(
                   '${_hora.format(datos.generadoEn)}',
                   style: const pw.TextStyle(
                     fontSize: 8,
-                    color: PaletaInforme.seccion,
+                    color: PaletaLista.apoyo,
                   ),
                 ),
               ],
@@ -195,30 +240,84 @@ pw.Widget _membrete(
           ],
         ),
       ),
-      pw.Container(
-        width: double.infinity,
-        padding: const pw.EdgeInsets.symmetric(vertical: 9),
-        decoration: const pw.BoxDecoration(color: PaletaInforme.membrete),
-        child: pw.Column(
-          children: [
-            pw.Text(
-              'LISTA DE ASISTENCIA',
-              style: pw.TextStyle(
-                fontSize: 12,
-                fontWeight: pw.FontWeight.bold,
-                color: PaletaInforme.sobreMembrete,
-                letterSpacing: 1.6,
-              ),
+      // La franja del titulo: gradiente suave de retoño a cotiledon, con los
+      // dos puntos del logo delante y dos circulos de la misma familia
+      // asomando por la derecha.
+      pw.ClipRRect(
+        horizontalRadius: 14,
+        verticalRadius: 14,
+        child: pw.Container(
+          height: 74,
+          decoration: const pw.BoxDecoration(
+            gradient: pw.LinearGradient(
+              colors: [PaletaLista.retonoClaro, PaletaLista.cotiledonClaro],
             ),
-            pw.SizedBox(height: 2),
-            pw.Text(
-              _rango(grupos),
-              style: const pw.TextStyle(
-                fontSize: 9,
-                color: PaletaInforme.franja,
+          ),
+          child: pw.Stack(
+            overflow: pw.Overflow.clip,
+            children: [
+              pw.Positioned(
+                right: -26,
+                top: -40,
+                child: _punto(PaletaLista.cotiledon, 120),
               ),
-            ),
-          ],
+              pw.Positioned(
+                right: 70,
+                bottom: -52,
+                child: _punto(PaletaLista.sutileza, 84),
+              ),
+              pw.Positioned(
+                left: 18,
+                top: 0,
+                bottom: 0,
+                child: pw.Row(
+                  children: [
+                    pw.Column(
+                      mainAxisAlignment: pw.MainAxisAlignment.center,
+                      children: [
+                        _punto(PaletaLista.cielo, 11),
+                        pw.SizedBox(height: 5),
+                        _punto(PaletaLista.verde, 11),
+                      ],
+                    ),
+                    pw.SizedBox(width: 14),
+                    pw.Column(
+                      mainAxisAlignment: pw.MainAxisAlignment.center,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'LISTA DE ASISTENCIA',
+                          style: pw.TextStyle(
+                            fontSize: 8.5,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PaletaLista.apoyo,
+                            letterSpacing: 1.6,
+                          ),
+                        ),
+                        pw.SizedBox(height: 3),
+                        pw.Text(
+                          datos.evento ?? 'Registros sin evento',
+                          style: pw.TextStyle(
+                            fontSize: 18,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PaletaLista.tinta,
+                          ),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          _rango(grupos),
+                          style: const pw.TextStyle(
+                            fontSize: 9,
+                            color: PaletaLista.apoyo,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ],
@@ -229,37 +328,58 @@ pw.Widget _resumen(List<FilaListaAsistencia> filas) {
   final visita = filas.where((f) => f.quiereVisita).length;
   final pendientes = filas.where((f) => !f.procesado).length;
 
-  pw.Widget dato(String valor, String etiqueta) => pw.Expanded(
-    child: pw.Container(
-      padding: const pw.EdgeInsets.symmetric(vertical: 7, horizontal: 10),
-      decoration: const pw.BoxDecoration(color: PaletaInforme.suave),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            valor,
-            style: pw.TextStyle(
-              fontSize: 14,
-              fontWeight: pw.FontWeight.bold,
-              color: PaletaInforme.tinta,
-            ),
+  pw.Widget dato(PdfColor acento, PdfColor fondo, String valor, String etiqueta) =>
+      pw.Expanded(
+        child: pw.Container(
+          padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: pw.BoxDecoration(
+            color: fondo,
+            borderRadius: pw.BorderRadius.circular(10),
           ),
-          pw.Text(
-            etiqueta,
-            style: const pw.TextStyle(fontSize: 8, color: PaletaInforme.seccion),
+          child: pw.Row(
+            children: [
+              _punto(acento, 8),
+              pw.SizedBox(width: 10),
+              pw.Text(
+                valor,
+                style: pw.TextStyle(
+                  fontSize: 15,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PaletaLista.tinta,
+                ),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Text(
+                etiqueta,
+                style: const pw.TextStyle(fontSize: 8.5, color: PaletaLista.apoyo),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   return pw.Row(
     children: [
-      dato('${filas.length}', 'Personas registradas'),
+      dato(
+        PaletaLista.cielo,
+        PaletaLista.sutilezaClara,
+        '${filas.length}',
+        filas.length == 1 ? 'persona registrada' : 'personas registradas',
+      ),
       pw.SizedBox(width: 8),
-      dato('$visita', 'Piden visita técnica'),
+      dato(
+        PaletaLista.verde,
+        PaletaLista.retonoClaro,
+        '$visita',
+        visita == 1 ? 'pide visita técnica' : 'piden visita técnica',
+      ),
       pw.SizedBox(width: 8),
-      dato('$pendientes', 'Datos por procesar'),
+      dato(
+        PaletaLista.tenue,
+        PaletaLista.sutilezaClara,
+        '$pendientes',
+        'con datos por procesar',
+      ),
     ],
   );
 }
@@ -283,8 +403,8 @@ pw.Widget _tabla(
   Map<String, pw.MemoryImage> firmas,
 ) {
   final total = _anchos.fold(0, (a, b) => a + b);
-  const pendiente = pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600);
-  const cuerpo = pw.TextStyle(fontSize: 8, color: PaletaInforme.cuerpo);
+  const pendiente = pw.TextStyle(fontSize: 7.5, color: PaletaLista.tenue);
+  const cuerpo = pw.TextStyle(fontSize: 8, color: PaletaLista.tinta);
 
   pw.Widget celda(pw.Widget hijo) => pw.Padding(
     padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
@@ -296,7 +416,12 @@ pw.Widget _tabla(
       celda(pw.Text(v ?? '—', style: v == null ? pendiente : cuerpo));
 
   return pw.Table(
-    border: pw.TableBorder.all(color: PaletaInforme.borde, width: 0.6),
+    // Solo lineas horizontales: con la firma en cada fila, una cuadricula
+    // completa se vuelve una reja.
+    border: const pw.TableBorder(
+      horizontalInside: pw.BorderSide(color: PaletaLista.sutileza, width: 0.6),
+      bottom: pw.BorderSide(color: PaletaLista.sutileza, width: 0.6),
+    ),
     defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
     columnWidths: {
       for (var i = 0; i < _anchos.length; i++)
@@ -307,32 +432,39 @@ pw.Widget _tabla(
       // pagina, y la segunda sin encabezado es una cuadricula de numeros.
       pw.TableRow(
         repeat: true,
-        decoration: const pw.BoxDecoration(color: PaletaInforme.tinta),
+        decoration: const pw.BoxDecoration(color: PaletaLista.retono),
         children: [
           for (final e in _encabezados)
-            celda(
-              pw.Text(
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: pw.Text(
                 e,
                 style: pw.TextStyle(
                   fontSize: 7.5,
                   fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.white,
+                  color: PaletaLista.tinta,
                 ),
               ),
             ),
         ],
       ),
-      // Sin filas alternas: la firma es un PNG con fondo blanco y sobre una
-      // banda de color se ve como un recorte pegado.
       for (final (i, f) in filas.indexed)
         pw.TableRow(
           children: [
-            texto('${i + 1}'),
+            celda(
+              pw.Text(
+                '${i + 1}',
+                style: pw.TextStyle(
+                  fontSize: 8,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PaletaLista.cielo,
+                ),
+              ),
+            ),
             texto(_hora.format(f.registradoEn.toLocal())),
             celda(
               pw.Text(
-                f.nombre ??
-                    (f.procesado ? '—' : 'Por procesar'),
+                f.nombre ?? (f.procesado ? '—' : 'Por procesar'),
                 style: f.nombre == null
                     ? pendiente
                     : cuerpo.copyWith(fontWeight: pw.FontWeight.bold),
@@ -345,7 +477,22 @@ pw.Widget _tabla(
             texto(
               f.areaSembradaHa == null ? null : _numero(f.areaSembradaHa!),
             ),
-            texto(f.procesado ? (f.quiereVisita ? 'Sí' : 'No') : null),
+            celda(
+              !f.procesado
+                  ? pw.Text('—', style: pendiente)
+                  : f.quiereVisita
+                  ? pw.Row(
+                      children: [
+                        _punto(PaletaLista.verde, 5),
+                        pw.SizedBox(width: 4),
+                        pw.Text(
+                          'Sí',
+                          style: cuerpo.copyWith(fontWeight: pw.FontWeight.bold),
+                        ),
+                      ],
+                    )
+                  : pw.Text('No', style: cuerpo),
+            ),
             celda(
               firmas[f.firmaPath] == null
                   ? pw.Text('Sin firma en el teléfono', style: pendiente)
@@ -364,16 +511,13 @@ pw.Widget _tabla(
   );
 }
 
-pw.Widget _encabezado(
-  String logo,
-  List<({DateTime dia, List<FilaListaAsistencia> filas})> grupos,
-) {
+pw.Widget _encabezado(String logo, DatosListaAsistencia datos, _Grupos grupos) {
   return pw.Container(
     margin: const pw.EdgeInsets.only(bottom: 10),
     padding: const pw.EdgeInsets.only(bottom: 5),
     decoration: const pw.BoxDecoration(
       border: pw.Border(
-        bottom: pw.BorderSide(color: PaletaInforme.borde, width: 0.8),
+        bottom: pw.BorderSide(color: PaletaLista.sutileza, width: 0.8),
       ),
     ),
     child: pw.Row(
@@ -381,22 +525,22 @@ pw.Widget _encabezado(
       children: [
         pw.SvgImage(svg: logo, height: 14),
         pw.Text(
-          'Lista de asistencia  ·  ${_rango(grupos)}',
-          style: const pw.TextStyle(fontSize: 8, color: PaletaInforme.seccion),
+          '${datos.evento ?? 'Lista de asistencia'}  ·  ${_rango(grupos)}',
+          style: const pw.TextStyle(fontSize: 8, color: PaletaLista.apoyo),
         ),
       ],
     ),
   );
 }
 
-pw.Widget _pie(pw.Context ctx, DatosListaAsistencia datos) {
-  const estilo = pw.TextStyle(fontSize: 7.5, color: PaletaInforme.seccion);
+pw.Widget _pie(pw.Context ctx) {
+  const estilo = pw.TextStyle(fontSize: 7.5, color: PaletaLista.apoyo);
   return pw.Container(
     margin: const pw.EdgeInsets.only(top: 8),
     padding: const pw.EdgeInsets.only(top: 5),
     decoration: const pw.BoxDecoration(
       border: pw.Border(
-        top: pw.BorderSide(color: PaletaInforme.borde, width: 0.6),
+        top: pw.BorderSide(color: PaletaLista.verde, width: 1),
       ),
     ),
     child: pw.Row(

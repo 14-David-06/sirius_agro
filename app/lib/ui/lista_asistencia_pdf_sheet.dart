@@ -13,14 +13,14 @@ import 'theme.dart';
 
 /// Elige de que dia sale la lista y la comparte o la imprime.
 ///
-/// Se pregunta el dia porque el telefono guarda todos los registros que ha
-/// tomado: la lista del taller de hoy no puede llevar pegada la de la semana
-/// pasada. Con un solo dia no hay nada que preguntar y se va directo.
+/// Los [registros] ya vienen del evento. Si el evento duro varios dias se
+/// puede sacar la lista de uno solo; por defecto sale el evento completo.
 Future<void> abrirListaAsistenciaPdf(
   BuildContext context,
   WidgetRef ref,
-  List<Asistencia> registros,
-) async {
+  List<Asistencia> registros, {
+  String? evento,
+}) async {
   if (registros.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Todavia no hay registros para la lista.')),
@@ -31,7 +31,8 @@ Future<void> abrirListaAsistenciaPdf(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    builder: (_) => _HojaListaPdf(registros: registros, ref: ref),
+    builder: (_) =>
+        _HojaListaPdf(registros: registros, ref: ref, evento: evento),
   );
 }
 
@@ -44,10 +45,15 @@ DateTime _dia(DateTime d) {
 }
 
 class _HojaListaPdf extends StatefulWidget {
-  const _HojaListaPdf({required this.registros, required this.ref});
+  const _HojaListaPdf({
+    required this.registros,
+    required this.ref,
+    this.evento,
+  });
 
   final List<Asistencia> registros;
   final WidgetRef ref;
+  final String? evento;
 
   @override
   State<_HojaListaPdf> createState() => _HojaListaPdfState();
@@ -70,18 +76,25 @@ class _HojaListaPdfState extends State<_HojaListaPdf> {
   @override
   void initState() {
     super.initState();
-    // Lo comun es sacar la lista al terminar el taller: el dia mas reciente.
-    _elegido = _porDia.keys.first;
+    // Un dia solo no tiene nada que elegir; con varios, el evento completo.
+    _elegido = _porDia.length == 1 ? _porDia.keys.first : null;
   }
 
   List<Asistencia> get _seleccion => _elegido == null
       ? widget.registros
       : widget.registros.where((a) => _dia(a.registradoEn) == _elegido).toList();
 
-  String get _nombreArchivo => _elegido == null
-      ? 'lista-asistencia-${selloDia(_porDia.keys.last)}'
-            '-a-${selloDia(_porDia.keys.first)}.pdf'
-      : 'lista-asistencia-${selloDia(_elegido!)}.pdf';
+  /// `asistencia-taller-de-bioinsumos-2026-10-05.pdf`: con el evento, que es
+  /// como se busca el archivo despues en el telefono o en el correo.
+  String get _nombreArchivo {
+    final quien = slugArchivo(widget.evento ?? '');
+    final dias = _elegido != null
+        ? selloDia(_elegido!)
+        : _porDia.length == 1
+        ? selloDia(_porDia.keys.first)
+        : '${selloDia(_porDia.keys.last)}-a-${selloDia(_porDia.keys.first)}';
+    return 'asistencia-${quien.isEmpty ? 'sin-evento' : quien}-$dias.pdf';
+  }
 
   Future<DatosListaAsistencia> _datos() async {
     final ref = widget.ref;
@@ -92,6 +105,7 @@ class _HojaListaPdfState extends State<_HojaListaPdf> {
     final sesion = ref.read(sesionProvider).valueOrNull;
     return DatosListaAsistencia(
       generadoEn: DateTime.now(),
+      evento: widget.evento,
       responsable: sesion?.credencial.nombre,
       filas: [
         for (final a in _seleccion)
@@ -160,7 +174,12 @@ class _HojaListaPdfState extends State<_HojaListaPdf> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Lista de asistencia en PDF', style: tema.textTheme.titleMedium),
+            Text(
+              widget.evento == null
+                  ? 'Lista de asistencia en PDF'
+                  : 'Lista de «${widget.evento}» en PDF',
+              style: tema.textTheme.titleMedium,
+            ),
             const SizedBox(height: 4),
             Text(
               'Ordenada por hora de registro, con la firma de cada persona.',
@@ -181,7 +200,9 @@ class _HojaListaPdfState extends State<_HojaListaPdf> {
                     ),
                   if (_porDia.length > 1)
                     _OpcionDia(
-                      titulo: 'Todos los dias',
+                      titulo: widget.evento == null
+                          ? 'Todos los dias'
+                          : 'Todo el evento',
                       cantidad: widget.registros.length,
                       elegido: _elegido == null,
                       onTap: () => setState(() => _elegido = null),

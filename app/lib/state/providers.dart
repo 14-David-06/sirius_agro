@@ -30,6 +30,11 @@ final asistenciasProvider = StreamProvider<List<Asistencia>>(
   (ref) => ref.watch(asistenciaRepoProvider).observarAsistencias(),
 );
 
+/// Los eventos donde se toma asistencia, el mas reciente primero.
+final eventosAsistenciaProvider = StreamProvider<List<EventoAsistencia>>(
+  (ref) => ref.watch(asistenciaRepoProvider).observarEventos(),
+);
+
 /// Los poligonos de lote y los recorridos. Depende del repo de visitas porque
 /// el KML lleva la ficha de la visita (productor, finca, vereda): un archivo
 /// que solo tenga coordenadas no se puede archivar ni entender despues.

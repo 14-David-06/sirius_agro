@@ -153,6 +153,28 @@ void main() {
       );
     });
 
+    test('la v15 crea los eventos sin perder los registros', () async {
+      // Un telefono en la v14: la tabla de asistencias sin `evento_id` y sin
+      // la tabla de eventos, con un registro adentro.
+      await db.customStatement('DROP TABLE eventos_asistencia');
+      await db.customStatement('ALTER TABLE asistencias DROP COLUMN evento_id');
+      await db.into(db.asistencias).insert(
+            AsistenciasCompanion.insert(
+              id: 'a1',
+              registradoEn: DateTime(2026, 10, 5),
+              firmaPath: '/f.png',
+            ),
+          );
+
+      await db.migration.onUpgrade(Migrator(db), 14, db.schemaVersion);
+
+      expect(await existeTabla('eventos_asistencia'), isTrue);
+      expect(await db.columnasDe('asistencias'), contains('evento_id'));
+      final fila = await db.select(db.asistencias).getSingle();
+      expect(fila.id, 'a1');
+      expect(fila.eventoId, isNull);
+    });
+
     test('la v14 vuelve opcionales nombre y cedula sin perder registros',
         () async {
       // La tabla como la dejo la v12: nombre y cedula NOT NULL, sin las

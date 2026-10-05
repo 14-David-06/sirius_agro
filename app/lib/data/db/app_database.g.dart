@@ -11797,6 +11797,17 @@ class $AsistenciasTable extends Asistencias
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _eventoIdMeta = const VerificationMeta(
+    'eventoId',
+  );
+  @override
+  late final GeneratedColumn<String> eventoId = GeneratedColumn<String>(
+    'evento_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _eventoMeta = const VerificationMeta('evento');
   @override
   late final GeneratedColumn<String> evento = GeneratedColumn<String>(
@@ -12080,6 +12091,7 @@ class $AsistenciasTable extends Asistencias
   List<GeneratedColumn> get $columns => [
     id,
     registradoEn,
+    eventoId,
     evento,
     aceptaTerminos,
     terminosUrl,
@@ -12132,6 +12144,12 @@ class $AsistenciasTable extends Asistencias
       );
     } else if (isInserting) {
       context.missing(_registradoEnMeta);
+    }
+    if (data.containsKey('evento_id')) {
+      context.handle(
+        _eventoIdMeta,
+        eventoId.isAcceptableOrUnknown(data['evento_id']!, _eventoIdMeta),
+      );
     }
     if (data.containsKey('evento')) {
       context.handle(
@@ -12341,6 +12359,10 @@ class $AsistenciasTable extends Asistencias
         DriftSqlType.dateTime,
         data['${effectivePrefix}registrado_en'],
       )!,
+      eventoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}evento_id'],
+      ),
       evento: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}evento'],
@@ -12451,8 +12473,13 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
   final String id;
   final DateTime registradoEn;
 
-  /// Taller, jornada o charla. Lo escribe el visitador una vez y la app lo
-  /// propone en el registro siguiente.
+  /// El evento al que pertenece el registro. Nullable: los registros
+  /// tomados antes de que existieran los eventos quedan «Sin evento».
+  final String? eventoId;
+
+  /// El nombre del evento tal como se subio a Airtable (`Evento o
+  /// actividad`). Se copia al registrar en vez de leerse del evento: si
+  /// alguien borra el evento del telefono, lo que ya subio no cambia.
   final String? evento;
 
   /// Al enviar, la persona acepta los terminos que se le mostraron. Se guarda
@@ -12497,6 +12524,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
   const Asistencia({
     required this.id,
     required this.registradoEn,
+    this.eventoId,
     this.evento,
     required this.aceptaTerminos,
     this.terminosUrl,
@@ -12527,6 +12555,9 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['registrado_en'] = Variable<DateTime>(registradoEn);
+    if (!nullToAbsent || eventoId != null) {
+      map['evento_id'] = Variable<String>(eventoId);
+    }
     if (!nullToAbsent || evento != null) {
       map['evento'] = Variable<String>(evento);
     }
@@ -12594,6 +12625,9 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     return AsistenciasCompanion(
       id: Value(id),
       registradoEn: Value(registradoEn),
+      eventoId: eventoId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(eventoId),
       evento: evento == null && nullToAbsent
           ? const Value.absent()
           : Value(evento),
@@ -12665,6 +12699,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     return Asistencia(
       id: serializer.fromJson<String>(json['id']),
       registradoEn: serializer.fromJson<DateTime>(json['registradoEn']),
+      eventoId: serializer.fromJson<String?>(json['eventoId']),
       evento: serializer.fromJson<String?>(json['evento']),
       aceptaTerminos: serializer.fromJson<bool>(json['aceptaTerminos']),
       terminosUrl: serializer.fromJson<String?>(json['terminosUrl']),
@@ -12701,6 +12736,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'registradoEn': serializer.toJson<DateTime>(registradoEn),
+      'eventoId': serializer.toJson<String?>(eventoId),
       'evento': serializer.toJson<String?>(evento),
       'aceptaTerminos': serializer.toJson<bool>(aceptaTerminos),
       'terminosUrl': serializer.toJson<String?>(terminosUrl),
@@ -12731,6 +12767,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
   Asistencia copyWith({
     String? id,
     DateTime? registradoEn,
+    Value<String?> eventoId = const Value.absent(),
     Value<String?> evento = const Value.absent(),
     bool? aceptaTerminos,
     Value<String?> terminosUrl = const Value.absent(),
@@ -12758,6 +12795,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
   }) => Asistencia(
     id: id ?? this.id,
     registradoEn: registradoEn ?? this.registradoEn,
+    eventoId: eventoId.present ? eventoId.value : this.eventoId,
     evento: evento.present ? evento.value : this.evento,
     aceptaTerminos: aceptaTerminos ?? this.aceptaTerminos,
     terminosUrl: terminosUrl.present ? terminosUrl.value : this.terminosUrl,
@@ -12807,6 +12845,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       registradoEn: data.registradoEn.present
           ? data.registradoEn.value
           : this.registradoEn,
+      eventoId: data.eventoId.present ? data.eventoId.value : this.eventoId,
       evento: data.evento.present ? data.evento.value : this.evento,
       aceptaTerminos: data.aceptaTerminos.present
           ? data.aceptaTerminos.value
@@ -12869,6 +12908,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     return (StringBuffer('Asistencia(')
           ..write('id: $id, ')
           ..write('registradoEn: $registradoEn, ')
+          ..write('eventoId: $eventoId, ')
           ..write('evento: $evento, ')
           ..write('aceptaTerminos: $aceptaTerminos, ')
           ..write('terminosUrl: $terminosUrl, ')
@@ -12901,6 +12941,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
   int get hashCode => Object.hashAll([
     id,
     registradoEn,
+    eventoId,
     evento,
     aceptaTerminos,
     terminosUrl,
@@ -12932,6 +12973,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       (other is Asistencia &&
           other.id == this.id &&
           other.registradoEn == this.registradoEn &&
+          other.eventoId == this.eventoId &&
           other.evento == this.evento &&
           other.aceptaTerminos == this.aceptaTerminos &&
           other.terminosUrl == this.terminosUrl &&
@@ -12961,6 +13003,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
 class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
   final Value<String> id;
   final Value<DateTime> registradoEn;
+  final Value<String?> eventoId;
   final Value<String?> evento;
   final Value<bool> aceptaTerminos;
   final Value<String?> terminosUrl;
@@ -12989,6 +13032,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
   const AsistenciasCompanion({
     this.id = const Value.absent(),
     this.registradoEn = const Value.absent(),
+    this.eventoId = const Value.absent(),
     this.evento = const Value.absent(),
     this.aceptaTerminos = const Value.absent(),
     this.terminosUrl = const Value.absent(),
@@ -13018,6 +13062,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
   AsistenciasCompanion.insert({
     required String id,
     required DateTime registradoEn,
+    this.eventoId = const Value.absent(),
     this.evento = const Value.absent(),
     this.aceptaTerminos = const Value.absent(),
     this.terminosUrl = const Value.absent(),
@@ -13049,6 +13094,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
   static Insertable<Asistencia> custom({
     Expression<String>? id,
     Expression<DateTime>? registradoEn,
+    Expression<String>? eventoId,
     Expression<String>? evento,
     Expression<bool>? aceptaTerminos,
     Expression<String>? terminosUrl,
@@ -13078,6 +13124,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (registradoEn != null) 'registrado_en': registradoEn,
+      if (eventoId != null) 'evento_id': eventoId,
       if (evento != null) 'evento': evento,
       if (aceptaTerminos != null) 'acepta_terminos': aceptaTerminos,
       if (terminosUrl != null) 'terminos_url': terminosUrl,
@@ -13110,6 +13157,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
   AsistenciasCompanion copyWith({
     Value<String>? id,
     Value<DateTime>? registradoEn,
+    Value<String?>? eventoId,
     Value<String?>? evento,
     Value<bool>? aceptaTerminos,
     Value<String?>? terminosUrl,
@@ -13139,6 +13187,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     return AsistenciasCompanion(
       id: id ?? this.id,
       registradoEn: registradoEn ?? this.registradoEn,
+      eventoId: eventoId ?? this.eventoId,
       evento: evento ?? this.evento,
       aceptaTerminos: aceptaTerminos ?? this.aceptaTerminos,
       terminosUrl: terminosUrl ?? this.terminosUrl,
@@ -13175,6 +13224,9 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     }
     if (registradoEn.present) {
       map['registrado_en'] = Variable<DateTime>(registradoEn.value);
+    }
+    if (eventoId.present) {
+      map['evento_id'] = Variable<String>(eventoId.value);
     }
     if (evento.present) {
       map['evento'] = Variable<String>(evento.value);
@@ -13261,6 +13313,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     return (StringBuffer('AsistenciasCompanion(')
           ..write('id: $id, ')
           ..write('registradoEn: $registradoEn, ')
+          ..write('eventoId: $eventoId, ')
           ..write('evento: $evento, ')
           ..write('aceptaTerminos: $aceptaTerminos, ')
           ..write('terminosUrl: $terminosUrl, ')
@@ -13285,6 +13338,316 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
           ..write('remoteId: $remoteId, ')
           ..write('sincronizado: $sincronizado, ')
           ..write('sincronizadoEn: $sincronizadoEn, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $EventosAsistenciaTable extends EventosAsistencia
+    with TableInfo<$EventosAsistenciaTable, EventoAsistencia> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EventosAsistenciaTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nombreMeta = const VerificationMeta('nombre');
+  @override
+  late final GeneratedColumn<String> nombre = GeneratedColumn<String>(
+    'nombre',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fechaMeta = const VerificationMeta('fecha');
+  @override
+  late final GeneratedColumn<DateTime> fecha = GeneratedColumn<DateTime>(
+    'fecha',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _creadoEnMeta = const VerificationMeta(
+    'creadoEn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> creadoEn = GeneratedColumn<DateTime>(
+    'creado_en',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, nombre, fecha, creadoEn];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'eventos_asistencia';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EventoAsistencia> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nombre')) {
+      context.handle(
+        _nombreMeta,
+        nombre.isAcceptableOrUnknown(data['nombre']!, _nombreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nombreMeta);
+    }
+    if (data.containsKey('fecha')) {
+      context.handle(
+        _fechaMeta,
+        fecha.isAcceptableOrUnknown(data['fecha']!, _fechaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fechaMeta);
+    }
+    if (data.containsKey('creado_en')) {
+      context.handle(
+        _creadoEnMeta,
+        creadoEn.isAcceptableOrUnknown(data['creado_en']!, _creadoEnMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_creadoEnMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EventoAsistencia map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EventoAsistencia(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nombre: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nombre'],
+      )!,
+      fecha: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fecha'],
+      )!,
+      creadoEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}creado_en'],
+      )!,
+    );
+  }
+
+  @override
+  $EventosAsistenciaTable createAlias(String alias) {
+    return $EventosAsistenciaTable(attachedDatabase, alias);
+  }
+}
+
+class EventoAsistencia extends DataClass
+    implements Insertable<EventoAsistencia> {
+  final String id;
+  final String nombre;
+
+  /// El dia del evento. Se elige al crearlo y no se deduce de los registros:
+  /// un evento recien creado todavia no tiene ninguno.
+  final DateTime fecha;
+  final DateTime creadoEn;
+  const EventoAsistencia({
+    required this.id,
+    required this.nombre,
+    required this.fecha,
+    required this.creadoEn,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['nombre'] = Variable<String>(nombre);
+    map['fecha'] = Variable<DateTime>(fecha);
+    map['creado_en'] = Variable<DateTime>(creadoEn);
+    return map;
+  }
+
+  EventosAsistenciaCompanion toCompanion(bool nullToAbsent) {
+    return EventosAsistenciaCompanion(
+      id: Value(id),
+      nombre: Value(nombre),
+      fecha: Value(fecha),
+      creadoEn: Value(creadoEn),
+    );
+  }
+
+  factory EventoAsistencia.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EventoAsistencia(
+      id: serializer.fromJson<String>(json['id']),
+      nombre: serializer.fromJson<String>(json['nombre']),
+      fecha: serializer.fromJson<DateTime>(json['fecha']),
+      creadoEn: serializer.fromJson<DateTime>(json['creadoEn']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nombre': serializer.toJson<String>(nombre),
+      'fecha': serializer.toJson<DateTime>(fecha),
+      'creadoEn': serializer.toJson<DateTime>(creadoEn),
+    };
+  }
+
+  EventoAsistencia copyWith({
+    String? id,
+    String? nombre,
+    DateTime? fecha,
+    DateTime? creadoEn,
+  }) => EventoAsistencia(
+    id: id ?? this.id,
+    nombre: nombre ?? this.nombre,
+    fecha: fecha ?? this.fecha,
+    creadoEn: creadoEn ?? this.creadoEn,
+  );
+  EventoAsistencia copyWithCompanion(EventosAsistenciaCompanion data) {
+    return EventoAsistencia(
+      id: data.id.present ? data.id.value : this.id,
+      nombre: data.nombre.present ? data.nombre.value : this.nombre,
+      fecha: data.fecha.present ? data.fecha.value : this.fecha,
+      creadoEn: data.creadoEn.present ? data.creadoEn.value : this.creadoEn,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EventoAsistencia(')
+          ..write('id: $id, ')
+          ..write('nombre: $nombre, ')
+          ..write('fecha: $fecha, ')
+          ..write('creadoEn: $creadoEn')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, nombre, fecha, creadoEn);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EventoAsistencia &&
+          other.id == this.id &&
+          other.nombre == this.nombre &&
+          other.fecha == this.fecha &&
+          other.creadoEn == this.creadoEn);
+}
+
+class EventosAsistenciaCompanion extends UpdateCompanion<EventoAsistencia> {
+  final Value<String> id;
+  final Value<String> nombre;
+  final Value<DateTime> fecha;
+  final Value<DateTime> creadoEn;
+  final Value<int> rowid;
+  const EventosAsistenciaCompanion({
+    this.id = const Value.absent(),
+    this.nombre = const Value.absent(),
+    this.fecha = const Value.absent(),
+    this.creadoEn = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EventosAsistenciaCompanion.insert({
+    required String id,
+    required String nombre,
+    required DateTime fecha,
+    required DateTime creadoEn,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       nombre = Value(nombre),
+       fecha = Value(fecha),
+       creadoEn = Value(creadoEn);
+  static Insertable<EventoAsistencia> custom({
+    Expression<String>? id,
+    Expression<String>? nombre,
+    Expression<DateTime>? fecha,
+    Expression<DateTime>? creadoEn,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nombre != null) 'nombre': nombre,
+      if (fecha != null) 'fecha': fecha,
+      if (creadoEn != null) 'creado_en': creadoEn,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EventosAsistenciaCompanion copyWith({
+    Value<String>? id,
+    Value<String>? nombre,
+    Value<DateTime>? fecha,
+    Value<DateTime>? creadoEn,
+    Value<int>? rowid,
+  }) {
+    return EventosAsistenciaCompanion(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      fecha: fecha ?? this.fecha,
+      creadoEn: creadoEn ?? this.creadoEn,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nombre.present) {
+      map['nombre'] = Variable<String>(nombre.value);
+    }
+    if (fecha.present) {
+      map['fecha'] = Variable<DateTime>(fecha.value);
+    }
+    if (creadoEn.present) {
+      map['creado_en'] = Variable<DateTime>(creadoEn.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EventosAsistenciaCompanion(')
+          ..write('id: $id, ')
+          ..write('nombre: $nombre, ')
+          ..write('fecha: $fecha, ')
+          ..write('creadoEn: $creadoEn, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -14147,6 +14510,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TrazadosTable trazados = $TrazadosTable(this);
   late final $PuntosTrazadoTable puntosTrazado = $PuntosTrazadoTable(this);
   late final $AsistenciasTable asistencias = $AsistenciasTable(this);
+  late final $EventosAsistenciaTable eventosAsistencia =
+      $EventosAsistenciaTable(this);
   late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -14169,6 +14534,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     trazados,
     puntosTrazado,
     asistencias,
+    eventosAsistencia,
     syncQueue,
   ];
 }
@@ -19516,6 +19882,7 @@ typedef $$AsistenciasTableCreateCompanionBuilder =
     AsistenciasCompanion Function({
       required String id,
       required DateTime registradoEn,
+      Value<String?> eventoId,
       Value<String?> evento,
       Value<bool> aceptaTerminos,
       Value<String?> terminosUrl,
@@ -19546,6 +19913,7 @@ typedef $$AsistenciasTableUpdateCompanionBuilder =
     AsistenciasCompanion Function({
       Value<String> id,
       Value<DateTime> registradoEn,
+      Value<String?> eventoId,
       Value<String?> evento,
       Value<bool> aceptaTerminos,
       Value<String?> terminosUrl,
@@ -19589,6 +19957,11 @@ class $$AsistenciasTableFilterComposer
 
   ColumnFilters<DateTime> get registradoEn => $composableBuilder(
     column: $table.registradoEn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventoId => $composableBuilder(
+    column: $table.eventoId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19732,6 +20105,11 @@ class $$AsistenciasTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get eventoId => $composableBuilder(
+    column: $table.eventoId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get evento => $composableBuilder(
     column: $table.evento,
     builder: (column) => ColumnOrderings(column),
@@ -19870,6 +20248,9 @@ class $$AsistenciasTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get eventoId =>
+      $composableBuilder(column: $table.eventoId, builder: (column) => column);
+
   GeneratedColumn<String> get evento =>
       $composableBuilder(column: $table.evento, builder: (column) => column);
 
@@ -20006,6 +20387,7 @@ class $$AsistenciasTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<DateTime> registradoEn = const Value.absent(),
+                Value<String?> eventoId = const Value.absent(),
                 Value<String?> evento = const Value.absent(),
                 Value<bool> aceptaTerminos = const Value.absent(),
                 Value<String?> terminosUrl = const Value.absent(),
@@ -20034,6 +20416,7 @@ class $$AsistenciasTableTableManager
               }) => AsistenciasCompanion(
                 id: id,
                 registradoEn: registradoEn,
+                eventoId: eventoId,
                 evento: evento,
                 aceptaTerminos: aceptaTerminos,
                 terminosUrl: terminosUrl,
@@ -20064,6 +20447,7 @@ class $$AsistenciasTableTableManager
               ({
                 required String id,
                 required DateTime registradoEn,
+                Value<String?> eventoId = const Value.absent(),
                 Value<String?> evento = const Value.absent(),
                 Value<bool> aceptaTerminos = const Value.absent(),
                 Value<String?> terminosUrl = const Value.absent(),
@@ -20092,6 +20476,7 @@ class $$AsistenciasTableTableManager
               }) => AsistenciasCompanion.insert(
                 id: id,
                 registradoEn: registradoEn,
+                eventoId: eventoId,
                 evento: evento,
                 aceptaTerminos: aceptaTerminos,
                 terminosUrl: terminosUrl,
@@ -20141,6 +20526,200 @@ typedef $$AsistenciasTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $AsistenciasTable, Asistencia>,
       ),
       Asistencia,
+      PrefetchHooks Function()
+    >;
+typedef $$EventosAsistenciaTableCreateCompanionBuilder =
+    EventosAsistenciaCompanion Function({
+      required String id,
+      required String nombre,
+      required DateTime fecha,
+      required DateTime creadoEn,
+      Value<int> rowid,
+    });
+typedef $$EventosAsistenciaTableUpdateCompanionBuilder =
+    EventosAsistenciaCompanion Function({
+      Value<String> id,
+      Value<String> nombre,
+      Value<DateTime> fecha,
+      Value<DateTime> creadoEn,
+      Value<int> rowid,
+    });
+
+class $$EventosAsistenciaTableFilterComposer
+    extends Composer<_$AppDatabase, $EventosAsistenciaTable> {
+  $$EventosAsistenciaTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nombre => $composableBuilder(
+    column: $table.nombre,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get fecha => $composableBuilder(
+    column: $table.fecha,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get creadoEn => $composableBuilder(
+    column: $table.creadoEn,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$EventosAsistenciaTableOrderingComposer
+    extends Composer<_$AppDatabase, $EventosAsistenciaTable> {
+  $$EventosAsistenciaTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nombre => $composableBuilder(
+    column: $table.nombre,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get fecha => $composableBuilder(
+    column: $table.fecha,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get creadoEn => $composableBuilder(
+    column: $table.creadoEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EventosAsistenciaTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EventosAsistenciaTable> {
+  $$EventosAsistenciaTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nombre =>
+      $composableBuilder(column: $table.nombre, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get fecha =>
+      $composableBuilder(column: $table.fecha, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get creadoEn =>
+      $composableBuilder(column: $table.creadoEn, builder: (column) => column);
+}
+
+class $$EventosAsistenciaTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EventosAsistenciaTable,
+          EventoAsistencia,
+          $$EventosAsistenciaTableFilterComposer,
+          $$EventosAsistenciaTableOrderingComposer,
+          $$EventosAsistenciaTableAnnotationComposer,
+          $$EventosAsistenciaTableCreateCompanionBuilder,
+          $$EventosAsistenciaTableUpdateCompanionBuilder,
+          (
+            EventoAsistencia,
+            BaseReferences<
+              _$AppDatabase,
+              $EventosAsistenciaTable,
+              EventoAsistencia
+            >,
+          ),
+          EventoAsistencia,
+          PrefetchHooks Function()
+        > {
+  $$EventosAsistenciaTableTableManager(
+    _$AppDatabase db,
+    $EventosAsistenciaTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EventosAsistenciaTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EventosAsistenciaTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EventosAsistenciaTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> nombre = const Value.absent(),
+                Value<DateTime> fecha = const Value.absent(),
+                Value<DateTime> creadoEn = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EventosAsistenciaCompanion(
+                id: id,
+                nombre: nombre,
+                fecha: fecha,
+                creadoEn: creadoEn,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String nombre,
+                required DateTime fecha,
+                required DateTime creadoEn,
+                Value<int> rowid = const Value.absent(),
+              }) => EventosAsistenciaCompanion.insert(
+                id: id,
+                nombre: nombre,
+                fecha: fecha,
+                creadoEn: creadoEn,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$EventosAsistenciaTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EventosAsistenciaTable,
+      EventoAsistencia,
+      $$EventosAsistenciaTableFilterComposer,
+      $$EventosAsistenciaTableOrderingComposer,
+      $$EventosAsistenciaTableAnnotationComposer,
+      $$EventosAsistenciaTableCreateCompanionBuilder,
+      $$EventosAsistenciaTableUpdateCompanionBuilder,
+      (
+        EventoAsistencia,
+        BaseReferences<
+          _$AppDatabase,
+          $EventosAsistenciaTable,
+          EventoAsistencia
+        >,
+      ),
+      EventoAsistencia,
       PrefetchHooks Function()
     >;
 typedef $$SyncQueueTableCreateCompanionBuilder =
@@ -20555,6 +21134,8 @@ class $AppDatabaseManager {
       $$PuntosTrazadoTableTableManager(_db, _db.puntosTrazado);
   $$AsistenciasTableTableManager get asistencias =>
       $$AsistenciasTableTableManager(_db, _db.asistencias);
+  $$EventosAsistenciaTableTableManager get eventosAsistencia =>
+      $$EventosAsistenciaTableTableManager(_db, _db.eventosAsistencia);
   $$SyncQueueTableTableManager get syncQueue =>
       $$SyncQueueTableTableManager(_db, _db.syncQueue);
 }

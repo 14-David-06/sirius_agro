@@ -30,6 +30,128 @@ class AsistenciaRepository {
           ]))
           .watch();
 
+  // ------------------------------------------------------------- eventos
+
+  /// Los eventos, el mas reciente primero.
+  Stream<List<EventoAsistencia>> observarEventos() =>
+      (_db.select(_db.eventosAsistencia)..orderBy([
+            (e) => OrderingTerm(expression: e.fecha, mode: OrderingMode.desc),
+            (e) =>
+                OrderingTerm(expression: e.creadoEn, mode: OrderingMode.desc),
+          ]))
+          .watch();
+
+  Future<String> crearEvento({
+    required String nombre,
+    required DateTime fecha,
+    DateTime? ahora,
+  }) async {
+    final limpio = nombre.trim();
+    if (limpio.isEmpty) {
+      throw ArgumentError('El evento necesita un nombre.');
+    }
+    final id = _uuid.v4();
+    await _db
+        .into(_db.eventosAsistencia)
+        .insert(
+          EventosAsistenciaCompanion.insert(
+            id: id,
+            nombre: limpio,
+            fecha: DateTime(fecha.year, fecha.month, fecha.day),
+            creadoEn: ahora ?? DateTime.now(),
+          ),
+        );
+    return id;
+  }
+
+  /// Renombrar no toca los registros que ya subieron: en Airtable quedan con
+  /// el nombre que tenia el evento cuando se tomaron.
+  Future<void> renombrarEvento(String id, String nombre) async {
+    final limpio = nombre.trim();
+    if (limpio.isEmpty) return;
+    await (_db.update(_db.eventosAsistencia)..where((e) => e.id.equals(id)))
+        .write(EventosAsistenciaCompanion(nombre: Value(limpio)));
+  }
+
+  Future<EventoAsistencia?> evento(String id) => (_db.select(
+    _db.eventosAsistencia,
+  )..where((e) => e.id.equals(id))).getSingleOrNull();
+
+  // -------------------------------------------------------------- borrado
+
+  /// Borra el registro de ESTE telefono: la fila, su nota, su firma y su item
+  /// en la cola. En Airtable no se toca nada.
+  ///
+  /// Si todavia no habia subido, se pierde: es la persona que firmo y no va a
+  /// llegar a ninguna parte. Por eso la pantalla lo advierte antes.
+  Future<void> eliminarAsistencia(String id) async {
+    final a = await (_db.select(
+      _db.asistencias,
+    )..where((x) => x.id.equals(id))).getSingleOrNull();
+    if (a == null) return;
+    await _db.transaction(() async {
+      await (_db.delete(_db.syncQueue)..where(
+            (q) => q.entidad.equals(entidadAsistencia) & q.entidadId.equals(id),
+          ))
+          .go();
+      await (_db.delete(_db.asistencias)..where((x) => x.id.equals(id))).go();
+    });
+    // Los archivos despues de la fila: una fila sin archivos no puede subir,
+    // pero unos archivos sin fila solo ocupan espacio.
+    try {
+      final carpeta = File(a.firmaPath).parent;
+      if (p.basename(carpeta.path) == id && await carpeta.exists()) {
+        await carpeta.delete(recursive: true);
+      } else {
+        for (final ruta in [a.firmaPath, a.notaVozPath]) {
+          if (ruta != null && await File(ruta).exists()) {
+            await File(ruta).delete();
+          }
+        }
+      }
+    } catch (_) {
+      // Un archivo que no se pudo borrar no deshace el borrado.
+    }
+  }
+
+  /// Borra el evento y todos sus registros del telefono. Con [eventoId] null
+  /// borra los registros «Sin evento»: los de antes de los eventos y los de un
+  /// evento que ya no esta.
+  Future<void> eliminarEvento(String? eventoId) async {
+    final eventos = {
+      for (final e in await _db.select(_db.eventosAsistencia).get()) e.id,
+    };
+    final registros = (await _db.select(_db.asistencias).get()).where(
+      (a) => eventoId == null
+          ? a.eventoId == null || !eventos.contains(a.eventoId)
+          : a.eventoId == eventoId,
+    );
+    for (final a in registros) {
+      await eliminarAsistencia(a.id);
+    }
+    if (eventoId != null) {
+      await (_db.delete(
+        _db.eventosAsistencia,
+      )..where((e) => e.id.equals(eventoId))).go();
+    }
+  }
+
+  /// Los registros de [ids] que todavia no subieron a Airtable. Es lo que hay
+  /// que advertir antes de borrar: lo demas ya esta a salvo alla.
+  Future<int> sinSubir(Iterable<String> ids) async {
+    final lista = ids.toList();
+    if (lista.isEmpty) return 0;
+    final filas =
+        await (_db.select(_db.syncQueue)..where(
+              (q) =>
+                  q.entidad.equals(entidadAsistencia) &
+                  q.entidadId.isIn(lista) &
+                  q.estado.isNotValue(EstadoSync.completada.airtable),
+            ))
+            .get();
+    return filas.length;
+  }
+
   /// Guarda la nota y la firma en el telefono y deja el registro en la cola.
   ///
   /// Nada de esto necesita red ni procesa nada: los datos de la persona estan
@@ -40,6 +162,7 @@ class AsistenciaRepository {
     required String notaVozTemporal,
     required int duracionNotaSeg,
     required Uint8List firmaPng,
+    String? eventoId,
     double? latitud,
     double? longitud,
     String? visitadorIdEmpleado,
@@ -51,6 +174,8 @@ class AsistenciaRepository {
     if (!await temporal.exists()) {
       throw StateError('La nota de voz ya no esta en disco.');
     }
+
+    final evento = eventoId == null ? null : await this.evento(eventoId);
 
     final id = _uuid.v4();
     final base = carpetaBase ?? await getApplicationDocumentsDirectory();
@@ -74,6 +199,8 @@ class AsistenciaRepository {
           AsistenciasCompanion.insert(
             id: id,
             registradoEn: ahora ?? DateTime.now(),
+            eventoId: Value(evento?.id),
+            evento: Value(evento?.nombre),
             // Enviar es aceptar: el boton solo existe debajo del aviso.
             aceptaTerminos: const Value(true),
             terminosUrl: const Value(terminosAsistenciaUrl),
@@ -113,6 +240,7 @@ class AsistenciaRepository {
     'registrado_en': a.registradoEn.toIso8601String(),
     'acepta_terminos': a.aceptaTerminos,
     'terminos_url': a.terminosUrl,
+    'evento': a.evento,
     'duracion_nota_seg': a.duracionNotaSeg,
     'latitud': a.latitud,
     'longitud': a.longitud,

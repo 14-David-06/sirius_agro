@@ -32,13 +32,14 @@ void main() {
 
   final png = Uint8List.fromList(List.filled(40, 1));
 
-  Future<String> registrar() async {
+  Future<String> registrar({String? eventoId}) async {
     final f = File('${temp.path}${Platform.pathSeparator}tmp-nota.m4a');
     await f.writeAsBytes(List.filled(64, 9));
     return repo.registrar(
       notaVozTemporal: f.path,
       duracionNotaSeg: 42,
       firmaPng: png,
+      eventoId: eventoId,
       visitadorIdEmpleado: 'SIRIUS-PER-0001',
       visitadorNombre: 'Ana',
       ahora: DateTime(2026, 10, 2, 9, 30),
@@ -80,6 +81,75 @@ void main() {
           carpetaBase: temp,
         ),
         throwsStateError,
+      );
+    });
+  });
+
+  group('eventos', () {
+    test('el registro queda en el evento y lleva su nombre a Airtable',
+        () async {
+      final ev = await repo.crearEvento(
+        nombre: '  Taller de bioinsumos ',
+        fecha: DateTime(2026, 10, 5, 15),
+      );
+      final id = await registrar(eventoId: ev);
+      final a = await repo.asistencia(id);
+
+      expect(a.eventoId, ev);
+      expect(a.evento, 'Taller de bioinsumos');
+      expect(repo.payloadDe(a)['evento'], 'Taller de bioinsumos');
+      expect((await repo.evento(ev))!.fecha, DateTime(2026, 10, 5));
+    });
+
+    test('un evento sin nombre no se crea', () {
+      expect(
+        () => repo.crearEvento(nombre: '   ', fecha: DateTime(2026, 10, 5)),
+        throwsArgumentError,
+      );
+    });
+  });
+
+  group('borrar del telefono', () {
+    test('un registro sale de la base, de la cola y del disco', () async {
+      final id = await registrar();
+      final a = await repo.asistencia(id);
+      expect(await repo.sinSubir([id]), 1);
+
+      await repo.eliminarAsistencia(id);
+
+      expect(await db.select(db.asistencias).get(), isEmpty);
+      expect(await repo.pendientes(), isEmpty);
+      expect(File(a.firmaPath).existsSync(), isFalse);
+      expect(File(a.notaVozPath!).existsSync(), isFalse);
+    });
+
+    test('borrar un evento se lleva sus registros y no los de otro',
+        () async {
+      final taller = await repo.crearEvento(
+        nombre: 'Taller',
+        fecha: DateTime(2026, 10, 5),
+      );
+      final charla = await repo.crearEvento(
+        nombre: 'Charla',
+        fecha: DateTime(2026, 10, 6),
+      );
+      await registrar(eventoId: taller);
+      await registrar(eventoId: taller);
+      final queda = await registrar(eventoId: charla);
+      final suelto = await registrar();
+
+      await repo.eliminarEvento(taller);
+
+      final ids = (await db.select(db.asistencias).get()).map((a) => a.id);
+      expect(ids, unorderedEquals([queda, suelto]));
+      expect(await repo.evento(taller), isNull);
+      expect(await repo.evento(charla), isNotNull);
+
+      // «Sin evento» solo se lleva los sueltos.
+      await repo.eliminarEvento(null);
+      expect(
+        (await db.select(db.asistencias).get()).map((a) => a.id),
+        [queda],
       );
     });
   });

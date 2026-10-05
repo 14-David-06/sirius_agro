@@ -178,6 +178,49 @@ def url_publica(settings: Settings, clave: str) -> str:
     )
 
 
+# Cuanto vive la URL de lectura que se le pasa a Airtable. Airtable copia el
+# archivo a sus servidores poco despues de recibir el registro, pero lo hace en
+# segundo plano y sin plazo prometido: un dia cubre una cola lenta sin dejar un
+# enlace abierto para siempre.
+_VENCIMIENTO_ADJUNTO = 24 * 60 * 60
+
+
+def para_adjunto(settings: Settings, url: str) -> str:
+    """La URL que se le pasa a Airtable para que copie el archivo al adjunto.
+
+    El bucket es privado, asi que la URL publica le devuelve 403 a Airtable y
+    el adjunto queda vacio sin ningun error: Airtable acepta el registro y
+    descarta el archivo en silencio. Para un archivo del bucket se firma un GET
+    que vence; el enlace que se guarda en el registro sigue siendo el publico.
+
+    Una URL que no es del bucket (o un bucket sin configurar) pasa igual: ya
+    es problema de quien la dio que sea alcanzable.
+    """
+    base = url_publica(settings, "")
+    if not configurado(settings) or not url.startswith(base):
+        return url
+    clave = url[len(base) :]
+    if not clave:
+        return url
+
+    cliente = _cliente(
+        settings.bucket_endpoint,
+        settings.bucket_access_key,
+        settings.bucket_secret_key,
+        settings.bucket_region,
+    )
+    try:
+        return cliente.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": settings.bucket_name, "Key": clave},
+            ExpiresIn=_VENCIMIENTO_ADJUNTO,
+        )
+    except (BotoCoreError, ClientError):
+        # Sin firma el adjunto queda vacio, pero el enlace al bucket sigue en
+        # el registro: no vale tumbar la sincronizacion por el respaldo.
+        return url
+
+
 def subir(
     settings: Settings,
     contenido: bytes,

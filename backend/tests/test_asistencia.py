@@ -154,6 +154,7 @@ async def test_nuevo_se_guarda_por_procesar_y_se_completa(
     creado = json.loads(crear.calls.last.request.content)["fields"]
     assert creado["Estado"] == "Por procesar"
     assert creado["Nota de voz"][0]["url"].endswith("nota-voz.m4a")
+    assert creado["Firma"][0]["url"].endswith("firma.png")
     assert "Nombre completo" not in creado
 
     patches = _campos_patch(actualizar)
@@ -168,6 +169,36 @@ async def test_nuevo_se_guarda_por_procesar_y_se_completa(
     assert final["Quiere visita tecnica"] is True
     assert "Productor" not in final
     assert r.datos.cedula == "1234567"
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_los_adjuntos_van_firmados_y_el_enlace_queda_publico(
+    bucket, motor, claude
+):
+    """El bucket es privado: con la URL publica Airtable recibe 403 y la firma
+    y la nota de voz quedaban vacias. El enlace guardado sigue siendo el
+    publico, que no vence."""
+    almacenamiento._cliente.cache_clear()
+    con_bucket = Settings(
+        airtable_token="pat-test",
+        airtable_base_id=BASE,
+        bucket_name="sirius-agro-test",
+        bucket_access_key="AKIA-test",
+        bucket_secret_key="secreto",
+        bucket_region="us-east-1",
+        bucket_public_url="https://cdn.test",
+    )
+    crear, _ = _airtable()
+
+    await servicio.sincronizar(con_bucket, _payload(), firma=b"png", nota_voz=b"m4a")
+
+    creado = json.loads(crear.calls.last.request.content)["fields"]
+    assert creado["Enlace firma"] == "https://cdn.test/asistencias/uuid-asis-1/firma.png"
+    assert "X-Amz-Signature" not in creado["Enlace firma"]
+    for campo in ("Firma", "Nota de voz"):
+        assert "X-Amz-Signature" in creado[campo][0]["url"]
+    assert creado["Firma"][0]["filename"] == "firma.png"
 
 
 @respx.mock

@@ -30,6 +30,7 @@ from ..schemas_visita import (
     VisitaPayload,
     VisitaSyncResult,
 )
+from . import almacenamiento
 from .errors import UPSTREAM_EXCEPTIONS, upstream_error
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ class Airtable:
     """
 
     def __init__(self, settings: Settings, cliente: httpx.AsyncClient):
+        self._settings = settings
         self._base = settings.airtable_base_id
         self._cliente = cliente
         self._headers = {
@@ -117,9 +119,31 @@ class Airtable:
             if not offset:
                 return registros
 
+    def _con_adjuntos_firmados(self, fields: dict) -> dict:
+        """Cambia la URL de cada adjunto del bucket por una firmada.
+
+        Airtable llena un adjunto yendo el mismo a buscar la URL, y el bucket
+        es privado: con la URL publica le responde 403 y el adjunto queda
+        vacio sin ningun error. Se hace aca, al escribir, para que ningun
+        adjunto se escape; los campos de enlace (texto) no se tocan y siguen
+        guardando la URL publica, que no vence.
+        """
+        firmados = dict(fields)
+        for campo, valor in fields.items():
+            if isinstance(valor, list) and valor and all(
+                isinstance(a, dict) and isinstance(a.get("url"), str) for a in valor
+            ):
+                firmados[campo] = [
+                    {**a, "url": almacenamiento.para_adjunto(self._settings, a["url"])}
+                    for a in valor
+                ]
+        return firmados
+
     async def crear(self, tabla: str, fields: dict) -> dict:
         data = await self._pedir(
-            "POST", tabla, json={"fields": fields, "typecast": True}
+            "POST",
+            tabla,
+            json={"fields": self._con_adjuntos_firmados(fields), "typecast": True},
         )
         return data
 
@@ -128,7 +152,9 @@ class Airtable:
             "PATCH",
             tabla,
             json={
-                "records": [{"id": record_id, "fields": fields}],
+                "records": [
+                    {"id": record_id, "fields": self._con_adjuntos_firmados(fields)}
+                ],
                 "typecast": True,
             },
         )
@@ -145,7 +171,10 @@ class Airtable:
 
         for metodo, grupo in (("POST", nuevos), ("PATCH", existentes)):
             for i in range(0, len(grupo), LOTE):
-                trozo = grupo[i : i + LOTE]
+                trozo = [
+                    {**r, "fields": self._con_adjuntos_firmados(r["fields"])}
+                    for r in grupo[i : i + LOTE]
+                ]
                 await self._pedir(
                     metodo,
                     tabla,

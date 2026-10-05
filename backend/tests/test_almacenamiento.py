@@ -227,6 +227,30 @@ class TestFirmarSubida:
         assert "BUCKET_NAME" in exc.value.detail
 
 
+class TestParaAdjunto:
+    """El bucket es privado: con la URL publica Airtable recibe 403 y deja el
+    adjunto vacio sin avisar. Paso con la firma y la nota de voz de las
+    asistencias, que quedaban en blanco."""
+
+    def test_un_archivo_del_bucket_sale_firmado(self):
+        alm._cliente.cache_clear()
+        publica = alm.url_publica(_s(), "asistencias/uuid-1/firma.png")
+
+        url = alm.para_adjunto(_s(), publica)
+
+        assert "X-Amz-Signature" in url
+        assert "asistencias/uuid-1/firma.png" in url
+
+    def test_una_url_ajena_pasa_igual(self):
+        ajena = "https://otro.example.com/foto.jpg"
+        assert alm.para_adjunto(_s(), ajena) == ajena
+
+    def test_sin_bucket_configurado_no_firma(self):
+        sin_bucket = _s(bucket_access_key="", bucket_secret_key="")
+        publica = alm.url_publica(sin_bucket, "asistencias/uuid-1/firma.png")
+        assert alm.para_adjunto(sin_bucket, publica) == publica
+
+
 class TestEndpointDeFirma:
     def test_el_endpoint_rechaza_otras_categorias(self, client, auth):
         """La clave la arma el backend: si el cliente pudiera elegirla, podria

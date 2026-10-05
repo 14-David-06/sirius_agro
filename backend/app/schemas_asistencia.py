@@ -55,5 +55,6 @@ class AsistenciaSyncResult(BaseModel):
     procesado: bool
     enlace_firma: str | None = None
     enlace_nota_voz: str | None = None
+    enlace_foto: str | None = None
     transcripcion: str | None = None
     datos: DatosAsistencia | None = None

@@ -651,6 +651,10 @@ class Asistencias extends Table {
   TextColumn get notaVozPath => text().nullable()();
   IntColumn get duracionNotaSeg => integer().nullable()();
 
+  /// La foto de la persona, en disco. Opcional: no todos quieren salir en
+  /// una foto, y el registro vale igual.
+  TextColumn get fotoPath => text().nullable()();
+
   RealColumn get latitud => real().nullable()();
   RealColumn get longitud => real().nullable()();
 
@@ -682,6 +686,7 @@ class Asistencias extends Table {
 
   TextColumn get enlaceFirma => text().nullable()();
   TextColumn get enlaceNotaVoz => text().nullable()();
+  TextColumn get enlaceFoto => text().nullable()();
   TextColumn get remoteId => text().nullable()();
   BoolColumn get sincronizado => boolean().withDefault(const Constant(false))();
   DateTimeColumn get sincronizadoEn => dateTime().nullable()();

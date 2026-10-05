@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,7 @@ import '../state/providers.dart';
 import '../state/red.dart';
 import '../state/sesion.dart';
 import 'firma_pad.dart';
+import 'foto_asistencia_page.dart';
 import 'marca.dart';
 import 'theme.dart';
 
@@ -56,6 +58,11 @@ class _RegistroAsistenciaPageState
   final _reproductor = AudioPlayer();
   bool _guardando = false;
 
+  /// La foto de la persona, todavia en el temporal de la camara. Al enviar se
+  /// copia a la carpeta del registro.
+  String? _foto;
+  bool _enviado = false;
+
   /// La coordenada se pide al abrir y no al enviar: en una caseta comunal el
   /// GPS tarda, y la persona no tiene por que esperar a que lo encuentre. Si
   /// no llega, el registro sale sin ella.
@@ -87,7 +94,34 @@ class _RegistroAsistenciaPageState
     _firma.removeListener(_alCambiarFirma);
     _firma.dispose();
     _reproductor.dispose();
+    // Si se salio sin enviar, la foto no es de nadie: se borra el temporal.
+    final foto = _foto;
+    if (!_enviado && foto != null) {
+      unawaited(File(foto).delete().then((_) {}, onError: (_) {}));
+    }
     super.dispose();
+  }
+
+  Future<void> _tomarFoto() async {
+    await _reproductor.stop();
+    if (!mounted) return;
+    final ruta = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const FotoAsistenciaPage()),
+    );
+    if (ruta == null || !mounted) return;
+    final anterior = _foto;
+    setState(() => _foto = ruta);
+    if (anterior != null) {
+      unawaited(File(anterior).delete().then((_) {}, onError: (_) {}));
+    }
+  }
+
+  void _quitarFoto() {
+    final foto = _foto;
+    setState(() => _foto = null);
+    if (foto != null) {
+      unawaited(File(foto).delete().then((_) {}, onError: (_) {}));
+    }
   }
 
   Future<void> _abrirTerminos() async {
@@ -123,6 +157,7 @@ class _RegistroAsistenciaPageState
             notaVozTemporal: nota.path!,
             duracionNotaSeg: nota.segundos,
             firmaPng: png,
+            fotoTemporal: _foto,
             eventoId: widget.eventoId,
             latitud: _lat,
             longitud: _lng,
@@ -130,6 +165,7 @@ class _RegistroAsistenciaPageState
             visitadorNombre: sesion?.credencial.nombre,
           );
       ref.read(notaAsistenciaProvider.notifier).entregada();
+      _enviado = true;
 
       // Con red se sube de una vez; sin red queda en la cola y sube cuando
       // vuelva. En los dos casos el registro ya esta a salvo.
@@ -198,6 +234,18 @@ class _RegistroAsistenciaPageState
           ),
           FirmaPad(controller: _firma),
           const SizedBox(height: 24),
+          TituloSeccion(
+            '3. Foto (opcional)',
+            accion: _foto == null
+                ? null
+                : TextButton.icon(
+                    onPressed: _quitarFoto,
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Quitar'),
+                  ),
+          ),
+          _SeccionFoto(foto: _foto, onTomar: _tomarFoto),
+          const SizedBox(height: 24),
           _AvisoTerminos(onAbrir: _abrirTerminos),
           const SizedBox(height: 20),
           FilledButton.icon(
@@ -225,6 +273,86 @@ class _RegistroAsistenciaPageState
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// La foto de la persona: la miniatura si ya se tomo, o el boton para tomarla.
+class _SeccionFoto extends StatelessWidget {
+  const _SeccionFoto({required this.foto, required this.onTomar});
+
+  final String? foto;
+  final VoidCallback onTomar;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final ruta = foto;
+
+    return Card(
+      color: ruta == null ? null : tema.marca.exitoSuave,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: ruta == null
+              ? scheme.outlineVariant
+              : tema.marca.exito.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 72,
+                height: 72,
+                child: ruta == null
+                    ? ColoredBox(
+                        color: scheme.surfaceContainerHighest,
+                        child: Icon(
+                          Icons.person_outline,
+                          size: 36,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      )
+                    : Image.file(File(ruta), fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    ruta == null
+                        ? 'La persona se la puede tomar ella misma con la '
+                              'camara de adelante, o tomarsela usted con la de '
+                              'atras.'
+                        : 'Foto lista.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.35,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: onTomar,
+                    icon: Icon(
+                      ruta == null ? Icons.photo_camera_outlined : Icons.refresh,
+                      size: 18,
+                    ),
+                    label: Text(ruta == null ? 'Tomar foto' : 'Repetir foto'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

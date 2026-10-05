@@ -195,7 +195,7 @@ class Sincronizador {
     await _repo.marcarSincronizada(item.entidadId);
   }
 
-  /// Nota, firma y contexto en una sola peticion. El backend guarda los
+  /// Nota, firma, foto y contexto en una sola peticion. El backend guarda los
   /// archivos, transcribe la nota y saca los datos de la persona; si algo de
   /// eso falla responde error, el item queda fallido y se reintenta solo.
   Future<void> _sincronizarAsistencia(SyncItem item) async {
@@ -205,11 +205,14 @@ class Sincronizador {
       datos: _asistencias.payloadDe(asistencia),
       firma: archivos.firma,
       notaVoz: archivos.nota,
+      foto: archivos.foto,
     );
     await _asistencias.marcarSincronizada(item.entidadId, resultado);
     await _db.registrarAvance(
       item.id,
-      archivos.firma.length + archivos.nota.length,
+      archivos.firma.length +
+          archivos.nota.length +
+          (archivos.foto?.length ?? 0),
     );
   }
 }

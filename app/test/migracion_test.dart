@@ -153,6 +153,29 @@ void main() {
       );
     });
 
+    test('la v17 agrega la foto sin perder los registros', () async {
+      for (final c in ['foto_path', 'enlace_foto']) {
+        await db.customStatement('ALTER TABLE asistencias DROP COLUMN $c');
+      }
+      await db.into(db.asistencias).insert(
+            AsistenciasCompanion.insert(
+              id: 'a1',
+              registradoEn: DateTime(2026, 10, 5),
+              firmaPath: '/f.png',
+            ),
+          );
+
+      await db.migration.onUpgrade(Migrator(db), 16, db.schemaVersion);
+
+      expect(
+        await db.columnasDe('asistencias'),
+        containsAll(['foto_path', 'enlace_foto']),
+      );
+      final fila = await db.select(db.asistencias).getSingle();
+      expect(fila.id, 'a1');
+      expect(fila.fotoPath, isNull);
+    });
+
     test('la v15 crea los eventos sin perder los registros', () async {
       // Un telefono en la v14: la tabla de asistencias sin `evento_id` y sin
       // la tabla de eventos, con un registro adentro.

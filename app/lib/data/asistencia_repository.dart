@@ -162,6 +162,7 @@ class AsistenciaRepository {
     required String notaVozTemporal,
     required int duracionNotaSeg,
     required Uint8List firmaPng,
+    String? fotoTemporal,
     String? eventoId,
     double? latitud,
     double? longitud,
@@ -193,6 +194,17 @@ class AsistenciaRepository {
       // Es un temporal: que quede no rompe nada.
     }
 
+    // La foto se copia como la nota: un registro que apunta a un temporal de
+    // la camara la pierde en cuanto el sistema limpia la cache.
+    String? fotoPath;
+    if (fotoTemporal != null && await File(fotoTemporal).exists()) {
+      fotoPath = p.join(carpeta.path, 'foto.jpg');
+      await File(fotoTemporal).copy(fotoPath);
+      try {
+        await File(fotoTemporal).delete();
+      } catch (_) {}
+    }
+
     await _db
         .into(_db.asistencias)
         .insert(
@@ -206,6 +218,7 @@ class AsistenciaRepository {
             terminosUrl: const Value(terminosAsistenciaUrl),
             firmaPath: firmaPath,
             notaVozPath: Value(notaPath),
+            fotoPath: Value(fotoPath),
             duracionNotaSeg: Value(duracionNotaSeg),
             latitud: Value(latitud),
             longitud: Value(longitud),
@@ -270,6 +283,7 @@ class AsistenciaRepository {
         remoteId: Value(resultado['record_id'] as String?),
         enlaceFirma: Value(resultado['enlace_firma'] as String?),
         enlaceNotaVoz: Value(resultado['enlace_nota_voz'] as String?),
+        enlaceFoto: Value(resultado['enlace_foto'] as String?),
         transcripcionNota: Value(resultado['transcripcion'] as String?),
         procesado: Value(resultado['procesado'] == true),
         nombreCompleto: Value(datos?['nombre_completo'] as String?),
@@ -300,7 +314,11 @@ class AsistenciaRepository {
 }
 
 /// Lo que el sincronizador necesita leer del disco para subir un registro.
-Future<({Uint8List firma, Uint8List nota})> archivosDeAsistencia(
+///
+/// La foto es opcional: si no se tomo, o ya no esta en disco, el registro
+/// sube igual sin ella. Sin firma o sin nota, en cambio, no vale.
+Future<({Uint8List firma, Uint8List nota, Uint8List? foto})>
+archivosDeAsistencia(
   Asistencia a,
 ) async {
   final firma = File(a.firmaPath);
@@ -314,5 +332,11 @@ Future<({Uint8List firma, Uint8List nota})> archivosDeAsistencia(
   if (nota == null || !await nota.exists()) {
     throw StateError('La nota de voz ya no esta en disco: $notaPath');
   }
-  return (firma: await firma.readAsBytes(), nota: await nota.readAsBytes());
+  final fotoPath = a.fotoPath;
+  final foto = fotoPath == null ? null : File(fotoPath);
+  return (
+    firma: await firma.readAsBytes(),
+    nota: await nota.readAsBytes(),
+    foto: foto != null && await foto.exists() ? await foto.readAsBytes() : null,
+  );
 }

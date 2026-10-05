@@ -450,9 +450,11 @@ async def sincronizar_asistencia(
     datos: str = Form(...),
     firma: UploadFile | None = File(None),
     nota_voz: UploadFile | None = File(None),
+    # La foto de la persona. Opcional: no todos quieren salir en una foto.
+    foto: UploadFile | None = File(None),
     settings: Settings = Depends(require_api_key),
 ) -> AsistenciaSyncResult:
-    """Sube un registro de asistencia con su firma y su nota de voz.
+    """Sube un registro de asistencia con su firma, su nota de voz y su foto.
 
     Idempotente por `codigo_registro`, el UUID que genero el telefono: un
     reintento desde una vereda con senal intermitente actualiza el registro en
@@ -465,17 +467,24 @@ async def sincronizar_asistencia(
 
     contenido_firma = await firma.read() if firma else None
     contenido_nota = await nota_voz.read() if nota_voz else None
+    contenido_foto = await foto.read() if foto else None
 
-    total = len(contenido_firma or b"") + len(contenido_nota or b"")
+    total = sum(
+        len(c or b"") for c in (contenido_firma, contenido_nota, contenido_foto)
+    )
     if total > settings.max_audio_bytes:
         raise HTTPException(
             status_code=413,
             detail=(
-                f"La firma y la nota pesan {total / (1024 * 1024):.1f} MB y el "
+                f"La firma, la nota y la foto pesan {total / (1024 * 1024):.1f} MB y el "
                 f"limite es {settings.max_audio_bytes / (1024 * 1024):.0f} MB."
             ),
         )
 
     return await asistencia_service.sincronizar(
-        settings, payload, firma=contenido_firma, nota_voz=contenido_nota
+        settings,
+        payload,
+        firma=contenido_firma,
+        nota_voz=contenido_nota,
+        foto=contenido_foto,
     )

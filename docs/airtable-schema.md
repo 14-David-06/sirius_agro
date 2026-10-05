@@ -559,13 +559,14 @@ de ninguna visita: cada registro es una persona.
 
 **En el campo solo se graba y se firma.** La persona dice sus datos en una nota de
 voz, guiada por un guion que la app muestra todo el tiempo (también mientras graba):
-nombre, cédula, teléfono, correo electrónico y vereda. Después firma. El teléfono no procesa nada: guarda la nota y la firma, y el registro
+nombre, cédula, teléfono, correo electrónico y vereda. Después firma y, si quiere, se
+toma una foto (cámara frontal, o la trasera si se la toma el visitador). El teléfono no procesa nada: guarda la nota y la firma, y el registro
 queda en la cola hasta que haya red.
 
 Al subir (`POST /v1/asistencias`), el backend:
 
-1. sube la firma y la nota al bucket, bajo `asistencias/<codigo>/` (`firma.png`,
-   `nota-voz.m4a`);
+1. sube la firma, la nota y la foto al bucket, bajo `asistencias/<codigo>/`
+   (`firma.png`, `nota-voz.m4a`, `foto.jpg`);
 2. crea el registro con `Estado = Por procesar`, la nota y la firma. Si lo que sigue
    falla, la asistencia ya existe;
 3. transcribe la nota (ElevenLabs, Whisper de respaldo) y guarda la transcripción;
@@ -580,8 +581,8 @@ transcripción, y un registro `Procesado` no se vuelve a procesar: si alguien co
 un dato a mano en Airtable, no se le pisa.
 
 - **Llave de idempotencia:** `Codigo de registro`, el UUID que genera el teléfono.
-- `Enlace firma` y `Enlace nota de voz` son la fuente de verdad; `Firma` y
-  `Nota de voz` son adjuntos de respaldo.
+- `Enlace firma`, `Enlace nota de voz` y `Enlace foto` son la fuente de verdad;
+  `Firma`, `Nota de voz` y `Foto` son adjuntos de respaldo. La foto es opcional.
 - **Términos:** la persona acepta al enviar, con el aviso a la vista.
   `Acepta terminos` siempre llega marcado (el backend rechaza un registro sin él) y
   `Terminos aceptados` guarda la URL exacta de la política que se mostró.

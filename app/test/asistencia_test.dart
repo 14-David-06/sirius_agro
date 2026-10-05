@@ -32,13 +32,20 @@ void main() {
 
   final png = Uint8List.fromList(List.filled(40, 1));
 
-  Future<String> registrar({String? eventoId}) async {
+  Future<String> registrar({String? eventoId, bool conFoto = false}) async {
     final f = File('${temp.path}${Platform.pathSeparator}tmp-nota.m4a');
     await f.writeAsBytes(List.filled(64, 9));
+    String? foto;
+    if (conFoto) {
+      final jpg = File('${temp.path}${Platform.pathSeparator}tmp-foto.jpg');
+      await jpg.writeAsBytes(List.filled(32, 7));
+      foto = jpg.path;
+    }
     return repo.registrar(
       notaVozTemporal: f.path,
       duracionNotaSeg: 42,
       firmaPng: png,
+      fotoTemporal: foto,
       eventoId: eventoId,
       visitadorIdEmpleado: 'SIRIUS-PER-0001',
       visitadorNombre: 'Ana',
@@ -82,6 +89,35 @@ void main() {
         ),
         throwsStateError,
       );
+    });
+  });
+
+  group('foto', () {
+    test('se guarda con el registro y viaja en la subida', () async {
+      final id = await registrar(conFoto: true);
+      final a = await repo.asistencia(id);
+
+      expect(a.fotoPath, endsWith('foto.jpg'));
+      expect(a.fotoPath, contains(id));
+      expect(File(a.fotoPath!).existsSync(), isTrue);
+      // El temporal de la camara ya no esta: la foto vive con el registro.
+      expect(
+        File('${temp.path}${Platform.pathSeparator}tmp-foto.jpg').existsSync(),
+        isFalse,
+      );
+      expect((await archivosDeAsistencia(a)).foto, hasLength(32));
+    });
+
+    test('sin foto el registro vale igual', () async {
+      final a = await repo.asistencia(await registrar());
+      expect(a.fotoPath, isNull);
+      expect((await archivosDeAsistencia(a)).foto, isNull);
+    });
+
+    test('si la foto se perdio del disco, sube sin ella', () async {
+      final a = await repo.asistencia(await registrar(conFoto: true));
+      await File(a.fotoPath!).delete();
+      expect((await archivosDeAsistencia(a)).foto, isNull);
     });
   });
 
@@ -204,6 +240,7 @@ void main() {
       expect(cuerpo, contains('name="datos"'));
       expect(cuerpo, contains('name="firma"'));
       expect(cuerpo, contains('name="nota_voz"'));
+      expect(cuerpo, isNot(contains('name="foto"')));
       expect(cuerpo, contains('"codigo_registro":"$id"'));
       // Los datos de la persona no salen del telefono: estan en el audio.
       expect(cuerpo, isNot(contains('nombre_completo')));

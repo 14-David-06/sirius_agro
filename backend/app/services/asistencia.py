@@ -4,7 +4,8 @@ En el campo el telefono solo guarda la nota de voz —donde la persona dice sus
 datos siguiendo un guion— y la firma. Todo el procesamiento pasa aqui, cuando
 hay red:
 
-  1. la firma y la nota al bucket: es lo que no se puede volver a capturar;
+  1. la firma, la nota y la foto al bucket: es lo que no se puede volver a
+     capturar;
   2. el registro en Airtable con Estado «Por procesar», el audio y la firma.
      Si lo que sigue falla, la asistencia ya existe y nadie la pierde;
   3. la transcripcion de la nota (una sola vez: un reintento reusa la que ya
@@ -61,8 +62,9 @@ def campos_base(
     visitador_id: str | None,
     enlace_firma: str | None,
     enlace_nota: str | None,
+    enlace_foto: str | None = None,
 ) -> dict:
-    """Lo que se sabe sin escuchar la nota: contexto, audio y firma."""
+    """Lo que se sabe sin escuchar la nota: contexto, audio, firma y foto."""
     fields: dict = {
         CAMPO_CODIGO: p.codigo_registro,
         "Registrado en": p.registrado_en.isoformat(),
@@ -87,6 +89,9 @@ def campos_base(
         fields["Nota de voz"] = [{"url": enlace_nota, "filename": "nota-voz.m4a"}]
         if p.duracion_nota_seg is not None:
             fields["Duracion nota de voz (seg)"] = p.duracion_nota_seg
+    if enlace_foto:
+        fields["Enlace foto"] = enlace_foto
+        fields["Foto"] = [{"url": enlace_foto, "filename": "foto.jpg"}]
     return fields
 
 
@@ -176,6 +181,7 @@ async def sincronizar(
     *,
     firma: bytes | None,
     nota_voz: bytes | None,
+    foto: bytes | None = None,
 ) -> AsistenciaSyncResult:
     if not settings.airtable_token or not settings.airtable_base_id:
         raise HTTPException(status_code=500, detail="Falta configuracion de Airtable.")
@@ -206,6 +212,15 @@ async def sincronizar(
         almacenamiento.clave_de_asistencia(p.codigo_registro, "nota-voz.m4a"),
         "nota-voz.m4a",
     ).url
+    # Opcional: la persona puede no querer foto, y el registro vale igual.
+    enlace_foto = None
+    if foto:
+        enlace_foto = almacenamiento.subir_a_clave(
+            settings,
+            foto,
+            almacenamiento.clave_de_asistencia(p.codigo_registro, "foto.jpg"),
+            "foto.jpg",
+        ).url
 
     async with httpx.AsyncClient(timeout=60) as cliente:
         at = Airtable(settings, cliente)
@@ -220,6 +235,7 @@ async def sincronizar(
             visitador_id=await _resolver_visitador(at, p),
             enlace_firma=enlace_firma,
             enlace_nota=enlace_nota,
+            enlace_foto=enlace_foto,
         )
         veredas = await _veredas(at)
 
@@ -232,6 +248,7 @@ async def sincronizar(
                 procesado=True,
                 enlace_firma=enlace_firma,
                 enlace_nota_voz=enlace_nota,
+                enlace_foto=enlace_foto,
                 transcripcion=previos.get(CAMPO_TRANSCRIPCION),
                 datos=datos_de_registro(previos, veredas),
             )
@@ -294,6 +311,7 @@ async def sincronizar(
         procesado=True,
         enlace_firma=enlace_firma,
         enlace_nota_voz=enlace_nota,
+        enlace_foto=enlace_foto,
         transcripcion=transcripcion,
         datos=datos,
     )

@@ -534,6 +534,7 @@ class ApiClient {
     required Map<String, dynamic> datos,
     required Uint8List firma,
     Uint8List? notaVoz,
+    Uint8List? foto,
   }) async {
     final request = http.MultipartRequest('POST', _uri('/v1/asistencias'))
       ..fields['datos'] = jsonEncode(datos)
@@ -547,6 +548,11 @@ class ApiClient {
           notaVoz,
           filename: 'nota-voz.m4a',
         ),
+      );
+    }
+    if (foto != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes('foto', foto, filename: 'foto.jpg'),
       );
     }
     request.headers.addAll(_authHeaders);

@@ -11876,6 +11876,17 @@ class $AsistenciasTable extends Asistencias
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _fotoPathMeta = const VerificationMeta(
+    'fotoPath',
+  );
+  @override
+  late final GeneratedColumn<String> fotoPath = GeneratedColumn<String>(
+    'foto_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _latitudMeta = const VerificationMeta(
     'latitud',
   );
@@ -12058,6 +12069,17 @@ class $AsistenciasTable extends Asistencias
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _enlaceFotoMeta = const VerificationMeta(
+    'enlaceFoto',
+  );
+  @override
+  late final GeneratedColumn<String> enlaceFoto = GeneratedColumn<String>(
+    'enlace_foto',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _remoteIdMeta = const VerificationMeta(
     'remoteId',
   );
@@ -12107,6 +12129,7 @@ class $AsistenciasTable extends Asistencias
     firmaPath,
     notaVozPath,
     duracionNotaSeg,
+    fotoPath,
     latitud,
     longitud,
     visitadorIdEmpleado,
@@ -12123,6 +12146,7 @@ class $AsistenciasTable extends Asistencias
     transcripcionNota,
     enlaceFirma,
     enlaceNotaVoz,
+    enlaceFoto,
     remoteId,
     sincronizado,
     sincronizadoEn,
@@ -12209,6 +12233,12 @@ class $AsistenciasTable extends Asistencias
           data['duracion_nota_seg']!,
           _duracionNotaSegMeta,
         ),
+      );
+    }
+    if (data.containsKey('foto_path')) {
+      context.handle(
+        _fotoPathMeta,
+        fotoPath.isAcceptableOrUnknown(data['foto_path']!, _fotoPathMeta),
       );
     }
     if (data.containsKey('latitud')) {
@@ -12334,6 +12364,12 @@ class $AsistenciasTable extends Asistencias
         ),
       );
     }
+    if (data.containsKey('enlace_foto')) {
+      context.handle(
+        _enlaceFotoMeta,
+        enlaceFoto.isAcceptableOrUnknown(data['enlace_foto']!, _enlaceFotoMeta),
+      );
+    }
     if (data.containsKey('remote_id')) {
       context.handle(
         _remoteIdMeta,
@@ -12403,6 +12439,10 @@ class $AsistenciasTable extends Asistencias
         DriftSqlType.int,
         data['${effectivePrefix}duracion_nota_seg'],
       ),
+      fotoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}foto_path'],
+      ),
       latitud: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}latitud'],
@@ -12467,6 +12507,10 @@ class $AsistenciasTable extends Asistencias
         DriftSqlType.string,
         data['${effectivePrefix}enlace_nota_voz'],
       ),
+      enlaceFoto: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}enlace_foto'],
+      ),
       remoteId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remote_id'],
@@ -12515,6 +12559,10 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
   /// procesar; nullable solo porque asi nacio la columna en la v12.
   final String? notaVozPath;
   final int? duracionNotaSeg;
+
+  /// La foto de la persona, en disco. Opcional: no todos quieren salir en
+  /// una foto, y el registro vale igual.
+  final String? fotoPath;
   final double? latitud;
   final double? longitud;
 
@@ -12540,6 +12588,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
   final String? transcripcionNota;
   final String? enlaceFirma;
   final String? enlaceNotaVoz;
+  final String? enlaceFoto;
   final String? remoteId;
   final bool sincronizado;
   final DateTime? sincronizadoEn;
@@ -12553,6 +12602,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     required this.firmaPath,
     this.notaVozPath,
     this.duracionNotaSeg,
+    this.fotoPath,
     this.latitud,
     this.longitud,
     this.visitadorIdEmpleado,
@@ -12569,6 +12619,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     this.transcripcionNota,
     this.enlaceFirma,
     this.enlaceNotaVoz,
+    this.enlaceFoto,
     this.remoteId,
     required this.sincronizado,
     this.sincronizadoEn,
@@ -12594,6 +12645,9 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     }
     if (!nullToAbsent || duracionNotaSeg != null) {
       map['duracion_nota_seg'] = Variable<int>(duracionNotaSeg);
+    }
+    if (!nullToAbsent || fotoPath != null) {
+      map['foto_path'] = Variable<String>(fotoPath);
     }
     if (!nullToAbsent || latitud != null) {
       map['latitud'] = Variable<double>(latitud);
@@ -12637,6 +12691,9 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     if (!nullToAbsent || enlaceNotaVoz != null) {
       map['enlace_nota_voz'] = Variable<String>(enlaceNotaVoz);
     }
+    if (!nullToAbsent || enlaceFoto != null) {
+      map['enlace_foto'] = Variable<String>(enlaceFoto);
+    }
     if (!nullToAbsent || remoteId != null) {
       map['remote_id'] = Variable<String>(remoteId);
     }
@@ -12668,6 +12725,9 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       duracionNotaSeg: duracionNotaSeg == null && nullToAbsent
           ? const Value.absent()
           : Value(duracionNotaSeg),
+      fotoPath: fotoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fotoPath),
       latitud: latitud == null && nullToAbsent
           ? const Value.absent()
           : Value(latitud),
@@ -12710,6 +12770,9 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       enlaceNotaVoz: enlaceNotaVoz == null && nullToAbsent
           ? const Value.absent()
           : Value(enlaceNotaVoz),
+      enlaceFoto: enlaceFoto == null && nullToAbsent
+          ? const Value.absent()
+          : Value(enlaceFoto),
       remoteId: remoteId == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteId),
@@ -12735,6 +12798,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       firmaPath: serializer.fromJson<String>(json['firmaPath']),
       notaVozPath: serializer.fromJson<String?>(json['notaVozPath']),
       duracionNotaSeg: serializer.fromJson<int?>(json['duracionNotaSeg']),
+      fotoPath: serializer.fromJson<String?>(json['fotoPath']),
       latitud: serializer.fromJson<double?>(json['latitud']),
       longitud: serializer.fromJson<double?>(json['longitud']),
       visitadorIdEmpleado: serializer.fromJson<String?>(
@@ -12755,6 +12819,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       ),
       enlaceFirma: serializer.fromJson<String?>(json['enlaceFirma']),
       enlaceNotaVoz: serializer.fromJson<String?>(json['enlaceNotaVoz']),
+      enlaceFoto: serializer.fromJson<String?>(json['enlaceFoto']),
       remoteId: serializer.fromJson<String?>(json['remoteId']),
       sincronizado: serializer.fromJson<bool>(json['sincronizado']),
       sincronizadoEn: serializer.fromJson<DateTime?>(json['sincronizadoEn']),
@@ -12773,6 +12838,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       'firmaPath': serializer.toJson<String>(firmaPath),
       'notaVozPath': serializer.toJson<String?>(notaVozPath),
       'duracionNotaSeg': serializer.toJson<int?>(duracionNotaSeg),
+      'fotoPath': serializer.toJson<String?>(fotoPath),
       'latitud': serializer.toJson<double?>(latitud),
       'longitud': serializer.toJson<double?>(longitud),
       'visitadorIdEmpleado': serializer.toJson<String?>(visitadorIdEmpleado),
@@ -12789,6 +12855,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       'transcripcionNota': serializer.toJson<String?>(transcripcionNota),
       'enlaceFirma': serializer.toJson<String?>(enlaceFirma),
       'enlaceNotaVoz': serializer.toJson<String?>(enlaceNotaVoz),
+      'enlaceFoto': serializer.toJson<String?>(enlaceFoto),
       'remoteId': serializer.toJson<String?>(remoteId),
       'sincronizado': serializer.toJson<bool>(sincronizado),
       'sincronizadoEn': serializer.toJson<DateTime?>(sincronizadoEn),
@@ -12805,6 +12872,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     String? firmaPath,
     Value<String?> notaVozPath = const Value.absent(),
     Value<int?> duracionNotaSeg = const Value.absent(),
+    Value<String?> fotoPath = const Value.absent(),
     Value<double?> latitud = const Value.absent(),
     Value<double?> longitud = const Value.absent(),
     Value<String?> visitadorIdEmpleado = const Value.absent(),
@@ -12821,6 +12889,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     Value<String?> transcripcionNota = const Value.absent(),
     Value<String?> enlaceFirma = const Value.absent(),
     Value<String?> enlaceNotaVoz = const Value.absent(),
+    Value<String?> enlaceFoto = const Value.absent(),
     Value<String?> remoteId = const Value.absent(),
     bool? sincronizado,
     Value<DateTime?> sincronizadoEn = const Value.absent(),
@@ -12836,6 +12905,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     duracionNotaSeg: duracionNotaSeg.present
         ? duracionNotaSeg.value
         : this.duracionNotaSeg,
+    fotoPath: fotoPath.present ? fotoPath.value : this.fotoPath,
     latitud: latitud.present ? latitud.value : this.latitud,
     longitud: longitud.present ? longitud.value : this.longitud,
     visitadorIdEmpleado: visitadorIdEmpleado.present
@@ -12866,6 +12936,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     enlaceNotaVoz: enlaceNotaVoz.present
         ? enlaceNotaVoz.value
         : this.enlaceNotaVoz,
+    enlaceFoto: enlaceFoto.present ? enlaceFoto.value : this.enlaceFoto,
     remoteId: remoteId.present ? remoteId.value : this.remoteId,
     sincronizado: sincronizado ?? this.sincronizado,
     sincronizadoEn: sincronizadoEn.present
@@ -12893,6 +12964,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       duracionNotaSeg: data.duracionNotaSeg.present
           ? data.duracionNotaSeg.value
           : this.duracionNotaSeg,
+      fotoPath: data.fotoPath.present ? data.fotoPath.value : this.fotoPath,
       latitud: data.latitud.present ? data.latitud.value : this.latitud,
       longitud: data.longitud.present ? data.longitud.value : this.longitud,
       visitadorIdEmpleado: data.visitadorIdEmpleado.present
@@ -12927,6 +12999,9 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
       enlaceNotaVoz: data.enlaceNotaVoz.present
           ? data.enlaceNotaVoz.value
           : this.enlaceNotaVoz,
+      enlaceFoto: data.enlaceFoto.present
+          ? data.enlaceFoto.value
+          : this.enlaceFoto,
       remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
       sincronizado: data.sincronizado.present
           ? data.sincronizado.value
@@ -12949,6 +13024,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
           ..write('firmaPath: $firmaPath, ')
           ..write('notaVozPath: $notaVozPath, ')
           ..write('duracionNotaSeg: $duracionNotaSeg, ')
+          ..write('fotoPath: $fotoPath, ')
           ..write('latitud: $latitud, ')
           ..write('longitud: $longitud, ')
           ..write('visitadorIdEmpleado: $visitadorIdEmpleado, ')
@@ -12965,6 +13041,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
           ..write('transcripcionNota: $transcripcionNota, ')
           ..write('enlaceFirma: $enlaceFirma, ')
           ..write('enlaceNotaVoz: $enlaceNotaVoz, ')
+          ..write('enlaceFoto: $enlaceFoto, ')
           ..write('remoteId: $remoteId, ')
           ..write('sincronizado: $sincronizado, ')
           ..write('sincronizadoEn: $sincronizadoEn')
@@ -12983,6 +13060,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     firmaPath,
     notaVozPath,
     duracionNotaSeg,
+    fotoPath,
     latitud,
     longitud,
     visitadorIdEmpleado,
@@ -12999,6 +13077,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
     transcripcionNota,
     enlaceFirma,
     enlaceNotaVoz,
+    enlaceFoto,
     remoteId,
     sincronizado,
     sincronizadoEn,
@@ -13016,6 +13095,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
           other.firmaPath == this.firmaPath &&
           other.notaVozPath == this.notaVozPath &&
           other.duracionNotaSeg == this.duracionNotaSeg &&
+          other.fotoPath == this.fotoPath &&
           other.latitud == this.latitud &&
           other.longitud == this.longitud &&
           other.visitadorIdEmpleado == this.visitadorIdEmpleado &&
@@ -13032,6 +13112,7 @@ class Asistencia extends DataClass implements Insertable<Asistencia> {
           other.transcripcionNota == this.transcripcionNota &&
           other.enlaceFirma == this.enlaceFirma &&
           other.enlaceNotaVoz == this.enlaceNotaVoz &&
+          other.enlaceFoto == this.enlaceFoto &&
           other.remoteId == this.remoteId &&
           other.sincronizado == this.sincronizado &&
           other.sincronizadoEn == this.sincronizadoEn);
@@ -13047,6 +13128,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
   final Value<String> firmaPath;
   final Value<String?> notaVozPath;
   final Value<int?> duracionNotaSeg;
+  final Value<String?> fotoPath;
   final Value<double?> latitud;
   final Value<double?> longitud;
   final Value<String?> visitadorIdEmpleado;
@@ -13063,6 +13145,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
   final Value<String?> transcripcionNota;
   final Value<String?> enlaceFirma;
   final Value<String?> enlaceNotaVoz;
+  final Value<String?> enlaceFoto;
   final Value<String?> remoteId;
   final Value<bool> sincronizado;
   final Value<DateTime?> sincronizadoEn;
@@ -13077,6 +13160,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     this.firmaPath = const Value.absent(),
     this.notaVozPath = const Value.absent(),
     this.duracionNotaSeg = const Value.absent(),
+    this.fotoPath = const Value.absent(),
     this.latitud = const Value.absent(),
     this.longitud = const Value.absent(),
     this.visitadorIdEmpleado = const Value.absent(),
@@ -13093,6 +13177,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     this.transcripcionNota = const Value.absent(),
     this.enlaceFirma = const Value.absent(),
     this.enlaceNotaVoz = const Value.absent(),
+    this.enlaceFoto = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.sincronizado = const Value.absent(),
     this.sincronizadoEn = const Value.absent(),
@@ -13108,6 +13193,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     required String firmaPath,
     this.notaVozPath = const Value.absent(),
     this.duracionNotaSeg = const Value.absent(),
+    this.fotoPath = const Value.absent(),
     this.latitud = const Value.absent(),
     this.longitud = const Value.absent(),
     this.visitadorIdEmpleado = const Value.absent(),
@@ -13124,6 +13210,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     this.transcripcionNota = const Value.absent(),
     this.enlaceFirma = const Value.absent(),
     this.enlaceNotaVoz = const Value.absent(),
+    this.enlaceFoto = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.sincronizado = const Value.absent(),
     this.sincronizadoEn = const Value.absent(),
@@ -13141,6 +13228,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     Expression<String>? firmaPath,
     Expression<String>? notaVozPath,
     Expression<int>? duracionNotaSeg,
+    Expression<String>? fotoPath,
     Expression<double>? latitud,
     Expression<double>? longitud,
     Expression<String>? visitadorIdEmpleado,
@@ -13157,6 +13245,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     Expression<String>? transcripcionNota,
     Expression<String>? enlaceFirma,
     Expression<String>? enlaceNotaVoz,
+    Expression<String>? enlaceFoto,
     Expression<String>? remoteId,
     Expression<bool>? sincronizado,
     Expression<DateTime>? sincronizadoEn,
@@ -13172,6 +13261,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
       if (firmaPath != null) 'firma_path': firmaPath,
       if (notaVozPath != null) 'nota_voz_path': notaVozPath,
       if (duracionNotaSeg != null) 'duracion_nota_seg': duracionNotaSeg,
+      if (fotoPath != null) 'foto_path': fotoPath,
       if (latitud != null) 'latitud': latitud,
       if (longitud != null) 'longitud': longitud,
       if (visitadorIdEmpleado != null)
@@ -13189,6 +13279,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
       if (transcripcionNota != null) 'transcripcion_nota': transcripcionNota,
       if (enlaceFirma != null) 'enlace_firma': enlaceFirma,
       if (enlaceNotaVoz != null) 'enlace_nota_voz': enlaceNotaVoz,
+      if (enlaceFoto != null) 'enlace_foto': enlaceFoto,
       if (remoteId != null) 'remote_id': remoteId,
       if (sincronizado != null) 'sincronizado': sincronizado,
       if (sincronizadoEn != null) 'sincronizado_en': sincronizadoEn,
@@ -13206,6 +13297,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     Value<String>? firmaPath,
     Value<String?>? notaVozPath,
     Value<int?>? duracionNotaSeg,
+    Value<String?>? fotoPath,
     Value<double?>? latitud,
     Value<double?>? longitud,
     Value<String?>? visitadorIdEmpleado,
@@ -13222,6 +13314,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     Value<String?>? transcripcionNota,
     Value<String?>? enlaceFirma,
     Value<String?>? enlaceNotaVoz,
+    Value<String?>? enlaceFoto,
     Value<String?>? remoteId,
     Value<bool>? sincronizado,
     Value<DateTime?>? sincronizadoEn,
@@ -13237,6 +13330,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
       firmaPath: firmaPath ?? this.firmaPath,
       notaVozPath: notaVozPath ?? this.notaVozPath,
       duracionNotaSeg: duracionNotaSeg ?? this.duracionNotaSeg,
+      fotoPath: fotoPath ?? this.fotoPath,
       latitud: latitud ?? this.latitud,
       longitud: longitud ?? this.longitud,
       visitadorIdEmpleado: visitadorIdEmpleado ?? this.visitadorIdEmpleado,
@@ -13253,6 +13347,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
       transcripcionNota: transcripcionNota ?? this.transcripcionNota,
       enlaceFirma: enlaceFirma ?? this.enlaceFirma,
       enlaceNotaVoz: enlaceNotaVoz ?? this.enlaceNotaVoz,
+      enlaceFoto: enlaceFoto ?? this.enlaceFoto,
       remoteId: remoteId ?? this.remoteId,
       sincronizado: sincronizado ?? this.sincronizado,
       sincronizadoEn: sincronizadoEn ?? this.sincronizadoEn,
@@ -13289,6 +13384,9 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     }
     if (duracionNotaSeg.present) {
       map['duracion_nota_seg'] = Variable<int>(duracionNotaSeg.value);
+    }
+    if (fotoPath.present) {
+      map['foto_path'] = Variable<String>(fotoPath.value);
     }
     if (latitud.present) {
       map['latitud'] = Variable<double>(latitud.value);
@@ -13340,6 +13438,9 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
     if (enlaceNotaVoz.present) {
       map['enlace_nota_voz'] = Variable<String>(enlaceNotaVoz.value);
     }
+    if (enlaceFoto.present) {
+      map['enlace_foto'] = Variable<String>(enlaceFoto.value);
+    }
     if (remoteId.present) {
       map['remote_id'] = Variable<String>(remoteId.value);
     }
@@ -13367,6 +13468,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
           ..write('firmaPath: $firmaPath, ')
           ..write('notaVozPath: $notaVozPath, ')
           ..write('duracionNotaSeg: $duracionNotaSeg, ')
+          ..write('fotoPath: $fotoPath, ')
           ..write('latitud: $latitud, ')
           ..write('longitud: $longitud, ')
           ..write('visitadorIdEmpleado: $visitadorIdEmpleado, ')
@@ -13383,6 +13485,7 @@ class AsistenciasCompanion extends UpdateCompanion<Asistencia> {
           ..write('transcripcionNota: $transcripcionNota, ')
           ..write('enlaceFirma: $enlaceFirma, ')
           ..write('enlaceNotaVoz: $enlaceNotaVoz, ')
+          ..write('enlaceFoto: $enlaceFoto, ')
           ..write('remoteId: $remoteId, ')
           ..write('sincronizado: $sincronizado, ')
           ..write('sincronizadoEn: $sincronizadoEn, ')
@@ -19937,6 +20040,7 @@ typedef $$AsistenciasTableCreateCompanionBuilder =
       required String firmaPath,
       Value<String?> notaVozPath,
       Value<int?> duracionNotaSeg,
+      Value<String?> fotoPath,
       Value<double?> latitud,
       Value<double?> longitud,
       Value<String?> visitadorIdEmpleado,
@@ -19953,6 +20057,7 @@ typedef $$AsistenciasTableCreateCompanionBuilder =
       Value<String?> transcripcionNota,
       Value<String?> enlaceFirma,
       Value<String?> enlaceNotaVoz,
+      Value<String?> enlaceFoto,
       Value<String?> remoteId,
       Value<bool> sincronizado,
       Value<DateTime?> sincronizadoEn,
@@ -19969,6 +20074,7 @@ typedef $$AsistenciasTableUpdateCompanionBuilder =
       Value<String> firmaPath,
       Value<String?> notaVozPath,
       Value<int?> duracionNotaSeg,
+      Value<String?> fotoPath,
       Value<double?> latitud,
       Value<double?> longitud,
       Value<String?> visitadorIdEmpleado,
@@ -19985,6 +20091,7 @@ typedef $$AsistenciasTableUpdateCompanionBuilder =
       Value<String?> transcripcionNota,
       Value<String?> enlaceFirma,
       Value<String?> enlaceNotaVoz,
+      Value<String?> enlaceFoto,
       Value<String?> remoteId,
       Value<bool> sincronizado,
       Value<DateTime?> sincronizadoEn,
@@ -20042,6 +20149,11 @@ class $$AsistenciasTableFilterComposer
 
   ColumnFilters<int> get duracionNotaSeg => $composableBuilder(
     column: $table.duracionNotaSeg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fotoPath => $composableBuilder(
+    column: $table.fotoPath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -20125,6 +20237,11 @@ class $$AsistenciasTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get enlaceFoto => $composableBuilder(
+    column: $table.enlaceFoto,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnFilters(column),
@@ -20192,6 +20309,11 @@ class $$AsistenciasTableOrderingComposer
 
   ColumnOrderings<int> get duracionNotaSeg => $composableBuilder(
     column: $table.duracionNotaSeg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fotoPath => $composableBuilder(
+    column: $table.fotoPath,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -20275,6 +20397,11 @@ class $$AsistenciasTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get enlaceFoto => $composableBuilder(
+    column: $table.enlaceFoto,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnOrderings(column),
@@ -20336,6 +20463,9 @@ class $$AsistenciasTableAnnotationComposer
     column: $table.duracionNotaSeg,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get fotoPath =>
+      $composableBuilder(column: $table.fotoPath, builder: (column) => column);
 
   GeneratedColumn<double> get latitud =>
       $composableBuilder(column: $table.latitud, builder: (column) => column);
@@ -20403,6 +20533,11 @@ class $$AsistenciasTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get enlaceFoto => $composableBuilder(
+    column: $table.enlaceFoto,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get remoteId =>
       $composableBuilder(column: $table.remoteId, builder: (column) => column);
 
@@ -20457,6 +20592,7 @@ class $$AsistenciasTableTableManager
                 Value<String> firmaPath = const Value.absent(),
                 Value<String?> notaVozPath = const Value.absent(),
                 Value<int?> duracionNotaSeg = const Value.absent(),
+                Value<String?> fotoPath = const Value.absent(),
                 Value<double?> latitud = const Value.absent(),
                 Value<double?> longitud = const Value.absent(),
                 Value<String?> visitadorIdEmpleado = const Value.absent(),
@@ -20473,6 +20609,7 @@ class $$AsistenciasTableTableManager
                 Value<String?> transcripcionNota = const Value.absent(),
                 Value<String?> enlaceFirma = const Value.absent(),
                 Value<String?> enlaceNotaVoz = const Value.absent(),
+                Value<String?> enlaceFoto = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<bool> sincronizado = const Value.absent(),
                 Value<DateTime?> sincronizadoEn = const Value.absent(),
@@ -20487,6 +20624,7 @@ class $$AsistenciasTableTableManager
                 firmaPath: firmaPath,
                 notaVozPath: notaVozPath,
                 duracionNotaSeg: duracionNotaSeg,
+                fotoPath: fotoPath,
                 latitud: latitud,
                 longitud: longitud,
                 visitadorIdEmpleado: visitadorIdEmpleado,
@@ -20503,6 +20641,7 @@ class $$AsistenciasTableTableManager
                 transcripcionNota: transcripcionNota,
                 enlaceFirma: enlaceFirma,
                 enlaceNotaVoz: enlaceNotaVoz,
+                enlaceFoto: enlaceFoto,
                 remoteId: remoteId,
                 sincronizado: sincronizado,
                 sincronizadoEn: sincronizadoEn,
@@ -20519,6 +20658,7 @@ class $$AsistenciasTableTableManager
                 required String firmaPath,
                 Value<String?> notaVozPath = const Value.absent(),
                 Value<int?> duracionNotaSeg = const Value.absent(),
+                Value<String?> fotoPath = const Value.absent(),
                 Value<double?> latitud = const Value.absent(),
                 Value<double?> longitud = const Value.absent(),
                 Value<String?> visitadorIdEmpleado = const Value.absent(),
@@ -20535,6 +20675,7 @@ class $$AsistenciasTableTableManager
                 Value<String?> transcripcionNota = const Value.absent(),
                 Value<String?> enlaceFirma = const Value.absent(),
                 Value<String?> enlaceNotaVoz = const Value.absent(),
+                Value<String?> enlaceFoto = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<bool> sincronizado = const Value.absent(),
                 Value<DateTime?> sincronizadoEn = const Value.absent(),
@@ -20549,6 +20690,7 @@ class $$AsistenciasTableTableManager
                 firmaPath: firmaPath,
                 notaVozPath: notaVozPath,
                 duracionNotaSeg: duracionNotaSeg,
+                fotoPath: fotoPath,
                 latitud: latitud,
                 longitud: longitud,
                 visitadorIdEmpleado: visitadorIdEmpleado,
@@ -20565,6 +20707,7 @@ class $$AsistenciasTableTableManager
                 transcripcionNota: transcripcionNota,
                 enlaceFirma: enlaceFirma,
                 enlaceNotaVoz: enlaceNotaVoz,
+                enlaceFoto: enlaceFoto,
                 remoteId: remoteId,
                 sincronizado: sincronizado,
                 sincronizadoEn: sincronizadoEn,

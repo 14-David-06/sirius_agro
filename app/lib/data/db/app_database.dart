@@ -140,8 +140,9 @@ class AppDatabase extends _$AppDatabase {
   /// v15: `EventosAsistencia` y `Asistencias.eventoId` — la asistencia se toma
   ///     dentro de un evento para que los registros no queden sueltos.
   /// v16: `Asistencias.correo` — el correo que la persona dice en la nota.
+  /// v17: `Asistencias.fotoPath` y `.enlaceFoto` — la foto de la persona.
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -255,6 +256,8 @@ class AppDatabase extends _$AppDatabase {
                     asistencias.procesado,
                     asistencias.eventoId,
                     asistencias.correo,
+                    asistencias.fotoPath,
+                    asistencias.enlaceFoto,
                   ])
                     if (!existentes.contains(c.name)) c,
                 ],
@@ -266,6 +269,9 @@ class AppDatabase extends _$AppDatabase {
           await _asegurarColumna(m, asistencias, asistencias.eventoId);
           // v16: el correo.
           await _asegurarColumna(m, asistencias, asistencias.correo);
+          // v17: la foto de la persona.
+          await _asegurarColumna(m, asistencias, asistencias.fotoPath);
+          await _asegurarColumna(m, asistencias, asistencias.enlaceFoto);
         },
         beforeOpen: (details) async {
           // Sin esto SQLite ignora las claves foraneas y se pueden quedar

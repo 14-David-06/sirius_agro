@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -659,6 +661,14 @@ class FilaAsistencia extends StatelessWidget {
           children: [
             Row(
               children: [
+                if (a.fotoPath != null && File(a.fotoPath!).existsSync())
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundImage: FileImage(File(a.fotoPath!)),
+                    ),
+                  ),
                 Expanded(
                   // Hasta que el backend procese la nota no se sabe quien
                   // es: se muestra la hora, que es como el visitador lo

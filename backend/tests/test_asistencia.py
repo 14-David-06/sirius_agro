@@ -170,6 +170,25 @@ async def test_nuevo_se_guarda_por_procesar_y_se_completa(
     assert "Quiere visita tecnica" not in final
     assert "Productor" not in final
     assert r.datos.cedula == "1234567"
+    # Sin foto el registro vale igual: es opcional.
+    assert "Foto" not in creado and "Enlace foto" not in creado
+    assert r.enlace_foto is None
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_la_foto_se_sube_y_queda_en_el_registro(settings, bucket, motor, claude):
+    crear, _ = _airtable()
+
+    r = await servicio.sincronizar(
+        settings, _payload(), firma=b"png", nota_voz=b"m4a", foto=b"jpg"
+    )
+
+    assert "asistencias/uuid-asis-1/foto.jpg" in bucket
+    creado = json.loads(crear.calls.last.request.content)["fields"]
+    assert creado["Enlace foto"] == "https://cdn.test/asistencias/uuid-asis-1/foto.jpg"
+    assert creado["Foto"][0]["filename"] == "foto.jpg"
+    assert r.enlace_foto == creado["Enlace foto"]
 
 
 @respx.mock

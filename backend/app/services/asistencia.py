@@ -9,8 +9,8 @@ hay red:
      Si lo que sigue falla, la asistencia ya existe y nadie la pierde;
   3. la transcripcion de la nota (una sola vez: un reintento reusa la que ya
      quedo guardada y no vuelve a pagarle al motor);
-  4. Claude saca nombre, cedula, telefono, correo, vereda y si quiere
-     visita, y el codigo valida lo que devuelve;
+  4. Claude saca nombre, cedula, telefono, correo y vereda, y el codigo
+     valida lo que devuelve;
   5. el registro se completa con esos datos y queda «Procesado».
 
 Si 3 o 4 fallan el registro queda «Error al procesar» con el motivo y la
@@ -98,7 +98,6 @@ def campos_datos(
     fields: dict = {
         "Nombre completo": d.nombre_completo or "",
         "Cedula": d.cedula or "",
-        "Quiere visita tecnica": bool(d.quiere_visita),
         "Datos por confirmar": "\n".join(f"- {x}" for x in d.por_confirmar),
         "Estado": PROCESADO,
         "Error de procesamiento": "",

@@ -60,13 +60,12 @@ class EventoAsistenciaPage extends ConsumerWidget {
       titulo: eventoId == null
           ? '¿Borrar los $n registros sin evento?'
           : '¿Borrar «$titulo» del teléfono?',
-      detalle: [
-        if (eventoId != null)
-          n == 0
-              ? 'El evento no tiene registros.'
-              : 'Se borran también ${n == 1 ? 'su registro' : 'sus $n registros'}.',
-        avisoSinSubir(sinSubir),
-      ].join('\n\n'),
+      detalle: eventoId == null
+          ? null
+          : n == 0
+          ? 'El evento no tiene registros.'
+          : 'Se borran también ${n == 1 ? 'su registro' : 'sus $n registros'}.',
+      sinSubir: sinSubir,
     );
     if (!ok || !context.mounted) return;
     await repo.eliminarEvento(eventoId);
@@ -91,7 +90,7 @@ class EventoAsistenciaPage extends ConsumerWidget {
       titulo: a.nombreCompleto == null
           ? '¿Borrar este registro del teléfono?'
           : '¿Borrar a ${a.nombreCompleto} del teléfono?',
-      detalle: avisoSinSubir(sinSubir),
+      sinSubir: sinSubir,
     );
     if (!ok) return;
     await repo.eliminarAsistencia(a.id);
@@ -190,7 +189,6 @@ class EventoAsistenciaPage extends ConsumerWidget {
             titulo: titulo,
             fecha: evento?.fecha,
             personas: registros.length,
-            piden: registros.where((a) => a.quiereVisita).length,
           ),
           Expanded(
             child: switch (todos) {
@@ -235,13 +233,11 @@ class _CabeceraEvento extends StatelessWidget {
     required this.titulo,
     required this.fecha,
     required this.personas,
-    required this.piden,
   });
 
   final String titulo;
   final DateTime? fecha;
   final int personas;
-  final int piden;
 
   @override
   Widget build(BuildContext context) {
@@ -266,8 +262,7 @@ class _CabeceraEvento extends StatelessWidget {
                 Text(titulo, style: tema.textTheme.titleLarge),
                 const SizedBox(height: 2),
                 Text(
-                  '$dia\n$personas ${personas == 1 ? 'persona' : 'personas'}'
-                  '${piden > 0 ? ' · $piden piden visita' : ''}',
+                  '$dia\n$personas ${personas == 1 ? 'persona' : 'personas'}',
                   style: tema.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                     height: 1.4,
@@ -308,38 +303,165 @@ class PuntosSirius extends StatelessWidget {
   }
 }
 
-/// Lo que hay que saber antes de borrar: si algo todavia no subio, se pierde.
-String avisoSinSubir(int sinSubir) => sinSubir == 0
-    ? 'Solo se borra de este teléfono. Lo que ya está en Airtable se queda allá.'
-    : '${sinSubir == 1 ? 'Un registro todavía no se ha subido' : '$sinSubir registros todavía no se han subido'} '
-          'a Airtable: si lo borras, su nota de voz y su firma se pierden.';
+/// La palabra que hay que escribir para que el boton de borrar se habilite.
+const palabraBorrar = 'BORRAR';
 
+/// Pide confirmacion antes de borrar del telefono.
+///
+/// Borrar no tiene vuelta atras —la nota y la firma salen del disco— y la
+/// app se usa de pie, con el telefono en una mano y gente haciendo fila: un
+/// toque de mas no puede costar el registro de alguien. Por eso:
+///
+/// - el dialogo no se cierra tocando afuera ni se confirma con un solo toque;
+/// - el boton «Borrar» solo se habilita escribiendo [palabraBorrar];
+/// - si algo no ha subido a Airtable, se dice en rojo y con el numero, porque
+///   eso es lo que se pierde de verdad.
 Future<bool> confirmarBorrado(
   BuildContext context, {
   required String titulo,
-  required String detalle,
+  String? detalle,
+  required int sinSubir,
 }) async {
-  final scheme = Theme.of(context).colorScheme;
   final ok = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      icon: Icon(Icons.delete_outline, color: scheme.error),
-      title: Text(titulo),
-      content: Text(detalle),
+    barrierDismissible: false,
+    builder: (_) => _DialogoBorrar(
+      titulo: titulo,
+      detalle: detalle,
+      sinSubir: sinSubir,
+    ),
+  );
+  return ok ?? false;
+}
+
+class _DialogoBorrar extends StatefulWidget {
+  const _DialogoBorrar({
+    required this.titulo,
+    required this.detalle,
+    required this.sinSubir,
+  });
+
+  final String titulo;
+  final String? detalle;
+  final int sinSubir;
+
+  @override
+  State<_DialogoBorrar> createState() => _DialogoBorrarState();
+}
+
+class _DialogoBorrarState extends State<_DialogoBorrar> {
+  final _confirmacion = TextEditingController();
+
+  bool get _habilitado =>
+      _confirmacion.text.trim().toUpperCase() == palabraBorrar;
+
+  @override
+  void dispose() {
+    _confirmacion.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final n = widget.sinSubir;
+
+    return AlertDialog(
+      icon: Icon(Icons.delete_forever_outlined, color: scheme.error),
+      title: Text(widget.titulo),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (widget.detalle != null) ...[
+              Text(widget.detalle!),
+              const SizedBox(height: 12),
+            ],
+            if (n > 0)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: scheme.errorContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.cloud_off_outlined,
+                      size: 20,
+                      color: scheme.onErrorContainer,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${n == 1 ? 'Un registro todavía no se ha subido' : '$n registros todavía no se han subido'} '
+                        'a Airtable. Si lo borras, su nota de voz y su firma '
+                        'se pierden para siempre.',
+                        style: TextStyle(
+                          color: scheme.onErrorContainer,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Text(
+                'Solo se borra de este teléfono. Lo que ya está en Airtable '
+                'se queda allá.',
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
+            const SizedBox(height: 16),
+            Text.rich(
+              TextSpan(
+                children: [
+                  const TextSpan(text: 'Para confirmar, escribe '),
+                  TextSpan(
+                    text: palabraBorrar,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: scheme.error,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _confirmacion,
+              autocorrect: false,
+              enableSuggestions: false,
+              textCapitalization: TextCapitalization.characters,
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) {
+                if (_habilitado) Navigator.of(context).pop(true);
+              },
+              decoration: const InputDecoration(
+                hintText: palabraBorrar,
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+      ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
+          onPressed: () => Navigator.of(context).pop(false),
           child: const Text('Cancelar'),
         ),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: scheme.error),
-          onPressed: () => Navigator.of(ctx).pop(true),
+          onPressed: _habilitado ? () => Navigator.of(context).pop(true) : null,
           child: const Text('Borrar'),
         ),
       ],
-    ),
-  );
-  return ok ?? false;
+    );
+  }
 }
 
 /// Pide nombre y fecha de un evento. Con [inicial] edita uno que ya existe.
@@ -547,11 +669,24 @@ class FilaAsistencia extends StatelessWidget {
                   ),
                 ),
                 pildora,
-                IconButton(
-                  tooltip: 'Borrar del teléfono',
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.delete_outline, color: scheme.onSurfaceVariant),
-                  onPressed: onEliminar,
+                // En un menu y no como papelera suelta: al desplazar la lista
+                // con el pulgar, un icono a la vista se toca sin querer.
+                PopupMenuButton<String>(
+                  tooltip: 'Más opciones',
+                  icon: Icon(Icons.more_vert, color: scheme.onSurfaceVariant),
+                  onSelected: (_) => onEliminar(),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'eliminar',
+                      child: ListTile(
+                        leading: Icon(Icons.delete_outline, color: scheme.error),
+                        title: Text(
+                          'Borrar del teléfono',
+                          style: TextStyle(color: scheme.error),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -596,12 +731,6 @@ class FilaAsistencia extends StatelessWidget {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      if (a.quiereVisita)
-                        const Pildora(
-                          texto: 'Pide visita',
-                          tono: TonoPildora.exito,
-                          icono: Icons.agriculture_outlined,
-                        ),
                       const Pildora(
                         texto: 'Firmado',
                         tono: TonoPildora.info,

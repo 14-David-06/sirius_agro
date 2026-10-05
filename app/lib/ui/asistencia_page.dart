@@ -177,7 +177,6 @@ class _TarjetaEvento extends StatelessWidget {
     final scheme = tema.colorScheme;
     final n = registros.length;
     final porSubir = registros.where((a) => pendientes.contains(a.id)).length;
-    final piden = registros.where((a) => a.quiereVisita).length;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -218,25 +217,12 @@ class _TarjetaEvento extends StatelessWidget {
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
-                    if (porSubir > 0 || piden > 0) ...[
+                    if (porSubir > 0) ...[
                       const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          if (porSubir > 0)
-                            Pildora(
-                              texto: '$porSubir por subir',
-                              tono: TonoPildora.aviso,
-                              icono: Icons.cloud_upload_outlined,
-                            ),
-                          if (piden > 0)
-                            Pildora(
-                              texto: '$piden piden visita',
-                              tono: TonoPildora.exito,
-                              icono: Icons.agriculture_outlined,
-                            ),
-                        ],
+                      Pildora(
+                        texto: '$porSubir por subir',
+                        tono: TonoPildora.aviso,
+                        icono: Icons.cloud_upload_outlined,
                       ),
                     ],
                   ],

@@ -559,8 +559,7 @@ de ninguna visita: cada registro es una persona.
 
 **En el campo solo se graba y se firma.** La persona dice sus datos en una nota de
 voz, guiada por un guion que la app muestra todo el tiempo (también mientras graba):
-nombre, cédula, teléfono, correo electrónico, vereda y si quiere visita técnica.
-Después firma. El teléfono no procesa nada: guarda la nota y la firma, y el registro
+nombre, cédula, teléfono, correo electrónico y vereda. Después firma. El teléfono no procesa nada: guarda la nota y la firma, y el registro
 queda en la cola hasta que haya red.
 
 Al subir (`POST /v1/asistencias`), el backend:
@@ -589,6 +588,6 @@ un dato a mano en Airtable, no se le pisa.
 - **Productor:** si la cédula coincide con el `Documento` de un productor, se enlaza
   a su ficha. Nunca se crean productores.
 - `Municipio` es un lookup de la vereda.
-- `Cultivos sembrados` y `Area sembrada (ha)` ya no se preguntan en la nota; quedan
-  con lo que traían los registros anteriores.
+- `Cultivos sembrados`, `Area sembrada (ha)` y `Quiere visita tecnica` ya no se
+  preguntan en la nota; quedan con lo que traían los registros anteriores.
 - `Evento o actividad` lleva el nombre del evento de la app donde se tomó el registro.

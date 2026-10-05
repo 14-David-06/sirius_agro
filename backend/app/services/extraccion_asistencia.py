@@ -1,7 +1,7 @@
 """Saca los datos del registro de asistencia de la nota de voz.
 
 La persona dijo, siguiendo un guion que le mostro la app, su nombre, cedula,
-telefono, correo, vereda y si quiere visita. Aqui Claude lo lee de la
+telefono, correo y vereda. Aqui Claude lo lee de la
 transcripcion y el codigo valida lo que devuelve: una cedula con letras o una
 vereda que no existe no entran al registro, se anotan en `por_confirmar` para
 que alguien escuche el audio.
@@ -25,8 +25,7 @@ _CORREO = re.compile(r"[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}")
 SYSTEM = """Lees la transcripcion de una nota de voz grabada en un taller de
 Sirius Regenerative en el campo colombiano. En ella una persona dice sus datos
 para el registro de asistencia, siguiendo este guion: nombre completo, numero
-de cedula, telefono, correo electronico, vereda donde vive y si quiere que la
-visite un tecnico.
+de cedula, telefono, correo electronico y vereda donde vive.
 
 REGLA ABSOLUTA: no inventes nada. Si un dato no se dijo, o se dijo de forma que
 no se entiende, dejalo en null y explica en `por_confirmar` que falta o que es
@@ -47,8 +46,6 @@ dudoso. Un dato vacio es correcto; uno inventado arruina el registro.
   "marialopez@gmail.com"). Si deletreo letras, usalas tal cual. Si dijo que
   no tiene correo, null sin anotar nada. Si el usuario o el dominio no se
   entienden, null, y anota en `por_confirmar` como se escucho.
-- `quiere_visita`: true si pidio o acepto la visita del tecnico, false si dijo
-  que no, null si no lo menciono.
 - `por_confirmar`: frases cortas en espanol, una por dato dudoso o faltante.
 """
 
@@ -60,12 +57,11 @@ _ESQUEMA = {
         "telefono": {"type": ["string", "null"]},
         "vereda": {"type": ["string", "null"]},
         "correo": {"type": ["string", "null"]},
-        "quiere_visita": {"type": ["boolean", "null"]},
         "por_confirmar": {"type": "array", "items": {"type": "string"}},
     },
     "required": [
         "nombre_completo", "cedula", "telefono", "correo", "vereda",
-        "quiere_visita", "por_confirmar",
+        "por_confirmar",
     ],
 }
 
@@ -111,7 +107,6 @@ def validar(crudo: dict, veredas: list[str]) -> DatosAsistencia:
             dudas.append(f"Correo dudoso: se entendio «{dicho}».")
 
     nombre = (crudo.get("nombre_completo") or "").strip() or None
-    quiere = crudo.get("quiere_visita")
 
     return DatosAsistencia(
         nombre_completo=nombre,
@@ -119,7 +114,6 @@ def validar(crudo: dict, veredas: list[str]) -> DatosAsistencia:
         telefono=digitos("telefono", 7, 13, "Telefono"),
         correo=correo,
         vereda=vereda,
-        quiere_visita=quiere if isinstance(quiere, bool) else None,
         por_confirmar=dudas,
     )
 

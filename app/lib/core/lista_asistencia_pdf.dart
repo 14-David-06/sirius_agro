@@ -47,7 +47,6 @@ class FilaListaAsistencia {
     this.telefono,
     this.correo,
     this.vereda,
-    this.quiereVisita = false,
   });
 
   final DateTime registradoEn;
@@ -62,7 +61,6 @@ class FilaListaAsistencia {
   final String? telefono;
   final String? correo;
   final String? vereda;
-  final bool quiereVisita;
 }
 
 /// Lo que se imprime: las filas y de donde salieron.
@@ -112,7 +110,7 @@ final _hora = DateFormat('h:mm a', 'es');
 String _capital(String s) =>
     s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
-/// Arma la lista de asistencia. Horizontal: son nueve columnas y la firma
+/// Arma la lista de asistencia. Horizontal: son ocho columnas y la firma
 /// necesita ancho para que se reconozca.
 Future<Uint8List> construirListaAsistenciaPdf(DatosListaAsistencia datos) async {
   final doc = pw.Document(
@@ -320,7 +318,6 @@ pw.Widget _membrete(String logo, DatosListaAsistencia datos, _Grupos grupos) {
 }
 
 pw.Widget _resumen(List<FilaListaAsistencia> filas) {
-  final visita = filas.where((f) => f.quiereVisita).length;
   final pendientes = filas.where((f) => !f.procesado).length;
 
   pw.Widget dato(PdfColor acento, PdfColor fondo, String valor, String etiqueta) =>
@@ -363,13 +360,6 @@ pw.Widget _resumen(List<FilaListaAsistencia> filas) {
       ),
       pw.SizedBox(width: 8),
       dato(
-        PaletaLista.verde,
-        PaletaLista.retonoClaro,
-        '$visita',
-        visita == 1 ? 'pide visita técnica' : 'piden visita técnica',
-      ),
-      pw.SizedBox(width: 8),
-      dato(
         PaletaLista.tenue,
         PaletaLista.sutilezaClara,
         '$pendientes',
@@ -387,10 +377,9 @@ const _encabezados = [
   'Teléfono',
   'Correo electrónico',
   'Vereda',
-  'Visita',
   'Firma',
 ];
-const _anchos = [3, 6, 17, 9, 9, 17, 13, 5, 14];
+const _anchos = [3, 6, 18, 9, 9, 18, 14, 15];
 
 pw.Widget _tabla(
   List<FilaListaAsistencia> filas,
@@ -468,22 +457,6 @@ pw.Widget _tabla(
             texto(f.telefono),
             texto(f.correo),
             texto(f.vereda),
-            celda(
-              !f.procesado
-                  ? pw.Text('—', style: pendiente)
-                  : f.quiereVisita
-                  ? pw.Row(
-                      children: [
-                        _punto(PaletaLista.verde, 5),
-                        pw.SizedBox(width: 4),
-                        pw.Text(
-                          'Sí',
-                          style: cuerpo.copyWith(fontWeight: pw.FontWeight.bold),
-                        ),
-                      ],
-                    )
-                  : pw.Text('No', style: cuerpo),
-            ),
             celda(
               firmas[f.firmaPath] == null
                   ? pw.Text('Sin firma en el teléfono', style: pendiente)

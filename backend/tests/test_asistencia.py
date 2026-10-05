@@ -84,7 +84,6 @@ def claude(monkeypatch):
             telefono="3001234567",
             correo="maria@gmail.com",
             vereda="Guaicaramo",
-            quiere_visita=True,
         )
 
     monkeypatch.setattr(extraccion_asistencia, "extraer", extraer)
@@ -168,7 +167,7 @@ async def test_nuevo_se_guarda_por_procesar_y_se_completa(
     # Ya no se preguntan: un registro nuevo no los escribe.
     assert "Cultivos sembrados" not in final
     assert "Area sembrada (ha)" not in final
-    assert final["Quiere visita tecnica"] is True
+    assert "Quiere visita tecnica" not in final
     assert "Productor" not in final
     assert r.datos.cedula == "1234567"
 
@@ -315,7 +314,6 @@ class TestValidar:
                 "telefono": "300 123 4567",
                 "correo": "Maria.Lopez @Gmail.com",
                 "vereda": "guaicaramo",
-                "quiere_visita": True,
                 "por_confirmar": [],
             },
             VEREDAS,
@@ -335,13 +333,11 @@ class TestValidar:
                 "telefono": None,
                 "correo": "maria arroba gmail",
                 "vereda": "El Porvenir",
-                "quiere_visita": "si",
                 "por_confirmar": ["No dijo el nombre."],
             },
             VEREDAS,
         )
         assert d.cedula is None and d.vereda is None and d.correo is None
-        assert d.quiere_visita is None
         assert len(d.por_confirmar) == 4
         assert any("El Porvenir" in x for x in d.por_confirmar)
 

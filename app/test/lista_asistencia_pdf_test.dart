@@ -53,7 +53,6 @@ void main() {
             telefono: '3223140309',
             vereda: 'Guaicaramo · Barranca de Upia',
             correo: 'juan.david@gmail.com',
-            quiereVisita: true,
           ),
         ],
       ),

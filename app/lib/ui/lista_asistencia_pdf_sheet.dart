@@ -118,7 +118,6 @@ class _HojaListaPdfState extends State<_HojaListaPdf> {
             telefono: a.telefono,
             correo: a.correo,
             vereda: veredas[a.veredaLocalId],
-            quiereVisita: a.quiereVisita,
           ),
       ],
     );

@@ -24,7 +24,6 @@ const guionAsistencia = [
   'Su telefono',
   'Su correo electronico',
   'La vereda donde vive',
-  'Si quiere que lo visite un tecnico',
 ];
 
 /// Una persona que se registra en un taller o jornada.
@@ -456,8 +455,7 @@ class _NotaDeVoz extends ConsumerWidget {
             Text(
               'Ejemplo: «Me llamo Maria Lopez, mi cedula es 1 234 567, mi '
               'telefono es 300 123 4567, mi correo es maria lopez arroba '
-              'gmail punto com, vivo en la vereda Guaicaramo y si quiero la '
-              'visita».',
+              'gmail punto com y vivo en la vereda Guaicaramo».',
               style: TextStyle(
                 fontSize: 12.5,
                 height: 1.4,

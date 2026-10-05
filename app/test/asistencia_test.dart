@@ -215,7 +215,6 @@ void main() {
       expect(a.cedula, '1234567');
       expect(a.correo, 'maria@gmail.com');
       expect(a.veredaLocalId, 'ver-1');
-      expect(a.quiereVisita, isTrue);
       expect(await repo.pendientes(), isEmpty);
     });
 

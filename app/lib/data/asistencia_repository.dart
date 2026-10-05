@@ -30,22 +30,6 @@ class AsistenciaRepository {
           ]))
           .watch();
 
-  /// El evento del ultimo registro, para proponerlo en el siguiente: en un
-  /// taller se registran veinte personas seguidas en la misma jornada.
-  Future<String?> ultimoEvento() async {
-    final fila =
-        await (_db.select(_db.asistencias)
-              ..orderBy([
-                (a) => OrderingTerm(
-                  expression: a.registradoEn,
-                  mode: OrderingMode.desc,
-                ),
-              ])
-              ..limit(1))
-            .getSingleOrNull();
-    return fila?.evento;
-  }
-
   /// Guarda la nota y la firma en el telefono y deja el registro en la cola.
   ///
   /// Nada de esto necesita red ni procesa nada: los datos de la persona estan
@@ -56,7 +40,6 @@ class AsistenciaRepository {
     required String notaVozTemporal,
     required int duracionNotaSeg,
     required Uint8List firmaPng,
-    required String? evento,
     double? latitud,
     double? longitud,
     String? visitadorIdEmpleado,
@@ -85,16 +68,12 @@ class AsistenciaRepository {
       // Es un temporal: que quede no rompe nada.
     }
 
-    final eventoLimpio = evento?.trim();
     await _db
         .into(_db.asistencias)
         .insert(
           AsistenciasCompanion.insert(
             id: id,
             registradoEn: ahora ?? DateTime.now(),
-            evento: Value(
-              eventoLimpio == null || eventoLimpio.isEmpty ? null : eventoLimpio,
-            ),
             // Enviar es aceptar: el boton solo existe debajo del aviso.
             aceptaTerminos: const Value(true),
             terminosUrl: const Value(terminosAsistenciaUrl),
@@ -134,7 +113,6 @@ class AsistenciaRepository {
     'registrado_en': a.registradoEn.toIso8601String(),
     'acepta_terminos': a.aceptaTerminos,
     'terminos_url': a.terminosUrl,
-    'evento': a.evento,
     'duracion_nota_seg': a.duracionNotaSeg,
     'latitud': a.latitud,
     'longitud': a.longitud,

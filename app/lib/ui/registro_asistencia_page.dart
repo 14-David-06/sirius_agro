@@ -45,7 +45,6 @@ class RegistroAsistenciaPage extends ConsumerStatefulWidget {
 
 class _RegistroAsistenciaPageState
     extends ConsumerState<RegistroAsistenciaPage> {
-  final _evento = TextEditingController();
   final _firma = FirmaController();
   final _reproductor = AudioPlayer();
   bool _guardando = false;
@@ -60,17 +59,10 @@ class _RegistroAsistenciaPageState
   void initState() {
     super.initState();
     _firma.addListener(_alCambiarFirma);
-    unawaited(_prellenarEvento());
     unawaited(_tomarUbicacion());
   }
 
   void _alCambiarFirma() => setState(() {});
-
-  Future<void> _prellenarEvento() async {
-    final ultimo = await ref.read(asistenciaRepoProvider).ultimoEvento();
-    if (!mounted || ultimo == null || _evento.text.isNotEmpty) return;
-    _evento.text = ultimo;
-  }
 
   Future<void> _tomarUbicacion() async {
     try {
@@ -88,7 +80,6 @@ class _RegistroAsistenciaPageState
     _firma.removeListener(_alCambiarFirma);
     _firma.dispose();
     _reproductor.dispose();
-    _evento.dispose();
     super.dispose();
   }
 
@@ -125,7 +116,6 @@ class _RegistroAsistenciaPageState
             notaVozTemporal: nota.path!,
             duracionNotaSeg: nota.segundos,
             firmaPng: png,
-            evento: _evento.text,
             latitud: _lat,
             longitud: _lng,
             visitadorIdEmpleado: sesion?.credencial.idEmpleado,
@@ -172,16 +162,6 @@ class _RegistroAsistenciaPageState
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          TextField(
-            controller: _evento,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Evento o actividad (opcional)',
-              hintText: 'Ej: Taller de bioinsumos, vereda La Esperanza',
-              prefixIcon: Icon(Icons.event_outlined),
-            ),
-          ),
-          const SizedBox(height: 24),
           const TituloSeccion('1. Nota de voz'),
           _NotaDeVoz(reproductor: _reproductor),
           const SizedBox(height: 24),

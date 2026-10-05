@@ -627,8 +627,8 @@ class Asistencias extends Table {
 
   DateTimeColumn get registradoEn => dateTime()();
 
-  /// Taller, jornada o charla. Lo escribe el visitador una vez y la app lo
-  /// propone en el registro siguiente.
+  /// Taller, jornada o charla. Ya no se captura —en el campo solo se graba y
+  /// se firma—; la columna queda por los registros viejos y para no migrar.
   TextColumn get evento => text().nullable()();
 
   /// Al enviar, la persona acepta los terminos que se le mostraron. Se guarda

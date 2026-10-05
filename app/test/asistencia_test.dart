@@ -39,7 +39,6 @@ void main() {
       notaVozTemporal: f.path,
       duracionNotaSeg: 42,
       firmaPng: png,
-      evento: 'Taller de bioinsumos',
       visitadorIdEmpleado: 'SIRIUS-PER-0001',
       visitadorNombre: 'Ana',
       ahora: DateTime(2026, 10, 2, 9, 30),
@@ -78,16 +77,10 @@ void main() {
           notaVozTemporal: '${temp.path}/no-existe.m4a',
           duracionNotaSeg: 1,
           firmaPng: png,
-          evento: null,
           carpetaBase: temp,
         ),
         throwsStateError,
       );
-    });
-
-    test('el siguiente registro propone el ultimo evento', () async {
-      await registrar();
-      expect(await repo.ultimoEvento(), 'Taller de bioinsumos');
     });
   });
 

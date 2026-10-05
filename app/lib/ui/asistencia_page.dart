@@ -8,6 +8,7 @@ import '../data/db/app_database.dart';
 import '../state/asistencia.dart';
 import '../state/providers.dart';
 import '../state/red.dart';
+import 'lista_asistencia_pdf_sheet.dart';
 import 'marca.dart';
 import 'registro_asistencia_page.dart';
 import 'theme.dart';
@@ -74,7 +75,20 @@ class _AsistenciaPageState extends ConsumerState<AsistenciaPage> {
     };
 
     return Scaffold(
-      appBar: const AppBarMarca(titulo: 'Asistencia'),
+      appBar: AppBarMarca(
+        titulo: 'Asistencia',
+        actions: [
+          IconButton(
+            tooltip: 'Lista en PDF',
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: () => abrirListaAsistenciaPdf(
+              context,
+              ref,
+              registros.valueOrNull ?? const [],
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'nueva-asistencia',
         onPressed: _nuevo,
@@ -257,14 +271,6 @@ class _FilaAsistencia extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 vereda!,
-                style: tema.textTheme.bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-            ],
-            if (a.evento != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                a.evento!,
                 style: tema.textTheme.bodySmall
                     ?.copyWith(color: scheme.onSurfaceVariant),
               ),

@@ -305,12 +305,54 @@ void main() {
       expect(visitador!.id, 'v-1');
     });
 
-    test('sin espejo sembrado no revienta, devuelve null', () async {
+    // El caso real: alguien que entro a nomina despues de generar la semilla
+    // del APK. Antes devolvia null y sus visitas subian sin visitador.
+    test('quien no esta en el espejo se crea con lo que dio nomina', () async {
       final credencial = await repo.guardarTrasLoginOnline(
         cedula,
         remota(),
       );
-      expect(await repo.visitadorDe(credencial), isNull);
+
+      final visitador = await repo.visitadorDe(credencial);
+      expect(visitador, isNotNull);
+      expect(visitador!.idEmpleado, 'SIRIUS-PER-0007');
+      expect(visitador.nombre, 'Persona De Prueba');
+      expect(visitador.rol, 'Visitador');
+    });
+
+    test('pedirlo dos veces no crea dos personas', () async {
+      final credencial = await repo.guardarTrasLoginOnline(
+        cedula,
+        remota(),
+      );
+
+      final primero = await repo.visitadorDe(credencial);
+      final segundo = await repo.visitadorDe(credencial);
+      expect(segundo!.id, primero!.id);
+      expect(await db.select(db.visitadores).get(), hasLength(1));
+    });
+
+    test('si la semilla lo trae despues, se prefiere la fila sembrada',
+        () async {
+      final credencial = await repo.guardarTrasLoginOnline(
+        cedula,
+        remota(),
+      );
+      await repo.visitadorDe(credencial);
+
+      // La semilla nueva lo trae con su record de Airtable como id.
+      await db.into(db.visitadores).insert(
+            VisitadoresCompanion.insert(
+              id: 'recSembrado',
+              nombre: 'Persona De Prueba',
+              usuarioApp: 'persona',
+              idEmpleado: const Value('SIRIUS-PER-0007'),
+              remoteId: const Value('recSembrado'),
+            ),
+          );
+
+      final visitador = await repo.visitadorDe(credencial);
+      expect(visitador!.id, 'recSembrado');
     });
   });
 }

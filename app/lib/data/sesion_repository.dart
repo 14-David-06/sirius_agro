@@ -255,9 +255,51 @@ class SesionRepository {
   ///
   /// Se busca por `idEmpleado` porque es la llave estable entre las dos bases:
   /// el correo se puede cambiar, el id de empleado no.
-  Future<Visitador?> visitadorDe(CredencialLocal credencial) =>
+  ///
+  /// Si no esta, se crea con lo que trae la credencial. El espejo viaja
+  /// congelado dentro del APK y la nomina sigue contratando: quien entro a la
+  /// empresa despues de generar la semilla tiene contrasena, entra y hace
+  /// visitas, pero sin fila en el espejo la visita nace sin visitador y sube
+  /// a Airtable sin `visitador_id_empleado` — nadie sabe de quien es. La
+  /// credencial no es un dato inventado: la verifico el backend contra nomina
+  /// al entrar con red, asi que vale tanto como la semilla.
+  Future<Visitador?> visitadorDe(CredencialLocal credencial) async {
+    final idEmpleado = credencial.idEmpleado.trim();
+    if (idEmpleado.isEmpty) return null;
+
+    final existente = await _visitadorPorIdEmpleado(idEmpleado);
+    if (existente != null) return existente;
+
+    // El id local es el ID Empleado y no un UUID: si se llama dos veces antes
+    // de que la primera termine, la segunda pisa la misma fila en vez de
+    // dejar dos personas iguales.
+    await _db.into(_db.visitadores).insertOnConflictUpdate(
+          VisitadoresCompanion.insert(
+            id: idEmpleado,
+            idEmpleado: Value(idEmpleado),
+            nombre: credencial.nombre,
+            // No se usa para entrar —se entra con la cedula—, pero la columna
+            // es obligatoria. El primer nombre, como en la semilla.
+            usuarioApp: credencial.nombre.trim().split(RegExp(r'\s+')).first
+                .toLowerCase(),
+            email: Value(credencial.email),
+            rol: Value(credencial.rolApp),
+          ),
+        );
+    return _visitadorPorIdEmpleado(idEmpleado);
+  }
+
+  /// `limit(1)` y no un `getSingleOrNull` pelado: cuando una semilla nueva
+  /// traiga a quien ya se creo aca, quedan dos filas con el mismo ID Empleado
+  /// —la sembrada lleva por id el record de Airtable, la creada el ID
+  /// Empleado— y `getSingleOrNull` revienta con dos. Se prefiere la sembrada,
+  /// que trae cargo y telefono; las visitas viejas siguen apuntando a la otra
+  /// y suben igual, porque lo que viaja es el ID Empleado.
+  Future<Visitador?> _visitadorPorIdEmpleado(String idEmpleado) =>
       (_db.select(_db.visitadores)
-            ..where((v) => v.idEmpleado.equals(credencial.idEmpleado)))
+            ..where((v) => v.idEmpleado.equals(idEmpleado))
+            ..orderBy([(v) => OrderingTerm(expression: v.remoteId.isNull())])
+            ..limit(1))
           .getSingleOrNull();
 }
 

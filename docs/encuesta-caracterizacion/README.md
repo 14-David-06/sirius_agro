@@ -17,8 +17,8 @@ Lo que cambió es el catálogo de temas:
 | | Antes | Ahora |
 |---|---:|---:|
 | Temas en el catálogo | 55 | 122 |
-| Temas que cuentan para la cobertura | 27 | 89 |
-| Temas que aparecen en la lista de una visita nueva | 26 | 88 |
+| Temas que cuentan para la cobertura | 27 | 86 |
+| Temas que aparecen en la lista de una visita nueva | 26 | 85 |
 
 El detalle de qué entró, qué no y por qué está en `TEMAS_VISITA.md`:
 
@@ -32,6 +32,11 @@ El detalle de qué entró, qué no y por qué está en `TEMAS_VISITA.md`:
 - **40 preguntas no se agregaron** porque el catálogo o la visita ya las cubren (nombre, documento, celular, vereda, tamaño del
   hogar, área, tenencia, cultivos, comprador, fuente de agua, señal…).
 - **10 preguntas se quitaron** a pedido: 41 a 44, 67, 76 a 79 y 87.
+- **Identificación quedó en una sola pregunta**, a pedido: «¿En qué parte de la vereda nos encontramos?». Antes la lista pedía
+  cuatro cosas: el nombre del productor, el teléfono, la vereda y el nombre de la finca. Las tres que salieron ya se escriben en la
+  ficha de la visita; siguen en el catálogo para que la IA las registre si se dicen, pero no se le piden a la conversación ni
+  cuentan para la cobertura. El campo de la vereda (`municipio_vereda`) conserva su clave y pasa a llamarse «Parte de la vereda
+  donde queda la finca», porque el nombre es lo que la IA lee para decidir qué registrar.
 
 Los temas nuevos usan los 13 módulos que ya había en la app. Los 6 campos que se prendieron traen sus tres módulos de Airtable, que
 ahora aparecen en la lista: «Creditos y apoyos», «Mano de obra» y «Maquinaria e infraestructura».
@@ -59,6 +64,10 @@ en el catálogo de Airtable y los reporta, sin crear nada. Eso significa que hoy
 - Lo que se hable de los 6 campos que se prendieron **sí llega a Airtable**, como el resto de la visita.
 - Lo que se hable de los 61 temas nuevos **queda en el celular** y en el zip que se exporta de la visita. No llega a Airtable.
 
+**El ajuste de Identificación también está solo en la app.** En Airtable esos cuatro registros siguen como estaban: `municipio_vereda`
+se sigue llamando «Municipio y vereda» y los otros tres siguen con «Obligatorio MVP» marcado. No afecta la subida de visitas, porque
+el backend solo mira la clave y la casilla «Activo».
+
 Para que lleguen habría que agregar esos 61 temas a la tabla «Catalogo de Campos». Son registros, no cambios de estructura. La app
 de producción no cambia por eso: su lista de temas sale del catálogo que trae el APK, no de Airtable.
 
@@ -71,6 +80,10 @@ Las cuatro tablas están al inicio de `app/tool/encuesta/generar_catalogo.py`:
   `CAMPOS_DE_AIRTABLE`; si se cambian en Airtable hay que copiar el cambio ahí.
 - `REDUNDANTES`: preguntas que no se agregan y qué campo las cubre.
 - `QUITADAS`: preguntas que se dejan por fuera.
+
+Hay una quinta tabla, `AJUSTES`, para cambiar algo puntual de un tema que ya estaba en el catálogo: su nombre, su pregunta o si sale
+en la lista. Cada ajuste guarda el valor que el campo tenía en Airtable, así que para deshacerlo basta borrarlo de la tabla y volver
+a generar.
 
 Hace falta Python 3 con `openpyxl` (`pip install openpyxl`). Desde la raíz del repositorio:
 
@@ -111,17 +124,10 @@ Código existente que cambió:
 
 ## Lo que no entró a main
 
-Antes de esta aclaración se construyó un formulario de 116 preguntas para llenar dentro de la visita, y un servicio en el backend
-que sugería respuestas desde la grabación. Se descartó y **no está en `main`**. Quedó guardado en el último commit de la rama
-`feature/encuesta-caracterizacion`, por si sirve de base más adelante:
-
-- El formulario: `app/lib/core/encuesta/`, `app/lib/data/encuesta_repository.dart`, `app/lib/data/caracterizacion_de_visita.dart`,
-  `app/lib/state/encuesta.dart`, `app/lib/ui/encuesta/`, sus pruebas y sus enganches en `acciones_visitas.dart`,
-  `exportador_visita.dart`, `providers.dart`, `api_client.dart` y `pubspec.yaml`.
-- El servicio del backend: `backend/app/services/caracterizacion.py`, `backend/app/schemas_caracterizacion.py` y la ruta
-  `POST /v1/caracterizaciones/sugerencias` en `backend/app/main.py`. Nunca se desplegó.
-- Los documentos del primer enfoque (guardar la encuesta en una base de 18 tablas): `MAPEO.md`, `SOLICITUD_CAMBIOS_AIRTABLE.md`,
-  `DIAGNOSTICO.md`, sus generadores y el resto de las plantillas de origen.
+Antes de esta aclaración se construyó un formulario de 116 preguntas para llenar dentro de la visita, un servicio en el backend
+que sugería respuestas desde la grabación (`POST /v1/caracterizaciones/sugerencias`, que nunca se desplegó) y el mapeo de la
+encuesta a una base de 18 tablas. Todo eso se descartó: **no está en `main`** y la rama donde se había guardado
+(`feature/encuesta-caracterizacion`) se borró el 13 de noviembre de 2026.
 
 ## Compilar el APK de prueba
 

@@ -1,7 +1,7 @@
 # Temas de la encuesta en la visita
 
 > Archivo generado por `app/tool/encuesta/generar_catalogo.py`. Para cambiarlo, edite las tablas de ese
-> script (`TEMAS`, `REACTIVADOS`, `REDUNDANTES`, `QUITADAS`) y vuelva a generar.
+> script (`TEMAS`, `REACTIVADOS`, `REDUNDANTES`, `QUITADAS`, `AJUSTES`) y vuelva a generar.
 
 Las preguntas de la encuesta no son un cuestionario aparte: son temas que se hablan en la visita. Entran al
 catálogo de campos de la app, que es de donde sale la lista «Cobertura de la conversación» y lo que la IA busca
@@ -11,6 +11,7 @@ en la grabación.
 - **5 preguntas usan 6 campos que ya existían en Airtable, apagados**: se prendieron en vez de crear temas repetidos.
 - **40 preguntas no se agregaron** porque el catálogo o la visita ya las cubren.
 - **10 preguntas se quitaron** a pedido: 41, 42, 43, 44, 67, 76, 77, 78, 79, 87.
+- **4 temas que ya estaban se ajustaron** a pedido: Identificación quedó en una sola pregunta.
 
 ## 1. Temas nuevos
 
@@ -148,7 +149,7 @@ su tipo y su pregunta guía, tal como están en Airtable. Aparecen en la lista e
 | 3 | ¿Cuál es su nombre completo? | `nombre_productor`: Con quien tengo el gusto? |
 | 4 | ¿Qué documento de identidad tiene y cuál es el número? | `documento_identidad`: Me regala su numero de cedula para el registro? |
 | 5 | ¿A qué número de celular lo podemos llamar o escribir? ¿Ese número tiene WhatsApp? | `telefono`: A que numero lo puedo contactar? |
-| 6 | ¿En qué municipio y vereda queda la finca y cómo se llama la finca? | `municipio_vereda`: En que vereda estamos? |
+| 6 | ¿En qué municipio y vereda queda la finca y cómo se llama la finca? | `municipio_vereda`: ¿En qué parte de la vereda nos encontramos? |
 | 7 | ¿Cuántas personas viven en esta casa y comparten la comida, contándose usted? | `personas_hogar`: Quienes viven aqui con usted? |
 | 8 | ¿Cuál es el nombre de esta persona? (solo el primer nombre) | `personas_hogar`: Quienes viven aqui con usted? |
 | 9 | ¿Qué es esta persona de usted? | `personas_hogar`: Quienes viven aqui con usted? |
@@ -184,7 +185,20 @@ su tipo y su pregunta guía, tal como están en Airtable. Aparecen en la lista e
 | 112 | ¿Cuáles son los 3 problemas más grandes que tiene hoy para sacar adelante la finca? | `riesgo_principal`: Que es lo que mas lo preocupa hoy? |
 | 116 | Si tuviera apoyo, ¿qué mejora o proyecto le gustaría hacer en su finca? (respuesta corta) | `que_quiere_mejorar`: Que le gustaria mejorar en la finca? |
 
-## 4. Preguntas quitadas a pedido
+## 4. Ajustes a temas que ya estaban en el catálogo
+
+Cambios pedidos sobre campos que ya venían de Airtable. Solo están en la app: en Airtable esos registros
+siguen como estaban.
+
+| Campo | Qué cambió | Antes | Ahora |
+|---|---|---|---|
+| `telefono` | Sale en la lista y cuenta | Sí | No |
+| `nombre_productor` | Sale en la lista y cuenta | Sí | No |
+| `municipio_vereda` | Nombre | Municipio y vereda | Parte de la vereda donde queda la finca |
+| `municipio_vereda` | Pregunta | En que vereda estamos? | ¿En qué parte de la vereda nos encontramos? |
+| `nombre_finca` | Sale en la lista y cuenta | Sí | No |
+
+## 5. Preguntas quitadas a pedido
 
 | P | Pregunta de la encuesta |
 |---:|---|

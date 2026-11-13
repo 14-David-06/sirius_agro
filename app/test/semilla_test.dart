@@ -40,10 +40,40 @@ void main() {
 
   // 55 campos del catalogo de Airtable, 6 que ya existian alla apagados y
   // cubren preguntas de la encuesta de caracterizacion, y 61 temas nuevos de
-  // la encuesta (56 se sugieren en la lista y 5 son sensibles).
-  test('el catalogo trae 122 activos y 89 obligatorios', () async {
+  // la encuesta (56 se sugieren en la lista y 5 son sensibles). De los 27
+  // obligatorios que habia quedan 24: el nombre, el telefono y el nombre de
+  // la finca ya se escriben en la ficha de la visita.
+  test('el catalogo trae 122 activos y 86 obligatorios', () async {
     expect((await db.camposActivos()).length, 122);
-    expect((await db.obligatoriosActivos()).length, 89);
+    expect((await db.obligatoriosActivos()).length, 86);
+  });
+
+  test('Identificacion queda en una sola pregunta', () async {
+    const visitaId = 'v-semilla-identificacion';
+    await db.into(db.visitas).insert(
+          VisitasCompanion.insert(id: visitaId, inicio: DateTime(2026, 11, 13)),
+        );
+
+    final enLaLista = (await db.faltantesSugeribles(visitaId))
+        .where((c) => c.modulo == 'Identificacion')
+        .toList();
+
+    expect(enLaLista.map((c) => c.claveTecnica), ['municipio_vereda']);
+    expect(
+      enLaLista.single.preguntaGuia,
+      '¿En qué parte de la vereda nos encontramos?',
+    );
+
+    // Los demas siguen en el catalogo: si se dicen en la conversacion, la IA
+    // los registra y suben a Airtable como siempre. Lo que cambia es que ya
+    // no se le piden a la conversacion ni cuentan para la cobertura.
+    final activos = {
+      for (final c in await db.camposActivos()) c.claveTecnica: c,
+    };
+    for (final clave in ['nombre_productor', 'telefono', 'nombre_finca']) {
+      expect(activos[clave], isNotNull, reason: clave);
+      expect(activos[clave]!.obligatorioMvp, isFalse, reason: clave);
+    }
   });
 
   test('todo obligatorio tiene pregunta guia: sin ella no hay que preguntar',
@@ -105,10 +135,10 @@ void main() {
     final faltan = await db.faltantes(visitaId);
     final sugeribles = await db.faltantesSugeribles(visitaId);
 
-    expect(faltan.length, 89);
+    expect(faltan.length, 86);
     expect(faltan.map((c) => c.claveTecnica), contains('motivo_llegada'));
 
-    expect(sugeribles.length, 88);
+    expect(sugeribles.length, 85);
     expect(
       sugeribles.map((c) => c.claveTecnica),
       isNot(contains('motivo_llegada')),
@@ -150,7 +180,7 @@ void main() {
         .firstWhere((c) => c.claveTecnica == 'tema_que_salio');
     expect(viejo.activo, isFalse);
     expect((await db.camposActivos()).length, 122);
-    expect((await db.obligatoriosActivos()).length, 89);
+    expect((await db.obligatoriosActivos()).length, 86);
   });
 
   test('las listas cerradas traen sus opciones', () async {

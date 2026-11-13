@@ -28,8 +28,13 @@ subir una visita, el backend descarta los hallazgos cuya clave no esta en el
 catalogo de Airtable y las reporta, sin tocar la base. Los reactivados si
 estan en Airtable y llevan su record id.
 
+Ademas, AJUSTES cambia algo puntual de campos que ya venian en el catalogo
+(por ejemplo, dejar Identificacion en una sola pregunta). Esos cambios solo
+estan en la app: los registros de Airtable no se tocan.
+
 Volver a correrlo es seguro: quita lo que el mismo agrego antes y lo vuelve a
-generar. Los 55 campos originales no se tocan.
+generar. De los 55 campos originales solo cambia lo que diga AJUSTES, y cada
+uno guarda el valor que tenia para poder deshacerlo.
 """
 import datetime
 import json
@@ -164,6 +169,29 @@ CAMPOS_DE_AIRTABLE = {
     },
 }
 
+# Cambios pedidos sobre campos que ya venian en el catalogo. Clave tecnica ->
+# lo que cambia; lo demas del campo queda como vino de Airtable. El valor que
+# tenia se guarda en el mismo campo, en «valor_airtable»: para deshacer un
+# ajuste basta borrarlo de esta tabla y volver a generar.
+AJUSTES = {
+    # Identificacion queda en una sola pregunta. La vereda se elige en la
+    # ficha de la visita; lo que falta saber es en que parte de ella queda la
+    # finca. El nombre del campo cambia con la pregunta porque es lo que la IA
+    # lee para decidir que registrar.
+    "municipio_vereda": {
+        "campo": "Parte de la vereda donde queda la finca",
+        "pregunta_guia": "¿En qué parte de la vereda nos encontramos?",
+    },
+    # El nombre, el telefono y el nombre de la finca ya se escriben en la
+    # ficha de la visita. Siguen activos, para que la IA los registre si se
+    # dicen, pero no se le piden a la conversacion ni cuentan para la cobertura.
+    "nombre_productor": {"obligatorio_mvp": False},
+    "telefono": {"obligatorio_mvp": False},
+    "nombre_finca": {"obligatorio_mvp": False},
+}
+AJUSTABLES = {"campo", "pregunta_guia", "obligatorio_mvp", "no_sugerir"}
+RESPALDO = "valor_airtable"
+
 FAMILIA = "Familia y social"
 ECONOMIA = "Economia y comercializacion"
 TIERRA = "Tierra y tenencia"
@@ -284,9 +312,14 @@ def tipo_de_dato(n, q):
     return "Texto", None
 
 
-def informe(encuesta, originales, reactivados, nuevos):
+def informe(encuesta, originales, ajustados, reactivados, nuevos):
     """La lista de que entro, que no y por que, para revisarla sin leer el JSON."""
     por_clave = {c["clave_tecnica"]: c for c in originales}
+    nombres = {"campo": "Nombre", "pregunta_guia": "Pregunta", "obligatorio_mvp": "Sale en la lista y cuenta",
+               "no_sugerir": "No se sugiere"}
+
+    def valor(v):
+        return {True: "Sí", False: "No"}.get(v, v) if isinstance(v, bool) else v
 
     def corta(texto):
         return texto.replace("|", "/").replace("\n", " ")
@@ -294,7 +327,7 @@ def informe(encuesta, originales, reactivados, nuevos):
     s = [
         "# Temas de la encuesta en la visita\n\n",
         "> Archivo generado por `app/tool/encuesta/generar_catalogo.py`. Para cambiarlo, edite las tablas de ese\n",
-        "> script (`TEMAS`, `REACTIVADOS`, `REDUNDANTES`, `QUITADAS`) y vuelva a generar.\n\n",
+        "> script (`TEMAS`, `REACTIVADOS`, `REDUNDANTES`, `QUITADAS`, `AJUSTES`) y vuelva a generar.\n\n",
         "Las preguntas de la encuesta no son un cuestionario aparte: son temas que se hablan en la visita. Entran al\n",
         "catálogo de campos de la app, que es de donde sale la lista «Cobertura de la conversación» y lo que la IA busca\n",
         "en la grabación.\n\n",
@@ -303,7 +336,8 @@ def informe(encuesta, originales, reactivados, nuevos):
         f"- **{len(REACTIVADOS)} preguntas usan {len(reactivados)} campos que ya existían en Airtable, apagados**: "
         "se prendieron en vez de crear temas repetidos.\n",
         f"- **{len(REDUNDANTES)} preguntas no se agregaron** porque el catálogo o la visita ya las cubren.\n",
-        f"- **{len(QUITADAS)} preguntas se quitaron** a pedido: {', '.join(map(str, sorted(QUITADAS)))}.\n\n",
+        f"- **{len(QUITADAS)} preguntas se quitaron** a pedido: {', '.join(map(str, sorted(QUITADAS)))}.\n",
+        f"- **{len(ajustados)} temas que ya estaban se ajustaron** a pedido: Identificación quedó en una sola pregunta.\n\n",
         "## 1. Temas nuevos\n",
     ]
     modulo = None
@@ -328,7 +362,15 @@ def informe(encuesta, originales, reactivados, nuevos):
         campo = por_clave.get(cubre)
         ya = f"`{cubre}`: {campo['pregunta_guia']}" if campo else cubre.capitalize()
         s.append(f"| {n} | {corta(encuesta[n]['texto'])} | {corta(ya)} |\n")
-    s.append("\n## 4. Preguntas quitadas a pedido\n\n| P | Pregunta de la encuesta |\n|---:|---|\n")
+    s.append("\n## 4. Ajustes a temas que ya estaban en el catálogo\n\n"
+             "Cambios pedidos sobre campos que ya venían de Airtable. Solo están en la app: en Airtable esos registros\n"
+             "siguen como estaban.\n\n"
+             "| Campo | Qué cambió | Antes | Ahora |\n|---|---|---|---|\n")
+    for c in ajustados:
+        for k, antes in c[RESPALDO].items():
+            s.append(f"| `{c['clave_tecnica']}` | {nombres[k]} | {corta(str(valor(antes)))} | "
+                     f"{corta(str(valor(c[k])))} |\n")
+    s.append("\n## 5. Preguntas quitadas a pedido\n\n| P | Pregunta de la encuesta |\n|---:|---|\n")
     for n in sorted(QUITADAS):
         s.append(f"| {n} | {corta(encuesta[n]['texto'])} |\n")
     return "".join(s)
@@ -339,8 +381,17 @@ def main():
     catalogo = json.loads(CATALOGO.read_text(encoding="utf-8"))
     originales = [c for c in catalogo["campos"] if c.get("origen") not in (ORIGEN, ORIGEN_REACTIVADO)]
     claves = {c["clave_tecnica"] for c in originales}
+    # Deshace los ajustes de la corrida anterior: asi quitar uno de AJUSTES
+    # devuelve el campo a como estaba en Airtable.
+    for c in originales:
+        c.update(c.pop(RESPALDO, {}))
 
     errores = []
+    for clave, cambios in AJUSTES.items():
+        if clave not in claves:
+            errores.append(f"AJUSTES: el campo «{clave}» no esta en el catalogo")
+        if set(cambios) - AJUSTABLES:
+            errores.append(f"AJUSTES: «{clave}» cambia algo que no se puede ajustar: {sorted(set(cambios) - AJUSTABLES)}")
     grupos = [set(TEMAS), set(REACTIVADOS), set(REDUNDANTES), QUITADAS]
     if set().union(*grupos) != set(encuesta) or sum(map(len, grupos)) != len(encuesta):
         errores.append("TEMAS, REACTIVADOS, REDUNDANTES y QUITADAS no cubren las preguntas una sola vez cada una")
@@ -364,6 +415,14 @@ def main():
             errores.append(f"P{n}: la clave «{encuesta[n]['codigo']}» ya existe en el catalogo")
     if errores:
         raise SystemExit("No se genero nada:\n  - " + "\n  - ".join(errores))
+
+    ajustados = []
+    for c in originales:
+        cambios = AJUSTES.get(c["clave_tecnica"])
+        if cambios:
+            c[RESPALDO] = {k: c[k] for k in cambios}
+            c.update(cambios)
+            ajustados.append(c)
 
     reactivados = []
     for n, de_airtable in sorted(REACTIVADOS.items()):
@@ -416,9 +475,10 @@ def main():
     catalogo["campos"] = campos
     catalogo["activos"] = sum(c.get("activo", True) for c in campos)
     catalogo["obligatorios"] = sum(bool(c.get("obligatorio_mvp")) and c.get("activo", True) for c in campos)
-    # La app vuelve a sembrar el catalogo cuando cambia esta fecha o cambia la
-    # cantidad de campos activos.
-    catalogo["generado"] = datetime.date.today().isoformat()
+    # La app vuelve a sembrar el catalogo cuando cambia este valor. Lleva la
+    # hora porque en un mismo dia puede generarse mas de una vez sin que
+    # cambie la cantidad de campos, y entonces el telefono no se enteraria.
+    catalogo["generado"] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
     catalogo["_nota_encuesta"] = (
         f"{len(nuevos)} campos con origen=encuesta: temas de la encuesta de caracterizacion, agregados por "
         "tool/encuesta/generar_catalogo.py. Solo existen en la app; no estan en el Catalogo de Campos de Airtable. "
@@ -427,9 +487,11 @@ def main():
     )
     CATALOGO.write_text(json.dumps(catalogo, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
-    INFORME.write_text(informe(encuesta, originales, reactivados, nuevos), encoding="utf-8", newline="\n")
+    INFORME.write_text(
+        informe(encuesta, originales, ajustados, reactivados, nuevos), encoding="utf-8", newline="\n")
 
     sugeribles = sum(c["obligatorio_mvp"] and not c["no_sugerir"] for c in nuevos)
+    print(f"ajustes a campos que ya estaban: {len(ajustados)} ({', '.join(c['clave_tecnica'] for c in ajustados)})")
     print(f"escrito {CATALOGO.relative_to(RAIZ)}: {len(originales)} originales + {len(reactivados)} reactivados "
           f"+ {len(nuevos)} de la encuesta = {catalogo['activos']} activos, {catalogo['obligatorios']} obligatorios")
     print(f"temas nuevos en la lista: {sugeribles} | sensibles (no se sugieren): {len(nuevos) - sugeribles} | "

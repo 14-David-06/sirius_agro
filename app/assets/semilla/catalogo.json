@@ -1,8 +1,8 @@
 {
   "_nota": "Espejo del Catalogo de Campos (tblu6GshimULyLUAo) al 2026-09-02: solo las 55 con Activo=true. Se empaqueta en el APK para que la app calcule completitud y faltantes en el primer arranque sin red. Al sincronizar se sobreescribe con lo que diga Airtable, que es la fuente de verdad.",
-  "generado": "2026-11-13",
+  "generado": "2026-11-13T13:20",
   "activos": 122,
-  "obligatorios": 89,
+  "obligatorios": 86,
   "campos": [
     {
       "clave_tecnica": "fuente_agua",
@@ -54,11 +54,14 @@
       "unidad": null,
       "opciones": null,
       "pregunta_guia": "A que numero lo puedo contactar?",
-      "obligatorio_mvp": true,
+      "obligatorio_mvp": false,
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "rec5uKrYTonMs7ZAQ"
+      "remote_id": "rec5uKrYTonMs7ZAQ",
+      "valor_airtable": {
+        "obligatorio_mvp": true
+      }
     },
     {
       "clave_tecnica": "uso_materia_organica",
@@ -278,11 +281,14 @@
       "unidad": null,
       "opciones": null,
       "pregunta_guia": "Con quien tengo el gusto?",
-      "obligatorio_mvp": true,
+      "obligatorio_mvp": false,
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recHNU2UHNGGhcU11"
+      "remote_id": "recHNU2UHNGGhcU11",
+      "valor_airtable": {
+        "obligatorio_mvp": true
+      }
     },
     {
       "clave_tecnica": "otros_ingresos",
@@ -426,17 +432,21 @@
     },
     {
       "clave_tecnica": "municipio_vereda",
-      "campo": "Municipio y vereda",
+      "campo": "Parte de la vereda donde queda la finca",
       "modulo": "Identificacion",
       "tipo_dato": "Texto",
       "unidad": null,
       "opciones": null,
-      "pregunta_guia": "En que vereda estamos?",
+      "pregunta_guia": "¿En qué parte de la vereda nos encontramos?",
       "obligatorio_mvp": true,
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recVtAVkmbBKopkVg"
+      "remote_id": "recVtAVkmbBKopkVg",
+      "valor_airtable": {
+        "campo": "Municipio y vereda",
+        "pregunta_guia": "En que vereda estamos?"
+      }
     },
     {
       "clave_tecnica": "cultivos_principales",
@@ -558,11 +568,14 @@
       "unidad": null,
       "opciones": null,
       "pregunta_guia": "Como se llama la finca?",
-      "obligatorio_mvp": true,
+      "obligatorio_mvp": false,
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "rech4uxK8Itbbo5Nk"
+      "remote_id": "rech4uxK8Itbbo5Nk",
+      "valor_airtable": {
+        "obligatorio_mvp": true
+      }
     },
     {
       "clave_tecnica": "lleva_registros",

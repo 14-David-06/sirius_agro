@@ -263,7 +263,7 @@ diria que la visita esta bien cuando no sabe nada. Al primer sincronizado, Airta
 sobreescribe la semilla por clave tecnica.
 
 `app/test/semilla_test.dart` verifica que la semilla coincida con el estado real
-(7 veredas, 122 activos, 89 obligatorios, todos con `Pregunta guia`). Si alguien
+(7 veredas, 122 activos, 86 obligatorios, todos con `Pregunta guia`). Si alguien
 activa un modulo en Airtable y no regenera los assets, las pruebas fallan antes de
 que el APK salga a campo.
 

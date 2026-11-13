@@ -38,6 +38,15 @@ void main() {
     expect(originales(), hasLength(55));
     // Los originales siguen apuntando a su registro de Airtable.
     expect(originales().every((c) => (c['remote_id'] as String?)?.startsWith('rec') ?? false), isTrue);
+    // De los originales solo cambia lo que se pidio ajustar, y cada ajuste
+    // guarda el valor que tenia en Airtable para poder deshacerlo.
+    final ajustados = {for (final c in originales().where((c) => c['valor_airtable'] != null)) c['clave_tecnica']: c};
+    expect(ajustados.keys.toSet(), {'municipio_vereda', 'nombre_productor', 'telefono', 'nombre_finca'});
+    expect(ajustados['municipio_vereda']!['valor_airtable'], {
+      'campo': 'Municipio y vereda',
+      'pregunta_guia': 'En que vereda estamos?',
+    });
+    expect(ajustados['nombre_productor']!['valor_airtable'], {'obligatorio_mvp': true});
     // Los nuevos solo existen en la app.
     expect(deLaEncuesta().every((c) => c['remote_id'] == null), isTrue);
     expect(campos.map((c) => c['clave_tecnica']).toSet(), hasLength(122), reason: 'claves repetidas');
@@ -127,8 +136,9 @@ void main() {
     final lista = await db.faltantesSugeribles(id);
     final claves = lista.map((c) => c.claveTecnica).toSet();
 
-    // Los 26 de antes siguen; se suman 56 temas nuevos y los 6 que se prendieron.
-    expect(lista, hasLength(88));
+    // De los 26 de antes quedan 23 (Identificacion paso de cuatro preguntas a
+    // una); se suman 56 temas nuevos y los 6 que se prendieron.
+    expect(lista, hasLength(85));
     expect(claves, containsAll(['fuente_agua', 'tiene_riego', 'que_quiere_mejorar', 'comprador']));
     expect(claves, containsAll(['tenencia_vivienda', 'credito_fuente', 'documento_tierra', 'planes', 'temas_interes']));
     expect(

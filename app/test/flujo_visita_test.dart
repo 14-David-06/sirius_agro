@@ -221,12 +221,12 @@ void main() {
   });
 
   group('completitud sobre el catalogo real', () {
-    test('una visita nueva arranca en 0% de 89 obligatorios', () async {
+    test('una visita nueva arranca en 0% de 86 obligatorios', () async {
       final id = await crear();
 
       expect(await db.calcularCompletitud(id), 0);
-      expect((await db.faltantes(id)).length, 89);
-      expect((await db.faltantesSugeribles(id)).length, 88);
+      expect((await db.faltantes(id)).length, 86);
+      expect((await db.faltantesSugeribles(id)).length, 85);
     });
 
     test('un obligatorio resuelto mueve el semaforo', () async {
@@ -236,18 +236,19 @@ void main() {
         HallazgosCompanion.insert(
           id: 'h1',
           visitaId: id,
-          claveTecnica: 'nombre_productor',
+          // El nombre del productor ya no es obligatorio: va en la ficha.
+          claveTecnica: 'municipio_vereda',
           certeza: const Value(Certeza.confirmado),
           hablante: const Value(Hablante.agricultor),
-          citaTextual: const Value('yo soy Pedro Rodriguez'),
+          citaTextual: const Value('estamos en la parte alta, pasando la escuela'),
           creadoEn: DateTime(2026, 9, 4, 9, 25),
         ),
       );
       final pct = await db.refrescarCompletitud(id);
 
-      // 1 de 89 redondea a 1%.
+      // 1 de 86 redondea a 1%.
       expect(pct, 1);
-      expect((await db.faltantes(id)).length, 88);
+      expect((await db.faltantes(id)).length, 85);
     });
   });
 

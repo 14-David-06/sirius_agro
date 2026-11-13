@@ -221,12 +221,12 @@ void main() {
   });
 
   group('completitud sobre el catalogo real', () {
-    test('una visita nueva arranca en 0% de 27 obligatorios', () async {
+    test('una visita nueva arranca en 0% de 89 obligatorios', () async {
       final id = await crear();
 
       expect(await db.calcularCompletitud(id), 0);
-      expect((await db.faltantes(id)).length, 27);
-      expect((await db.faltantesSugeribles(id)).length, 26);
+      expect((await db.faltantes(id)).length, 89);
+      expect((await db.faltantesSugeribles(id)).length, 88);
     });
 
     test('un obligatorio resuelto mueve el semaforo', () async {
@@ -245,9 +245,9 @@ void main() {
       );
       final pct = await db.refrescarCompletitud(id);
 
-      // 1 de 27 redondea a 4%.
-      expect(pct, 4);
-      expect((await db.faltantes(id)).length, 26);
+      // 1 de 89 redondea a 1%.
+      expect(pct, 1);
+      expect((await db.faltantes(id)).length, 88);
     });
   });
 

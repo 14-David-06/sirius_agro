@@ -342,6 +342,18 @@ class AppDatabase extends _$AppDatabase {
     await batch((b) => b.insertAllOnConflictUpdate(catalogoCampos, filas));
   }
 
+  /// Apaga los campos del catalogo local que no estan en [claves].
+  ///
+  /// No se borran: los hallazgos de visitas ya hechas siguen apuntando a su
+  /// clave, y el nombre del campo es lo que permite leerlos. Apagado, el campo
+  /// deja de pedirsele al modelo, de contar para la completitud y de salir en
+  /// la lista de faltantes.
+  Future<void> apagarCamposFueraDe(Set<String> claves) async {
+    await (update(catalogoCampos)
+          ..where((c) => c.claveTecnica.isNotIn(claves)))
+        .write(const CatalogoCamposCompanion(activo: Value(false)));
+  }
+
   // ---------------------------------------------------------------- faltantes
 
   /// Las claves obligatorias que esta visita ya resolvio.

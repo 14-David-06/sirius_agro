@@ -400,7 +400,7 @@ void main() {
 
       await Semilla(db, rootBundle).sembrarSiHaceFalta();
 
-      expect((await db.camposActivos()).length, 55);
+      expect((await db.camposActivos()).length, 122);
       final motivo = (await db.select(db.catalogoCampos).get())
           .firstWhere((c) => c.claveTecnica == 'motivo_llegada');
       expect(motivo.noSugerir, isTrue);

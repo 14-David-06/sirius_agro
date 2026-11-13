@@ -65,6 +65,11 @@ const _iconos = <String, IconData>{
   'insumos': iconoAplicacion,
   'ganaderia y animales': Icons.pets_outlined,
   'hogar': Icons.home_outlined,
+  // Modulos que entraron con los campos que la encuesta de caracterizacion
+  // necesitaba y que ya existian, apagados, en Airtable.
+  'creditos y apoyos': Icons.account_balance_outlined,
+  'mano de obra': Icons.engineering_outlined,
+  'maquinaria e infraestructura': Icons.agriculture_outlined,
 };
 
 String _clave(String modulo) {

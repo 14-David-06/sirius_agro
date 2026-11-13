@@ -149,5 +149,13 @@ class Semilla {
           noSugerir: Value(c['no_sugerir'] as bool? ?? false),
         ),
     ]);
+
+    // Lo que el telefono tenia de una semilla anterior y ya no viene en esta
+    // se apaga. Sin esto, un campo que salio del catalogo seguia activo para
+    // siempre en los telefonos que lo alcanzaron a recibir: el upsert de
+    // arriba solo agrega y actualiza.
+    await _db.apagarCamposFueraDe({
+      for (final c in filas) c['clave_tecnica'] as String,
+    });
   }
 }

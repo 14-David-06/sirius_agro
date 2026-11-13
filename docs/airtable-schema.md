@@ -263,9 +263,15 @@ diria que la visita esta bien cuando no sabe nada. Al primer sincronizado, Airta
 sobreescribe la semilla por clave tecnica.
 
 `app/test/semilla_test.dart` verifica que la semilla coincida con el estado real
-(7 veredas, 55 activos, 27 obligatorios, todos con `Pregunta guia`). Si alguien
+(7 veredas, 122 activos, 89 obligatorios, todos con `Pregunta guia`). Si alguien
 activa un modulo en Airtable y no regenera los assets, las pruebas fallan antes de
 que el APK salga a campo.
+
+Desde noviembre de 2026 la semilla trae mas que las 55 variables de arriba: 6
+campos de este catalogo que estaban apagados y se prendieron, y 61 temas de la
+encuesta de caracterizacion que todavia solo existen en la app (no tienen registro
+en `Catalogo de Campos`, asi que sus hallazgos no suben). El detalle esta en
+`docs/encuesta-caracterizacion/README.md`.
 
 ## Un obligatorio que no se pregunta
 

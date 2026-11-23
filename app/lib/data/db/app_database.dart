@@ -141,8 +141,10 @@ class AppDatabase extends _$AppDatabase {
   ///     dentro de un evento para que los registros no queden sueltos.
   /// v16: `Asistencias.correo` — el correo que la persona dice en la nota.
   /// v17: `Asistencias.fotoPath` y `.enlaceFoto` — la foto de la persona.
+  /// v18: `CatalogoCampos.orden` — la lista de temas que faltan sigue el
+  ///     orden de la guia conversacional de campo, no el alfabetico.
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -176,6 +178,9 @@ class AppDatabase extends _$AppDatabase {
           await _asegurarTabla(m, trazados);
           await _asegurarTabla(m, puntosTrazado);
           await _asegurarColumna(m, catalogoCampos, catalogoCampos.noSugerir);
+          // v18: el orden de la guia. Queda vacio hasta que la semilla nueva
+          // lo llena, y mientras tanto la lista sale como antes.
+          await _asegurarColumna(m, catalogoCampos, catalogoCampos.orden);
           await _asegurarColumna(m, visitadores, visitadores.idEmpleado);
           await _asegurarColumna(m, visitadores, visitadores.cargo);
           await _asegurarColumna(m, visitadores, visitadores.email);
@@ -326,13 +331,21 @@ class AppDatabase extends _$AppDatabase {
   Future<List<CatalogoCampo>> camposActivos() =>
       (select(catalogoCampos)..where((c) => c.activo.equals(true))).get();
 
-  /// Los obligatorios que definen la completitud. Hoy son 27.
+  /// Los obligatorios que definen la completitud. Hoy son 86.
   /// El numero NO esta escrito en el codigo: sale del catalogo, para que
   /// activar un modulo en Airtable no exija recompilar la app.
+  ///
+  /// Vienen en el orden de la guia conversacional de campo (`orden`), que es
+  /// el orden en que la lista se los sugiere al visitador. Los que no tienen
+  /// orden van al final, por modulo y nombre.
   Future<List<CatalogoCampo>> obligatoriosActivos() =>
       (select(catalogoCampos)
             ..where((c) => c.activo.equals(true) & c.obligatorioMvp.equals(true))
             ..orderBy([
+              // En SQLite los NULL van primero al ordenar de menor a mayor;
+              // esto manda al final los campos sin orden.
+              (c) => OrderingTerm(expression: c.orden.isNull()),
+              (c) => OrderingTerm(expression: c.orden),
               (c) => OrderingTerm(expression: c.modulo),
               (c) => OrderingTerm(expression: c.campo),
             ]))

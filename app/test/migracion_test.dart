@@ -83,6 +83,20 @@ void main() {
   });
 
   group('reponer columnas que faltan', () {
+    test('agrega el orden de la guia de la v18 y la lista sigue saliendo',
+        () async {
+      // Un telefono que ya tenia el catalogo sembrado: la columna nueva llega
+      // vacia y la lista no puede romperse mientras la semilla no la llena.
+      await Semilla(db, rootBundle).sembrarSiHaceFalta();
+      await db.customStatement('ALTER TABLE catalogo_campos DROP COLUMN orden');
+      expect(await db.columnasDe('catalogo_campos'), isNot(contains('orden')));
+
+      await db.migration.onUpgrade(Migrator(db), 17, db.schemaVersion);
+
+      expect(await db.columnasDe('catalogo_campos'), contains('orden'));
+      expect(await db.obligatoriosActivos(), hasLength(86));
+    });
+
     test('agrega las cinco columnas de la v2', () async {
       await envejecer();
       expect(await db.columnasDe('visitadores'), isNot(contains('id_empleado')));

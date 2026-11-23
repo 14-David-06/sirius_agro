@@ -8,6 +8,7 @@ import 'package:sirius_agro/core/iconos_modulo.dart';
 import 'package:sirius_agro/data/db/app_database.dart';
 import 'package:sirius_agro/data/semilla.dart';
 import 'package:sirius_agro/data/visita_repository.dart';
+import 'package:sirius_agro/ui/visita_page.dart' show tramosPorModulo;
 
 /// Los temas de la encuesta de caracterizacion dentro del catalogo de la visita.
 ///
@@ -157,6 +158,89 @@ void main() {
     final agua = lista.where((c) => c.modulo == 'Agua y riego').map((c) => c.preguntaGuia).toList();
     expect(agua, contains('De donde saca el agua?'));
     expect(agua, contains('¿De dónde sacan principalmente el agua para tomar y cocinar?'));
+  });
+
+  test('la lista sigue el orden de la guia conversacional de campo', () async {
+    final repo = VisitaRepository(db);
+    final vereda = (await db.select(db.veredas).get()).first;
+    final id = await repo.crearVisitaConProductor(
+      inicio: DateTime(2026, 11, 23, 8),
+      nombreProductor: 'Ana Pérez',
+      nombreFinca: 'La Esperanza',
+      veredaLocalId: vereda.id,
+    );
+
+    final claves = (await db.faltantesSugeribles(id)).map((c) => c.claveTecnica).toList();
+
+    // Las 85 de la guia, etapa por etapa y tema por tema, cada una en el
+    // lugar de su tabla. Solo cambia el orden: el modulo y la pregunta de
+    // cada tema siguen como estaban.
+    expect(claves, [
+      // Etapa 1 · A. Llegada a la finca
+      'municipio_vereda', 'acceso_vial',
+      // Etapa 2 · B. Origen y trayectoria
+      'municipio_procedencia', 'anios_en_territorio', 'como_inicio_agricultura', 'formacion_agro',
+      // Etapa 3 · C. Tierra y tenencia
+      'area_total_ha', 'area_produccion_ha', 'uso_tierra', 'tenencia', 'documento_tierra', 'titular_tierra',
+      'vive_finca', 'dedicacion',
+      // Etapa 3 · D. Cultivos y produccion
+      'cultivos_principales', 'c_semilla', 'rendimiento', 'c_destino', 'c_perdida',
+      // Etapa 3 · E. Manejo: suelo, agua, insumos y asistencia tecnica
+      'problemas_suelo', 'fuente_agua', 'tiene_riego', 'cuidado_agua', 'tumba_monte', 'plagas_enfermedades',
+      'fertilizantes_usados', 'plaguicidas_usados', 'usa_bioinsumos', 'proteccion_quimicos', 'envases',
+      'asistencia', 'asistencia_quien', 'asistencia_utilidad',
+      // Etapa 3 · F. Mano de obra, herramientas e infraestructura
+      'contrata_jornaleros', 'maquinaria', 'infraestructura',
+      // Etapa 4 · G. Venta de la produccion
+      'comprador', 'precio_venta', 'acuerdo_venta', 'transporte', 'dificultades_venta', 'formalizacion',
+      // Etapa 4 · H. Economia del hogar, credito y apoyos
+      'rentabilidad', 'parte_finca', 'alcanza', 'tiene_credito', 'credito_fuente', 'credito_barreras',
+      'productos_financieros', 'apoyos_recibidos',
+      // Etapa 5 · I. La familia
+      'jefatura', 'decisiones', 'cuidado', 'p_estudios', 'p_lee', 'p_estudia', 'p_ocupacion', 'p_salud',
+      'pension', 'sisben', 'autoconsumo',
+      // Etapa 5 · J. Vivienda y acceso a servicios
+      'tenencia_vivienda', 'paredes', 'pisos', 'sanitario', 'cocina', 'energia', 'agua_consumo', 'basuras',
+      'cuartos_dormir', 'tiempos_acceso',
+      // Etapa 5 · K. Comunicaciones y conectividad
+      'operador', 'calidad_senal', 'internet', 'aparatos', 'uso_internet', 'manejo_digital', 'usos_celular',
+      // Etapa 6 · L. Riesgos, aspiraciones y acompanamiento
+      'riesgo_principal', 'que_quiere_mejorar', 'planes', 'necesidades', 'interes_asociarse', 'temas_interes',
+      'forma_acompanamiento',
+    ]);
+
+    // Lo que no se sugiere no lleva orden y va al final de los obligatorios.
+    final obligatorios = await db.obligatoriosActivos();
+    expect(obligatorios.last.claveTecnica, 'motivo_llegada');
+    expect(obligatorios.last.orden, isNull);
+  });
+
+  test('los titulos de modulo de la lista no la desordenan', () async {
+    final lista = (await db.obligatoriosActivos()).where((c) => !c.noSugerir).toList();
+    final tramos = tramosPorModulo(lista);
+
+    // Se lee igual que la lista: mismo orden, ningun tema movido de lugar.
+    expect([for (final t in tramos) ...t.value], lista);
+    for (var i = 1; i < tramos.length; i++) {
+      expect(tramos[i].key, isNot(tramos[i - 1].key), reason: 'dos titulos seguidos de ${tramos[i].key}');
+    }
+    // El agua de la finca se habla en el recorrido y la de tomar en la casa:
+    // el modulo sale dos veces en vez de juntarlas.
+    expect(tramos.where((t) => t.key == 'Agua y riego').map((t) => t.value.map((c) => c.claveTecnica).toList()), [
+      ['fuente_agua', 'tiene_riego', 'cuidado_agua'],
+      ['agua_consumo'],
+    ]);
+    expect(tramos.first.key, 'Identificacion');
+    expect(tramos.last.key, 'Aspiraciones y proyectos');
+  });
+
+  test('el orden del catalogo es 1..85, uno por tema que se sugiere', () {
+    final sugeridos = campos.where(
+      (c) => (c['activo'] ?? true) == true && c['obligatorio_mvp'] == true && c['no_sugerir'] != true,
+    );
+    expect(sugeridos.map((c) => c['orden']).toList()..sort(), List.generate(85, (i) => i + 1));
+    final sinSugerir = campos.where((c) => !sugeridos.contains(c));
+    expect(sinSugerir.where((c) => c['orden'] != null), isEmpty);
   });
 
   test('la extraccion recibe los temas nuevos con sus opciones', () async {

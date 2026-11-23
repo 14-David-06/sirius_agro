@@ -36,6 +36,12 @@ class CatalogoCampos extends Table {
   /// donde una casilla no puede venir marcada por defecto.
   BoolColumn get noSugerir => boolean().withDefault(const Constant(false))();
 
+  /// Lugar del tema en la lista de lo que falta por preguntar: el orden de la
+  /// guia conversacional de campo, que va de la llegada a la finca a los
+  /// planes del agricultor. Lo pone `tool/encuesta/generar_catalogo.py`; no
+  /// esta en Airtable. Los que no se sugieren no lo llevan y van al final.
+  IntColumn get orden => integer().nullable()();
+
   DateTimeColumn get actualizadoEn => dateTime().nullable()();
 
   @override

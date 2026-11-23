@@ -212,3 +212,154 @@ siguen como estaban.
 | 78 | ¿Cómo alimenta el ganado? |
 | 79 | En el último año, ¿vacunó al ganado (por ejemplo, contra aftosa o brucelosis)? |
 | 87 | ¿La finca tiene alguno de estos registros o certificaciones? |
+
+## 6. Orden en la lista de la visita
+
+El de la «Guía conversacional de campo — Encuesta a agricultores»: seis etapas y doce temas, en el orden
+natural de la visita. Solo cambia el orden; cada tema sigue en su módulo y con su pregunta. Los que no se
+sugieren no llevan orden.
+
+### Etapa 1 · A. Llegada a la finca
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 1 | Parte de la vereda donde queda la finca | Identificacion | ¿En qué parte de la vereda nos encontramos? |
+| 2 | Acceso vial | Maquinaria e infraestructura | Observacion del visitador al llegar. |
+
+### Etapa 2 · B. Origen y trayectoria
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 3 | Municipio de procedencia | Historia y origen | Usted es de aqui o vino de otra parte? |
+| 4 | Anios en el territorio | Historia y origen | Hace cuanto vive por aca? |
+| 5 | Como inicio en la agricultura | Historia y origen | Como aprendio a trabajar la tierra? |
+| 6 | Formacion en temas del campo | Historia y origen | ¿Ha hecho algún curso o estudio sobre temas del campo? |
+
+### Etapa 3 · C. Tierra y tenencia
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 7 | Area total de la finca | Tierra y tenencia | De que tamano es la finca? |
+| 8 | Area en produccion | Tierra y tenencia | Cuanto tiene sembrado hoy? |
+| 9 | Como esta repartida la tierra | Tierra y tenencia | ¿Cómo está repartida la tierra de la finca? Marque los usos que tiene y, si sabe, cuántas hectáreas tiene en cada uno. |
+| 10 | Tipo de tenencia | Tierra y tenencia | La tierra es propia, arrendada o de la familia? |
+| 11 | Documento de la tierra | Tierra y tenencia | ¿Qué papel o documento tiene de esa tierra? |
+| 12 | Documento de la tierra: a nombre de quien | Tierra y tenencia | ¿A nombre de quién está ese documento? |
+| 13 | Vive en la finca | Tierra y tenencia | ¿Usted vive en la finca? |
+| 14 | Dedicacion a la finca | Tierra y tenencia | ¿Cuánto tiempo le dedica usted al trabajo de la finca? |
+
+### Etapa 3 · D. Cultivos y producción
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 15 | Cultivos principales | Cultivos | Que tiene sembrado? |
+| 16 | Semilla o material de siembra | Cultivos | ¿Qué semilla o material de siembra usó? |
+| 17 | Rendimiento actual | Cultivos | Cuanto le esta produciendo? |
+| 18 | Destino de la cosecha | Cultivos | ¿Para qué es principalmente la cosecha de este cultivo? |
+| 19 | Perdidas de la cosecha | Cultivos | De la última cosecha, ¿qué parte se perdió (por plagas, clima, daño o porque no se pudo vender)? |
+
+### Etapa 3 · E. Manejo: suelo, agua, insumos y asistencia técnica
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 20 | Problemas del suelo observados | Suelos | Como ve el suelo? Se le compacta, se le lava, se le seca? |
+| 21 | Fuente de agua | Agua y riego | De donde saca el agua? |
+| 22 | Tiene riego | Agua y riego | Tiene sistema de riego o depende de la lluvia? |
+| 23 | Cuidado del agua | Agua y riego | ¿Qué hace para cuidar y aprovechar el agua? |
+| 24 | Tumba de monte o bosque | Riesgos y clima | En los últimos 5 años, ¿ha tumbado monte o bosque para sembrar o hacer potreros? |
+| 25 | Plagas y enfermedades presentes | Cultivos | Que problemas sanitarios ha tenido? |
+| 26 | Fertilizantes que usa | Insumos y manejo | Que le esta aplicando al cultivo? (fotografiar etiquetas) |
+| 27 | Plaguicidas que usa | Insumos y manejo | Que usa para las plagas y enfermedades? (fotografiar etiquetas) |
+| 28 | Uso de bioinsumos | Insumos y manejo | Ha usado productos biologicos? |
+| 29 | Proteccion al aplicar quimicos | Insumos y manejo | Cuando aplica químicos, ¿usa elementos de protección (guantes, tapabocas, gafas, overol, botas)? |
+| 30 | Envases vacios de quimicos | Insumos y manejo | ¿Qué hace con los envases vacíos de los químicos? |
+| 31 | Asistencia tecnica: recibio | Insumos y manejo | En el último año, ¿recibió asesoría o asistencia técnica para la finca? |
+| 32 | Asistencia tecnica: quien se la dio | Insumos y manejo | ¿Quién se la dio? |
+| 33 | Asistencia tecnica: utilidad | Insumos y manejo | ¿Qué tan útil le pareció esa asistencia? |
+
+### Etapa 3 · F. Mano de obra, herramientas e infraestructura
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 34 | Contrata jornaleros | Mano de obra | ¿Contrata gente para las labores? |
+| 35 | Maquinaria y equipos | Maquinaria e infraestructura | ¿Que herramientas o maquinas tiene? |
+| 36 | Infraestructura de la finca | Maquinaria e infraestructura | ¿Que construcciones tiene: beneficiadero, bodega, corral? |
+
+### Etapa 4 · G. Venta de la producción
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 37 | A quien le vende | Economia y comercializacion | A quien le vende la produccion? |
+| 38 | Precio de venta actual | Economia y comercializacion | A como le esta pagando? |
+| 39 | Acuerdo con el comprador | Economia y comercializacion | ¿Qué tipo de acuerdo tiene con su comprador principal? |
+| 40 | Como saca los productos | Economia y comercializacion | ¿Cómo saca los productos para venderlos? |
+| 41 | Dificultades para vender | Economia y comercializacion | ¿Cuáles son las mayores dificultades para vender sus productos? (máximo 3) |
+| 42 | RUT, Camara de Comercio y factura | Economia y comercializacion | ¿Tiene alguno de estos registros para su actividad productiva? |
+
+### Etapa 4 · H. Economía del hogar, crédito y apoyos
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 43 | La finca deja ganancia | Economia y comercializacion | En los últimos 3 años, ¿la finca le ha dejado ganancia después de pagar los gastos? |
+| 44 | Parte del ingreso que viene de la finca | Economia y comercializacion | De toda la plata que entra al hogar, ¿qué parte viene de la finca? |
+| 45 | Los ingresos alcanzan | Economia y comercializacion | Con la plata que entra al hogar, ¿les alcanza para los gastos básicos (comida, servicios, transporte, estudio)? |
+| 46 | Tiene credito | Creditos y apoyos | ¿Tiene algun credito o deuda con banco? |
+| 47 | Credito: quien le presto | Economia y comercializacion | ¿Quién le prestó? |
+| 48 | Credito: por que no lo pidio o se lo negaron | Economia y comercializacion | ¿Por qué no pidió el crédito, o por qué se lo negaron? |
+| 49 | Cuenta, billetera digital y seguros | Economia y comercializacion | ¿Usted tiene alguno de estos productos? |
+| 50 | Apoyos institucionales recibidos | Creditos y apoyos | ¿Lo ha visitado alguna entidad o programa? |
+
+### Etapa 5 · I. La familia
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 51 | Jefatura del hogar | Familia y social | En su hogar, ¿quién es reconocido(a) como la cabeza o jefe(a) del hogar? |
+| 52 | Quien decide en la finca | Familia y social | ¿Quién toma las decisiones sobre la finca (qué sembrar, qué vender, en qué invertir)? |
+| 53 | Cuidado de personas a cargo | Familia y social | ¿Usted tiene a su cargo el cuidado permanente de alguna persona (niños pequeños, personas mayores, enfermas o con discapacidad)? |
+| 54 | Nivel de estudios de cada persona | Familia y social | ¿Hasta qué año o nivel estudió? |
+| 55 | Sabe leer y escribir | Familia y social | ¿Sabe leer y escribir? |
+| 56 | Estudia actualmente | Familia y social | ¿Actualmente estudia (escuela, colegio, SENA o universidad)? |
+| 57 | Ocupacion de cada persona | Familia y social | ¿A qué se dedica principalmente? |
+| 58 | Afiliacion a salud | Familia y social | ¿Está afiliado(a) a salud (EPS)? ¿De qué forma? |
+| 59 | Cotiza a pension | Familia y social | ¿Usted cotiza o aporta para pensión? |
+| 60 | Sisben | Familia y social | ¿Su hogar está registrado en el Sisbén? ¿Sabe en qué grupo está? |
+| 61 | Alimentos para el consumo de la casa | Familia y social | ¿Qué alimentos producen en la finca para el consumo de la casa? |
+
+### Etapa 5 · J. Vivienda y acceso a servicios
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 62 | Vivienda: tenencia | Familia y social | La casa donde vive su familia es: |
+| 63 | Vivienda: material de las paredes | Familia y social | ¿De qué material son la mayoría de las paredes de la casa? |
+| 64 | Vivienda: material del piso | Familia y social | ¿De qué es la mayor parte del piso de la casa? |
+| 65 | Vivienda: servicio sanitario | Familia y social | ¿Qué tipo de baño o servicio sanitario tiene la casa? |
+| 66 | Vivienda: con que cocinan | Familia y social | ¿Con qué cocinan principalmente? |
+| 67 | Vivienda: energia electrica | Familia y social | ¿La casa tiene luz (energía eléctrica)? ¿De dónde viene principalmente? |
+| 68 | Agua para tomar y cocinar | Agua y riego | ¿De dónde sacan principalmente el agua para tomar y cocinar? |
+| 69 | Vivienda: manejo de la basura | Familia y social | ¿Qué hacen principalmente con la basura de la casa? |
+| 70 | Vivienda: cuartos para dormir | Familia y social | ¿En cuántos cuartos duermen las personas de su hogar? |
+| 71 | Tiempo al pueblo, a salud y a la escuela | Familia y social | ¿Cuánto tiempo se demora en llegar desde la finca, por el medio que usa normalmente, hasta… a) el pueblo (cabecera municipal); b) el centro o puesto de salud más cercano; c) la escuela o colegio más cercano? |
+
+### Etapa 5 · K. Comunicaciones y conectividad
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 72 | Operador de telefonia | Conectividad | Con que operador tiene el celular? |
+| 73 | Calidad de la senal | Conectividad | Como es la senal aqui en la finca? |
+| 74 | Internet en la casa o la finca | Conectividad | ¿Tienen internet en la casa o en la finca? |
+| 75 | Aparatos en el hogar | Conectividad | ¿Con cuáles de estos aparatos cuenta su hogar? |
+| 76 | Frecuencia de uso de internet | Conectividad | ¿Con qué frecuencia usa usted internet (en el celular u otro aparato)? |
+| 77 | Manejo del celular y el computador | Conectividad | ¿Qué tanto sabe usar… a) el celular inteligente; b) el computador? |
+| 78 | Para que usa el celular o internet | Conectividad | ¿Para qué usa el celular o internet? |
+
+### Etapa 6 · L. Riesgos, aspiraciones y acompañamiento
+
+| # | Tema | Módulo | Pregunta |
+|---:|---|---|---|
+| 79 | Principal riesgo percibido | Riesgos y clima | Que es lo que mas lo preocupa hoy? |
+| 80 | Que quiere mejorar | Aspiraciones y proyectos | Que le gustaria mejorar en la finca? |
+| 81 | Planes con la finca | Aspiraciones y proyectos | En los próximos 5 años, ¿piensa seguir trabajando la finca? |
+| 82 | Que necesita para lograrlo | Aspiraciones y proyectos | Que necesitaria para lograr eso? |
+| 83 | Interes en asociarse | Aspiraciones y proyectos | ¿Le interesaría unirse con otros productores para comprar insumos, vender juntos o acceder a proyectos? |
+| 84 | Temas en que quiere capacitarse | Aspiraciones y proyectos | ¿En qué temas le gustaría recibir capacitación o acompañamiento? (máximo 3) |
+| 85 | Como prefiere el acompanamiento | Aspiraciones y proyectos | ¿Cómo prefiere recibir el acompañamiento? (máximo 2) |

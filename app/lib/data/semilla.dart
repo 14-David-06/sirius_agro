@@ -147,6 +147,7 @@ class Semilla {
           prioridad: Value(c['prioridad'] as String?),
           activo: Value(c['activo'] as bool? ?? true),
           noSugerir: Value(c['no_sugerir'] as bool? ?? false),
+          orden: Value((c['orden'] as num?)?.toInt()),
         ),
     ]);
 

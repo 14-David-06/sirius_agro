@@ -743,7 +743,7 @@ class _Faltantes extends ConsumerWidget {
             tilePadding: const EdgeInsets.symmetric(horizontal: 16),
             childrenPadding: const EdgeInsets.only(bottom: 8),
             children: [
-              for (final grupo in _porModulo(lista).entries) ...[
+              for (final grupo in tramosPorModulo(lista)) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
                   // El icono delante del nombre: la lista de faltantes se lee
@@ -815,14 +815,27 @@ class _Faltantes extends ConsumerWidget {
         ),
     };
   }
+}
 
-  Map<String, List<CatalogoCampo>> _porModulo(List<CatalogoCampo> lista) {
-    final mapa = <String, List<CatalogoCampo>>{};
-    for (final c in lista) {
-      mapa.putIfAbsent(c.modulo, () => []).add(c);
+/// Parte la lista de faltantes en tramos seguidos del mismo modulo, sin
+/// cambiarle el orden.
+///
+/// La lista viene en el orden de la guia de campo, que salta de modulo en
+/// modulo: el agua de la finca se habla recorriendo el cultivo y el agua para
+/// tomar, en la casa. Juntar todo lo de un modulo bajo un solo titulo volveria
+/// a desordenarla, asi que un modulo puede salir mas de una vez.
+@visibleForTesting
+List<MapEntry<String, List<CatalogoCampo>>> tramosPorModulo(
+  List<CatalogoCampo> lista,
+) {
+  final tramos = <MapEntry<String, List<CatalogoCampo>>>[];
+  for (final c in lista) {
+    if (tramos.isEmpty || tramos.last.key != c.modulo) {
+      tramos.add(MapEntry(c.modulo, []));
     }
-    return mapa;
+    tramos.last.value.add(c);
   }
+  return tramos;
 }
 
 /// Estado de sincronizacion honesto: que falta, cuantos MB y por que fallo.

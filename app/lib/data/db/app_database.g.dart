@@ -353,6 +353,15 @@ class $CatalogoCamposTable extends CatalogoCampos
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _ordenMeta = const VerificationMeta('orden');
+  @override
+  late final GeneratedColumn<int> orden = GeneratedColumn<int>(
+    'orden',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _actualizadoEnMeta = const VerificationMeta(
     'actualizadoEn',
   );
@@ -379,6 +388,7 @@ class $CatalogoCamposTable extends CatalogoCampos
     prioridad,
     activo,
     noSugerir,
+    orden,
     actualizadoEn,
   ];
   @override
@@ -483,6 +493,12 @@ class $CatalogoCamposTable extends CatalogoCampos
         noSugerir.isAcceptableOrUnknown(data['no_sugerir']!, _noSugerirMeta),
       );
     }
+    if (data.containsKey('orden')) {
+      context.handle(
+        _ordenMeta,
+        orden.isAcceptableOrUnknown(data['orden']!, _ordenMeta),
+      );
+    }
     if (data.containsKey('actualizado_en')) {
       context.handle(
         _actualizadoEnMeta,
@@ -549,6 +565,10 @@ class $CatalogoCamposTable extends CatalogoCampos
         DriftSqlType.bool,
         data['${effectivePrefix}no_sugerir'],
       )!,
+      orden: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}orden'],
+      ),
       actualizadoEn: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}actualizado_en'],
@@ -587,6 +607,12 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
   /// productor los cuenta por su cuenta. Invertido igual que en Airtable,
   /// donde una casilla no puede venir marcada por defecto.
   final bool noSugerir;
+
+  /// Lugar del tema en la lista de lo que falta por preguntar: el orden de la
+  /// guia conversacional de campo, que va de la llegada a la finca a los
+  /// planes del agricultor. Lo pone `tool/encuesta/generar_catalogo.py`; no
+  /// esta en Airtable. Los que no se sugieren no lo llevan y van al final.
+  final int? orden;
   final DateTime? actualizadoEn;
   const CatalogoCampo({
     required this.claveTecnica,
@@ -601,6 +627,7 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
     this.prioridad,
     required this.activo,
     required this.noSugerir,
+    this.orden,
     this.actualizadoEn,
   });
   @override
@@ -628,6 +655,9 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
     }
     map['activo'] = Variable<bool>(activo);
     map['no_sugerir'] = Variable<bool>(noSugerir);
+    if (!nullToAbsent || orden != null) {
+      map['orden'] = Variable<int>(orden);
+    }
     if (!nullToAbsent || actualizadoEn != null) {
       map['actualizado_en'] = Variable<DateTime>(actualizadoEn);
     }
@@ -658,6 +688,9 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
           : Value(prioridad),
       activo: Value(activo),
       noSugerir: Value(noSugerir),
+      orden: orden == null && nullToAbsent
+          ? const Value.absent()
+          : Value(orden),
       actualizadoEn: actualizadoEn == null && nullToAbsent
           ? const Value.absent()
           : Value(actualizadoEn),
@@ -682,6 +715,7 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
       prioridad: serializer.fromJson<String?>(json['prioridad']),
       activo: serializer.fromJson<bool>(json['activo']),
       noSugerir: serializer.fromJson<bool>(json['noSugerir']),
+      orden: serializer.fromJson<int?>(json['orden']),
       actualizadoEn: serializer.fromJson<DateTime?>(json['actualizadoEn']),
     );
   }
@@ -701,6 +735,7 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
       'prioridad': serializer.toJson<String?>(prioridad),
       'activo': serializer.toJson<bool>(activo),
       'noSugerir': serializer.toJson<bool>(noSugerir),
+      'orden': serializer.toJson<int?>(orden),
       'actualizadoEn': serializer.toJson<DateTime?>(actualizadoEn),
     };
   }
@@ -718,6 +753,7 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
     Value<String?> prioridad = const Value.absent(),
     bool? activo,
     bool? noSugerir,
+    Value<int?> orden = const Value.absent(),
     Value<DateTime?> actualizadoEn = const Value.absent(),
   }) => CatalogoCampo(
     claveTecnica: claveTecnica ?? this.claveTecnica,
@@ -732,6 +768,7 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
     prioridad: prioridad.present ? prioridad.value : this.prioridad,
     activo: activo ?? this.activo,
     noSugerir: noSugerir ?? this.noSugerir,
+    orden: orden.present ? orden.value : this.orden,
     actualizadoEn: actualizadoEn.present
         ? actualizadoEn.value
         : this.actualizadoEn,
@@ -758,6 +795,7 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
       prioridad: data.prioridad.present ? data.prioridad.value : this.prioridad,
       activo: data.activo.present ? data.activo.value : this.activo,
       noSugerir: data.noSugerir.present ? data.noSugerir.value : this.noSugerir,
+      orden: data.orden.present ? data.orden.value : this.orden,
       actualizadoEn: data.actualizadoEn.present
           ? data.actualizadoEn.value
           : this.actualizadoEn,
@@ -779,6 +817,7 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
           ..write('prioridad: $prioridad, ')
           ..write('activo: $activo, ')
           ..write('noSugerir: $noSugerir, ')
+          ..write('orden: $orden, ')
           ..write('actualizadoEn: $actualizadoEn')
           ..write(')'))
         .toString();
@@ -798,6 +837,7 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
     prioridad,
     activo,
     noSugerir,
+    orden,
     actualizadoEn,
   );
   @override
@@ -816,6 +856,7 @@ class CatalogoCampo extends DataClass implements Insertable<CatalogoCampo> {
           other.prioridad == this.prioridad &&
           other.activo == this.activo &&
           other.noSugerir == this.noSugerir &&
+          other.orden == this.orden &&
           other.actualizadoEn == this.actualizadoEn);
 }
 
@@ -832,6 +873,7 @@ class CatalogoCamposCompanion extends UpdateCompanion<CatalogoCampo> {
   final Value<String?> prioridad;
   final Value<bool> activo;
   final Value<bool> noSugerir;
+  final Value<int?> orden;
   final Value<DateTime?> actualizadoEn;
   final Value<int> rowid;
   const CatalogoCamposCompanion({
@@ -847,6 +889,7 @@ class CatalogoCamposCompanion extends UpdateCompanion<CatalogoCampo> {
     this.prioridad = const Value.absent(),
     this.activo = const Value.absent(),
     this.noSugerir = const Value.absent(),
+    this.orden = const Value.absent(),
     this.actualizadoEn = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -863,6 +906,7 @@ class CatalogoCamposCompanion extends UpdateCompanion<CatalogoCampo> {
     this.prioridad = const Value.absent(),
     this.activo = const Value.absent(),
     this.noSugerir = const Value.absent(),
+    this.orden = const Value.absent(),
     this.actualizadoEn = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : claveTecnica = Value(claveTecnica),
@@ -881,6 +925,7 @@ class CatalogoCamposCompanion extends UpdateCompanion<CatalogoCampo> {
     Expression<String>? prioridad,
     Expression<bool>? activo,
     Expression<bool>? noSugerir,
+    Expression<int>? orden,
     Expression<DateTime>? actualizadoEn,
     Expression<int>? rowid,
   }) {
@@ -897,6 +942,7 @@ class CatalogoCamposCompanion extends UpdateCompanion<CatalogoCampo> {
       if (prioridad != null) 'prioridad': prioridad,
       if (activo != null) 'activo': activo,
       if (noSugerir != null) 'no_sugerir': noSugerir,
+      if (orden != null) 'orden': orden,
       if (actualizadoEn != null) 'actualizado_en': actualizadoEn,
       if (rowid != null) 'rowid': rowid,
     });
@@ -915,6 +961,7 @@ class CatalogoCamposCompanion extends UpdateCompanion<CatalogoCampo> {
     Value<String?>? prioridad,
     Value<bool>? activo,
     Value<bool>? noSugerir,
+    Value<int?>? orden,
     Value<DateTime?>? actualizadoEn,
     Value<int>? rowid,
   }) {
@@ -931,6 +978,7 @@ class CatalogoCamposCompanion extends UpdateCompanion<CatalogoCampo> {
       prioridad: prioridad ?? this.prioridad,
       activo: activo ?? this.activo,
       noSugerir: noSugerir ?? this.noSugerir,
+      orden: orden ?? this.orden,
       actualizadoEn: actualizadoEn ?? this.actualizadoEn,
       rowid: rowid ?? this.rowid,
     );
@@ -975,6 +1023,9 @@ class CatalogoCamposCompanion extends UpdateCompanion<CatalogoCampo> {
     if (noSugerir.present) {
       map['no_sugerir'] = Variable<bool>(noSugerir.value);
     }
+    if (orden.present) {
+      map['orden'] = Variable<int>(orden.value);
+    }
     if (actualizadoEn.present) {
       map['actualizado_en'] = Variable<DateTime>(actualizadoEn.value);
     }
@@ -999,6 +1050,7 @@ class CatalogoCamposCompanion extends UpdateCompanion<CatalogoCampo> {
           ..write('prioridad: $prioridad, ')
           ..write('activo: $activo, ')
           ..write('noSugerir: $noSugerir, ')
+          ..write('orden: $orden, ')
           ..write('actualizadoEn: $actualizadoEn, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -14837,6 +14889,7 @@ typedef $$CatalogoCamposTableCreateCompanionBuilder =
       Value<String?> prioridad,
       Value<bool> activo,
       Value<bool> noSugerir,
+      Value<int?> orden,
       Value<DateTime?> actualizadoEn,
       Value<int> rowid,
     });
@@ -14854,6 +14907,7 @@ typedef $$CatalogoCamposTableUpdateCompanionBuilder =
       Value<String?> prioridad,
       Value<bool> activo,
       Value<bool> noSugerir,
+      Value<int?> orden,
       Value<DateTime?> actualizadoEn,
       Value<int> rowid,
     });
@@ -14924,6 +14978,11 @@ class $$CatalogoCamposTableFilterComposer
 
   ColumnFilters<bool> get noSugerir => $composableBuilder(
     column: $table.noSugerir,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get orden => $composableBuilder(
+    column: $table.orden,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15002,6 +15061,11 @@ class $$CatalogoCamposTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get orden => $composableBuilder(
+    column: $table.orden,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get actualizadoEn => $composableBuilder(
     column: $table.actualizadoEn,
     builder: (column) => ColumnOrderings(column),
@@ -15061,6 +15125,9 @@ class $$CatalogoCamposTableAnnotationComposer
   GeneratedColumn<bool> get noSugerir =>
       $composableBuilder(column: $table.noSugerir, builder: (column) => column);
 
+  GeneratedColumn<int> get orden =>
+      $composableBuilder(column: $table.orden, builder: (column) => column);
+
   GeneratedColumn<DateTime> get actualizadoEn => $composableBuilder(
     column: $table.actualizadoEn,
     builder: (column) => column,
@@ -15112,6 +15179,7 @@ class $$CatalogoCamposTableTableManager
                 Value<String?> prioridad = const Value.absent(),
                 Value<bool> activo = const Value.absent(),
                 Value<bool> noSugerir = const Value.absent(),
+                Value<int?> orden = const Value.absent(),
                 Value<DateTime?> actualizadoEn = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CatalogoCamposCompanion(
@@ -15127,6 +15195,7 @@ class $$CatalogoCamposTableTableManager
                 prioridad: prioridad,
                 activo: activo,
                 noSugerir: noSugerir,
+                orden: orden,
                 actualizadoEn: actualizadoEn,
                 rowid: rowid,
               ),
@@ -15144,6 +15213,7 @@ class $$CatalogoCamposTableTableManager
                 Value<String?> prioridad = const Value.absent(),
                 Value<bool> activo = const Value.absent(),
                 Value<bool> noSugerir = const Value.absent(),
+                Value<int?> orden = const Value.absent(),
                 Value<DateTime?> actualizadoEn = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CatalogoCamposCompanion.insert(
@@ -15159,6 +15229,7 @@ class $$CatalogoCamposTableTableManager
                 prioridad: prioridad,
                 activo: activo,
                 noSugerir: noSugerir,
+                orden: orden,
                 actualizadoEn: actualizadoEn,
                 rowid: rowid,
               ),

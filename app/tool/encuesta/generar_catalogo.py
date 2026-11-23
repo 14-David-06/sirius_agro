@@ -32,6 +32,10 @@ Ademas, AJUSTES cambia algo puntual de campos que ya venian en el catalogo
 (por ejemplo, dejar Identificacion en una sola pregunta). Esos cambios solo
 estan en la app: los registros de Airtable no se tocan.
 
+ORDEN_DE_LA_GUIA le da a cada tema que se sugiere su lugar en la lista de la
+visita («orden»), el de la guia conversacional de campo. Tampoco esta en
+Airtable.
+
 Volver a correrlo es seguro: quita lo que el mismo agrego antes y lo vuelve a
 generar. De los 55 campos originales solo cambia lo que diga AJUSTES, y cada
 uno guarda el valor que tenia para poder deshacerlo.
@@ -192,6 +196,92 @@ AJUSTES = {
 AJUSTABLES = {"campo", "pregunta_guia", "obligatorio_mvp", "no_sugerir"}
 RESPALDO = "valor_airtable"
 
+# El orden en que la lista de la visita sugiere los temas. Es el de la «Guia
+# conversacional de campo — Encuesta a agricultores» (2026-11-23): seis etapas
+# y doce temas, en el orden natural de la visita, y dentro de cada tema las
+# preguntas en el orden de su tabla. Solo cambia el orden: ni el texto, ni el
+# modulo, ni las opciones de ningun campo.
+#
+# Cada campo que se le sugiere al visitador tiene que estar aqui una vez: el
+# script falla si sobra o falta alguno, para que un tema nuevo no quede al
+# final de la lista sin que nadie lo decida. Los que no se sugieren (los
+# sensibles y los que ya se escriben en la ficha) no llevan orden.
+ORDEN_DE_LA_GUIA = [
+    ("Etapa 1 · A. Llegada a la finca", [
+        "municipio_vereda", "acceso_vial",
+    ]),
+    ("Etapa 2 · B. Origen y trayectoria", [
+        "municipio_procedencia", "anios_en_territorio", "como_inicio_agricultura", "formacion_agro",
+    ]),
+    ("Etapa 3 · C. Tierra y tenencia", [
+        "area_total_ha", "area_produccion_ha", "uso_tierra", "tenencia", "documento_tierra", "titular_tierra",
+        "vive_finca", "dedicacion",
+    ]),
+    ("Etapa 3 · D. Cultivos y producción", [
+        "cultivos_principales", "c_semilla", "rendimiento", "c_destino", "c_perdida",
+    ]),
+    ("Etapa 3 · E. Manejo: suelo, agua, insumos y asistencia técnica", [
+        "problemas_suelo", "fuente_agua", "tiene_riego", "cuidado_agua", "tumba_monte", "plagas_enfermedades",
+        "fertilizantes_usados", "plaguicidas_usados", "usa_bioinsumos", "proteccion_quimicos", "envases",
+        "asistencia", "asistencia_quien", "asistencia_utilidad",
+    ]),
+    ("Etapa 3 · F. Mano de obra, herramientas e infraestructura", [
+        "contrata_jornaleros", "maquinaria", "infraestructura",
+    ]),
+    ("Etapa 4 · G. Venta de la producción", [
+        "comprador", "precio_venta", "acuerdo_venta", "transporte", "dificultades_venta", "formalizacion",
+    ]),
+    ("Etapa 4 · H. Economía del hogar, crédito y apoyos", [
+        "rentabilidad", "parte_finca", "alcanza", "tiene_credito", "credito_fuente", "credito_barreras",
+        "productos_financieros", "apoyos_recibidos",
+    ]),
+    ("Etapa 5 · I. La familia", [
+        "jefatura", "decisiones", "cuidado", "p_estudios", "p_lee", "p_estudia", "p_ocupacion", "p_salud",
+        "pension", "sisben", "autoconsumo",
+    ]),
+    ("Etapa 5 · J. Vivienda y acceso a servicios", [
+        "tenencia_vivienda", "paredes", "pisos", "sanitario", "cocina", "energia", "agua_consumo", "basuras",
+        "cuartos_dormir", "tiempos_acceso",
+    ]),
+    ("Etapa 5 · K. Comunicaciones y conectividad", [
+        "operador", "calidad_senal", "internet", "aparatos", "uso_internet", "manejo_digital", "usos_celular",
+    ]),
+    ("Etapa 6 · L. Riesgos, aspiraciones y acompañamiento", [
+        "riesgo_principal", "que_quiere_mejorar", "planes", "necesidades", "interes_asociarse", "temas_interes",
+        "forma_acompanamiento",
+    ]),
+]
+ORDEN = "orden"
+
+
+def se_sugiere(c):
+    """Si el campo sale en la lista de temas que faltan de la visita."""
+    return c.get("activo", True) and bool(c.get("obligatorio_mvp")) and not c.get("no_sugerir")
+
+
+def ordenar(campos):
+    """Le pone a cada campo su lugar en la guia. Devuelve los errores."""
+    en_orden = [clave for _, claves in ORDEN_DE_LA_GUIA for clave in claves]
+    por_clave = {c["clave_tecnica"]: c for c in campos}
+    errores = []
+    repetidas = sorted({k for k in en_orden if en_orden.count(k) > 1})
+    if repetidas:
+        errores.append(f"ORDEN_DE_LA_GUIA repite: {', '.join(repetidas)}")
+    for clave in en_orden:
+        if clave not in por_clave:
+            errores.append(f"ORDEN_DE_LA_GUIA: el campo «{clave}» no esta en el catalogo")
+        elif not se_sugiere(por_clave[clave]):
+            errores.append(f"ORDEN_DE_LA_GUIA: «{clave}» no se le sugiere al visitador")
+    for c in campos:
+        if se_sugiere(c) and c["clave_tecnica"] not in en_orden:
+            errores.append(f"ORDEN_DE_LA_GUIA: falta ubicar «{c['clave_tecnica']}» ({c['campo']})")
+    for c in campos:
+        c.pop(ORDEN, None)
+    for n, clave in enumerate(en_orden, start=1):
+        if clave in por_clave:
+            por_clave[clave][ORDEN] = n
+    return errores
+
 FAMILIA = "Familia y social"
 ECONOMIA = "Economia y comercializacion"
 TIERRA = "Tierra y tenencia"
@@ -312,7 +402,7 @@ def tipo_de_dato(n, q):
     return "Texto", None
 
 
-def informe(encuesta, originales, ajustados, reactivados, nuevos):
+def informe(encuesta, originales, ajustados, reactivados, nuevos, campos):
     """La lista de que entro, que no y por que, para revisarla sin leer el JSON."""
     por_clave = {c["clave_tecnica"]: c for c in originales}
     nombres = {"campo": "Nombre", "pregunta_guia": "Pregunta", "obligatorio_mvp": "Sale en la lista y cuenta",
@@ -373,6 +463,16 @@ def informe(encuesta, originales, ajustados, reactivados, nuevos):
     s.append("\n## 5. Preguntas quitadas a pedido\n\n| P | Pregunta de la encuesta |\n|---:|---|\n")
     for n in sorted(QUITADAS):
         s.append(f"| {n} | {corta(encuesta[n]['texto'])} |\n")
+    s.append("\n## 6. Orden en la lista de la visita\n\n"
+             "El de la «Guía conversacional de campo — Encuesta a agricultores»: seis etapas y doce temas, en el orden\n"
+             "natural de la visita. Solo cambia el orden; cada tema sigue en su módulo y con su pregunta. Los que no se\n"
+             "sugieren no llevan orden.\n")
+    por_clave = {c["clave_tecnica"]: c for c in campos}
+    for tema, claves in ORDEN_DE_LA_GUIA:
+        s.append(f"\n### {tema}\n\n| # | Tema | Módulo | Pregunta |\n|---:|---|---|---|\n")
+        for clave in claves:
+            c = por_clave[clave]
+            s.append(f"| {c[ORDEN]} | {c['campo']} | {c['modulo']} | {corta(c['pregunta_guia'] or '')} |\n")
     return "".join(s)
 
 
@@ -472,6 +572,9 @@ def main():
         })
 
     campos = originales + reactivados + nuevos
+    errores = ordenar(campos)
+    if errores:
+        raise SystemExit("No se genero nada:\n  - " + "\n  - ".join(errores))
     catalogo["campos"] = campos
     catalogo["activos"] = sum(c.get("activo", True) for c in campos)
     catalogo["obligatorios"] = sum(bool(c.get("obligatorio_mvp")) and c.get("activo", True) for c in campos)
@@ -488,7 +591,7 @@ def main():
     CATALOGO.write_text(json.dumps(catalogo, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     INFORME.write_text(
-        informe(encuesta, originales, ajustados, reactivados, nuevos), encoding="utf-8", newline="\n")
+        informe(encuesta, originales, ajustados, reactivados, nuevos, campos), encoding="utf-8", newline="\n")
 
     sugeribles = sum(c["obligatorio_mvp"] and not c["no_sugerir"] for c in nuevos)
     print(f"ajustes a campos que ya estaban: {len(ajustados)} ({', '.join(c['clave_tecnica'] for c in ajustados)})")
@@ -496,6 +599,7 @@ def main():
           f"+ {len(nuevos)} de la encuesta = {catalogo['activos']} activos, {catalogo['obligatorios']} obligatorios")
     print(f"temas nuevos en la lista: {sugeribles} | sensibles (no se sugieren): {len(nuevos) - sugeribles} | "
           f"reactivados: {len(reactivados)} | redundantes: {len(REDUNDANTES)} | quitadas: {len(QUITADAS)}")
+    print(f"orden de la guia: {sum(ORDEN in c for c in campos)} temas en {len(ORDEN_DE_LA_GUIA)} temas de la guia")
 
 
 if __name__ == "__main__":

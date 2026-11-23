@@ -1,6 +1,6 @@
 {
   "_nota": "Espejo del Catalogo de Campos (tblu6GshimULyLUAo) al 2026-09-02: solo las 55 con Activo=true. Se empaqueta en el APK para que la app calcule completitud y faltantes en el primer arranque sin red. Al sincronizar se sobreescribe con lo que diga Airtable, que es la fuente de verdad.",
-  "generado": "2026-11-13T13:20",
+  "generado": "2026-11-23T16:21",
   "activos": 122,
   "obligatorios": 86,
   "campos": [
@@ -16,7 +16,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "rec1AFanYIrLfSAgX"
+      "remote_id": "rec1AFanYIrLfSAgX",
+      "orden": 21
     },
     {
       "clave_tecnica": "rendimiento",
@@ -30,7 +31,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "rec2iZPzJ7cud4fVH"
+      "remote_id": "rec2iZPzJ7cud4fVH",
+      "orden": 17
     },
     {
       "clave_tecnica": "apertura_innovacion",
@@ -145,7 +147,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recADsyyPNyXtNjlW"
+      "remote_id": "recADsyyPNyXtNjlW",
+      "orden": 72
     },
     {
       "clave_tecnica": "riesgo_principal",
@@ -159,7 +162,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recASdpGXcGym9BF5"
+      "remote_id": "recASdpGXcGym9BF5",
+      "orden": 79
     },
     {
       "clave_tecnica": "practicas_conservacion_suelo",
@@ -187,7 +191,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recBiS71NAZ5HVfk5"
+      "remote_id": "recBiS71NAZ5HVfk5",
+      "orden": 38
     },
     {
       "clave_tecnica": "pendiente",
@@ -229,7 +234,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recEqGZ8D4bhCQZxF"
+      "remote_id": "recEqGZ8D4bhCQZxF",
+      "orden": 82
     },
     {
       "clave_tecnica": "relevo_generacional",
@@ -257,7 +263,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recFR0WyBwGX4yx9S"
+      "remote_id": "recFR0WyBwGX4yx9S",
+      "orden": 22
     },
     {
       "clave_tecnica": "epoca_cosecha",
@@ -358,7 +365,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recR67AEmjLb9i6qV"
+      "remote_id": "recR67AEmjLb9i6qV",
+      "orden": 10
     },
     {
       "clave_tecnica": "que_quiere_mejorar",
@@ -372,7 +380,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recRO2MZH8Gh8pc4v"
+      "remote_id": "recRO2MZH8Gh8pc4v",
+      "orden": 80
     },
     {
       "clave_tecnica": "escasez_agua",
@@ -400,7 +409,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recU8Wn3GUbWqGfTg"
+      "remote_id": "recU8Wn3GUbWqGfTg",
+      "orden": 5
     },
     {
       "clave_tecnica": "anios_en_territorio",
@@ -414,7 +424,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recUAKTES0pdXFJom"
+      "remote_id": "recUAKTES0pdXFJom",
+      "orden": 4
     },
     {
       "clave_tecnica": "calidad_senal",
@@ -428,7 +439,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recUTEhPHkcvZ0BIQ"
+      "remote_id": "recUTEhPHkcvZ0BIQ",
+      "orden": 73
     },
     {
       "clave_tecnica": "municipio_vereda",
@@ -446,7 +458,8 @@
       "valor_airtable": {
         "campo": "Municipio y vereda",
         "pregunta_guia": "En que vereda estamos?"
-      }
+      },
+      "orden": 1
     },
     {
       "clave_tecnica": "cultivos_principales",
@@ -460,7 +473,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recWKK8v0siNo7dQc"
+      "remote_id": "recWKK8v0siNo7dQc",
+      "orden": 15
     },
     {
       "clave_tecnica": "usa_bioinsumos",
@@ -474,7 +488,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recXFTinnNWkYUsUa"
+      "remote_id": "recXFTinnNWkYUsUa",
+      "orden": 28
     },
     {
       "clave_tecnica": "municipio_procedencia",
@@ -488,7 +503,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recaWLOylhlEsogzy"
+      "remote_id": "recaWLOylhlEsogzy",
+      "orden": 3
     },
     {
       "clave_tecnica": "area_produccion_ha",
@@ -502,7 +518,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "reccGrbBrnrlbqkrC"
+      "remote_id": "reccGrbBrnrlbqkrC",
+      "orden": 8
     },
     {
       "clave_tecnica": "organizacion",
@@ -530,7 +547,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recf91oRIXZHGgCTN"
+      "remote_id": "recf91oRIXZHGgCTN",
+      "orden": 25
     },
     {
       "clave_tecnica": "proveedor_insumos",
@@ -631,7 +649,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recnCVxKjHN2JQV0Q"
+      "remote_id": "recnCVxKjHN2JQV0Q",
+      "orden": 27
     },
     {
       "clave_tecnica": "proyectos",
@@ -659,7 +678,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "reco7uqZh2uBUXhi0"
+      "remote_id": "reco7uqZh2uBUXhi0",
+      "orden": 37
     },
     {
       "clave_tecnica": "problemas_suelo",
@@ -673,7 +693,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recocRbZA2ueQjude"
+      "remote_id": "recocRbZA2ueQjude",
+      "orden": 20
     },
     {
       "clave_tecnica": "area_total_ha",
@@ -687,7 +708,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recp2JuyZhYz2IeWo"
+      "remote_id": "recp2JuyZhYz2IeWo",
+      "orden": 7
     },
     {
       "clave_tecnica": "anios_en_finca",
@@ -715,7 +737,8 @@
       "prioridad": "1 Critico",
       "activo": true,
       "no_sugerir": false,
-      "remote_id": "recqAA5r0f3F8jJVe"
+      "remote_id": "recqAA5r0f3F8jJVe",
+      "orden": 26
     },
     {
       "clave_tecnica": "punto_mejor_senal",
@@ -801,7 +824,8 @@
       "no_sugerir": false,
       "remote_id": "receS8AwujzVn81Vp",
       "origen": "reactivado",
-      "pregunta_encuesta": 40
+      "pregunta_encuesta": 40,
+      "orden": 50
     },
     {
       "clave_tecnica": "tiene_credito",
@@ -817,7 +841,8 @@
       "no_sugerir": false,
       "remote_id": "reckASEqlFC5VX0yP",
       "origen": "reactivado",
-      "pregunta_encuesta": 53
+      "pregunta_encuesta": 53,
+      "orden": 46
     },
     {
       "clave_tecnica": "maquinaria",
@@ -833,7 +858,8 @@
       "no_sugerir": false,
       "remote_id": "rec3BnpEVIoUPF5Lr",
       "origen": "reactivado",
-      "pregunta_encuesta": 64
+      "pregunta_encuesta": 64,
+      "orden": 35
     },
     {
       "clave_tecnica": "infraestructura",
@@ -849,7 +875,8 @@
       "no_sugerir": false,
       "remote_id": "recOq4q14ZULpRf46",
       "origen": "reactivado",
-      "pregunta_encuesta": 64
+      "pregunta_encuesta": 64,
+      "orden": 36
     },
     {
       "clave_tecnica": "contrata_jornaleros",
@@ -865,7 +892,8 @@
       "no_sugerir": false,
       "remote_id": "rec1670VwycXMbEaL",
       "origen": "reactivado",
-      "pregunta_encuesta": 66
+      "pregunta_encuesta": 66,
+      "orden": 34
     },
     {
       "clave_tecnica": "acceso_vial",
@@ -881,7 +909,8 @@
       "no_sugerir": false,
       "remote_id": "recrkl2P4PXcObtRW",
       "origen": "reactivado",
-      "pregunta_encuesta": 94
+      "pregunta_encuesta": 94,
+      "orden": 2
     },
     {
       "clave_tecnica": "p_estudios",
@@ -897,7 +926,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 12
+      "pregunta_encuesta": 12,
+      "orden": 54
     },
     {
       "clave_tecnica": "p_lee",
@@ -913,7 +943,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 13
+      "pregunta_encuesta": 13,
+      "orden": 55
     },
     {
       "clave_tecnica": "p_estudia",
@@ -929,7 +960,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 14
+      "pregunta_encuesta": 14,
+      "orden": 56
     },
     {
       "clave_tecnica": "p_salud",
@@ -945,7 +977,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 15
+      "pregunta_encuesta": 15,
+      "orden": 58
     },
     {
       "clave_tecnica": "p_ocupacion",
@@ -961,7 +994,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 16
+      "pregunta_encuesta": 16,
+      "orden": 57
     },
     {
       "clave_tecnica": "p_dificultad",
@@ -993,7 +1027,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 18
+      "pregunta_encuesta": 18,
+      "orden": 51
     },
     {
       "clave_tecnica": "campesino",
@@ -1057,7 +1092,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 23
+      "pregunta_encuesta": 23,
+      "orden": 13
     },
     {
       "clave_tecnica": "dedicacion",
@@ -1073,7 +1109,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 24
+      "pregunta_encuesta": 24,
+      "orden": 14
     },
     {
       "clave_tecnica": "formacion_agro",
@@ -1089,7 +1126,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 26
+      "pregunta_encuesta": 26,
+      "orden": 6
     },
     {
       "clave_tecnica": "pension",
@@ -1105,7 +1143,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 27
+      "pregunta_encuesta": 27,
+      "orden": 59
     },
     {
       "clave_tecnica": "cuidado",
@@ -1121,7 +1160,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 28
+      "pregunta_encuesta": 28,
+      "orden": 53
     },
     {
       "clave_tecnica": "tenencia_vivienda",
@@ -1137,7 +1177,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 29
+      "pregunta_encuesta": 29,
+      "orden": 62
     },
     {
       "clave_tecnica": "paredes",
@@ -1153,7 +1194,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 30
+      "pregunta_encuesta": 30,
+      "orden": 63
     },
     {
       "clave_tecnica": "pisos",
@@ -1169,7 +1211,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 31
+      "pregunta_encuesta": 31,
+      "orden": 64
     },
     {
       "clave_tecnica": "cuartos_dormir",
@@ -1185,7 +1228,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 32
+      "pregunta_encuesta": 32,
+      "orden": 70
     },
     {
       "clave_tecnica": "energia",
@@ -1201,7 +1245,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 33
+      "pregunta_encuesta": 33,
+      "orden": 67
     },
     {
       "clave_tecnica": "agua_consumo",
@@ -1217,7 +1262,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 34
+      "pregunta_encuesta": 34,
+      "orden": 68
     },
     {
       "clave_tecnica": "sanitario",
@@ -1233,7 +1279,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 35
+      "pregunta_encuesta": 35,
+      "orden": 65
     },
     {
       "clave_tecnica": "cocina",
@@ -1249,7 +1296,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 36
+      "pregunta_encuesta": 36,
+      "orden": 66
     },
     {
       "clave_tecnica": "basuras",
@@ -1265,7 +1313,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 37
+      "pregunta_encuesta": 37,
+      "orden": 69
     },
     {
       "clave_tecnica": "tiempos_acceso",
@@ -1281,7 +1330,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 38
+      "pregunta_encuesta": 38,
+      "orden": 71
     },
     {
       "clave_tecnica": "sisben",
@@ -1297,7 +1347,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 39
+      "pregunta_encuesta": 39,
+      "orden": 60
     },
     {
       "clave_tecnica": "autoconsumo",
@@ -1313,7 +1364,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 45
+      "pregunta_encuesta": 45,
+      "orden": 61
     },
     {
       "clave_tecnica": "parte_finca",
@@ -1329,7 +1381,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 48
+      "pregunta_encuesta": 48,
+      "orden": 44
     },
     {
       "clave_tecnica": "alcanza",
@@ -1345,7 +1398,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 49
+      "pregunta_encuesta": 49,
+      "orden": 45
     },
     {
       "clave_tecnica": "rentabilidad",
@@ -1361,7 +1415,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 50
+      "pregunta_encuesta": 50,
+      "orden": 43
     },
     {
       "clave_tecnica": "productos_financieros",
@@ -1377,7 +1432,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 52
+      "pregunta_encuesta": 52,
+      "orden": 49
     },
     {
       "clave_tecnica": "credito_barreras",
@@ -1393,7 +1449,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 54
+      "pregunta_encuesta": 54,
+      "orden": 48
     },
     {
       "clave_tecnica": "credito_fuente",
@@ -1409,7 +1466,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 55
+      "pregunta_encuesta": 55,
+      "orden": 47
     },
     {
       "clave_tecnica": "formalizacion",
@@ -1425,7 +1483,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 56
+      "pregunta_encuesta": 56,
+      "orden": 42
     },
     {
       "clave_tecnica": "documento_tierra",
@@ -1441,7 +1500,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 59
+      "pregunta_encuesta": 59,
+      "orden": 11
     },
     {
       "clave_tecnica": "titular_tierra",
@@ -1457,7 +1517,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 60
+      "pregunta_encuesta": 60,
+      "orden": 12
     },
     {
       "clave_tecnica": "decisiones",
@@ -1473,7 +1534,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 61
+      "pregunta_encuesta": 61,
+      "orden": 52
     },
     {
       "clave_tecnica": "uso_tierra",
@@ -1489,7 +1551,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 63
+      "pregunta_encuesta": 63,
+      "orden": 9
     },
     {
       "clave_tecnica": "c_destino",
@@ -1505,7 +1568,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 72
+      "pregunta_encuesta": 72,
+      "orden": 18
     },
     {
       "clave_tecnica": "c_perdida",
@@ -1521,7 +1585,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 73
+      "pregunta_encuesta": 73,
+      "orden": 19
     },
     {
       "clave_tecnica": "c_semilla",
@@ -1537,7 +1602,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 74
+      "pregunta_encuesta": 74,
+      "orden": 16
     },
     {
       "clave_tecnica": "proteccion_quimicos",
@@ -1553,7 +1619,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 84
+      "pregunta_encuesta": 84,
+      "orden": 29
     },
     {
       "clave_tecnica": "envases",
@@ -1569,7 +1636,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 85
+      "pregunta_encuesta": 85,
+      "orden": 30
     },
     {
       "clave_tecnica": "asistencia",
@@ -1585,7 +1653,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 88
+      "pregunta_encuesta": 88,
+      "orden": 31
     },
     {
       "clave_tecnica": "asistencia_quien",
@@ -1601,7 +1670,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 89
+      "pregunta_encuesta": 89,
+      "orden": 32
     },
     {
       "clave_tecnica": "asistencia_utilidad",
@@ -1617,7 +1687,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 90
+      "pregunta_encuesta": 90,
+      "orden": 33
     },
     {
       "clave_tecnica": "acuerdo_venta",
@@ -1633,7 +1704,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 92
+      "pregunta_encuesta": 92,
+      "orden": 39
     },
     {
       "clave_tecnica": "transporte",
@@ -1649,7 +1721,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 93
+      "pregunta_encuesta": 93,
+      "orden": 40
     },
     {
       "clave_tecnica": "dificultades_venta",
@@ -1665,7 +1738,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 95
+      "pregunta_encuesta": 95,
+      "orden": 41
     },
     {
       "clave_tecnica": "participacion",
@@ -1697,7 +1771,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 100
+      "pregunta_encuesta": 100,
+      "orden": 23
     },
     {
       "clave_tecnica": "tumba_monte",
@@ -1713,7 +1788,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 103
+      "pregunta_encuesta": 103,
+      "orden": 24
     },
     {
       "clave_tecnica": "aparatos",
@@ -1729,7 +1805,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 104
+      "pregunta_encuesta": 104,
+      "orden": 75
     },
     {
       "clave_tecnica": "internet",
@@ -1745,7 +1822,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 105
+      "pregunta_encuesta": 105,
+      "orden": 74
     },
     {
       "clave_tecnica": "uso_internet",
@@ -1761,7 +1839,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 107
+      "pregunta_encuesta": 107,
+      "orden": 76
     },
     {
       "clave_tecnica": "manejo_digital",
@@ -1777,7 +1856,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 108
+      "pregunta_encuesta": 108,
+      "orden": 77
     },
     {
       "clave_tecnica": "usos_celular",
@@ -1793,7 +1873,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 109
+      "pregunta_encuesta": 109,
+      "orden": 78
     },
     {
       "clave_tecnica": "planes",
@@ -1809,7 +1890,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 111
+      "pregunta_encuesta": 111,
+      "orden": 81
     },
     {
       "clave_tecnica": "temas_interes",
@@ -1825,7 +1907,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 113
+      "pregunta_encuesta": 113,
+      "orden": 84
     },
     {
       "clave_tecnica": "forma_acompanamiento",
@@ -1841,7 +1924,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 114
+      "pregunta_encuesta": 114,
+      "orden": 85
     },
     {
       "clave_tecnica": "interes_asociarse",
@@ -1857,7 +1941,8 @@
       "no_sugerir": false,
       "remote_id": null,
       "origen": "encuesta",
-      "pregunta_encuesta": 115
+      "pregunta_encuesta": 115,
+      "orden": 83
     }
   ],
   "_nota_encuesta": "61 campos con origen=encuesta: temas de la encuesta de caracterizacion, agregados por tool/encuesta/generar_catalogo.py. Solo existen en la app; no estan en el Catalogo de Campos de Airtable. 6 campos con origen=reactivado: ya existian en el Catalogo de Campos de Airtable, inactivos, y cubren preguntas de la encuesta; llevan su record id."

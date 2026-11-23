@@ -51,11 +51,11 @@ const _margenVertical = 72.0; // 2,54 cm
 const _margenLateral = 54.0; // 1,91 cm
 
 PdfColor _colorCerteza(String certeza) => switch (certeza) {
-      'Confirmado' => PaletaTecnica.confirmado,
-      'Estimado' => PaletaTecnica.estimado,
-      'Inferido' => PaletaTecnica.inferido,
-      _ => PaletaTecnica.pendiente,
-    };
+  'Confirmado' => PaletaTecnica.confirmado,
+  'Estimado' => PaletaTecnica.estimado,
+  'Inferido' => PaletaTecnica.inferido,
+  _ => PaletaTecnica.pendiente,
+};
 
 /// Arma el PDF tecnico. Devuelve los bytes listos para archivar o imprimir.
 Future<Uint8List> construirInformeTecnicoPdf(DatosInformeTecnico datos) async {
@@ -140,11 +140,7 @@ Future<Uint8List> construirInformeTecnicoPdf(DatosInformeTecnico datos) async {
 
 // --- Membrete, encabezado y pie ---
 
-pw.Widget _membrete(
-  String logo,
-  DatosInformeTecnico datos,
-  FormatoInforme f,
-) {
+pw.Widget _membrete(String logo, DatosInformeTecnico datos, FormatoInforme f) {
   return pw.Column(
     children: [
       pw.Container(
@@ -233,10 +229,7 @@ pw.Widget _encabezado(String logo, DatosInformeTecnico datos) {
           'Informe técnico  ·  '
           '${datos.finca?.nombre ?? datos.productor?.nombre ?? 'Sin registrar'}'
           '  ·  ${datos.codigoVisita.substring(0, 8)}',
-          style: const pw.TextStyle(
-            fontSize: 8,
-            color: PaletaInforme.seccion,
-          ),
+          style: const pw.TextStyle(fontSize: 8, color: PaletaInforme.seccion),
         ),
       ],
     ),
@@ -262,11 +255,17 @@ pw.Widget _pie(pw.Context ctx, DatosInformeTecnico datos) {
         ),
         pw.Text(
           'Página ${ctx.pageNumber} de ${ctx.pagesCount}',
-          style: const pw.TextStyle(fontSize: 7.5, color: PaletaInforme.seccion),
+          style: const pw.TextStyle(
+            fontSize: 7.5,
+            color: PaletaInforme.seccion,
+          ),
         ),
         pw.Text(
           'Versión ${datos.version}  ·  ${f.fechaLarga(datos.generadoEn)}',
-          style: const pw.TextStyle(fontSize: 7.5, color: PaletaInforme.seccion),
+          style: const pw.TextStyle(
+            fontSize: 7.5,
+            color: PaletaInforme.seccion,
+          ),
         ),
       ],
     ),
@@ -537,11 +536,14 @@ List<pw.Widget> _seccionIdentificacion(
       ['Estado', d.estado ?? '—'],
       ['Fecha', f.fechaLarga(d.inicio)],
       ['Tipo de visita', d.tipoVisita ?? '—'],
+      // Van de a dos por fila: el consecutivo junto a quien la hizo, para no
+      // partir los pares de horas que siguen.
+      ['Visita del agricultor', numeroVisitaLegible(d.numeroVisita)],
+      ['Visitador', d.visitador ?? 'Sin registrar'],
       ['Hora de inicio', f.hora(d.inicio)],
       ['Hora de cierre', d.fin == null ? 'Sin cerrar' : f.hora(d.fin!)],
       ['Duración', duracionLegible(d.duracion)],
-      ['Cobertura', '${d.completitudPct}% del cuestionario'],
-      ['Visitador', d.visitador ?? 'Sin registrar'],
+      ['Cobertura', '${d.completitudPct}% del cuestionario (acumulada)'],
       ['Sincronizada', si(d.sincronizada)],
     ]),
     pw.SizedBox(height: 14),
@@ -604,10 +606,7 @@ List<pw.Widget> _seccionGeorreferenciacion(DatosInformeTecnico d) {
         if (d.tieneGps) ...[
           ['Punto de la visita', coordenadaDecimal(d.latitud!, d.longitud!)],
           ['Precisión', precision(d.precisionGps)],
-          [
-            'En sexagesimal',
-            coordenadaSexagesimal(d.latitud!, d.longitud!),
-          ],
+          ['En sexagesimal', coordenadaSexagesimal(d.latitud!, d.longitud!)],
           ['Sistema', 'WGS84 (EPSG:4326)'],
         ],
         if (fincaLat != null && fincaLon != null) ...[
@@ -662,7 +661,7 @@ List<pw.Widget> _seccionTrazados(DatosInformeTecnico d) {
             t.esPoligono && t.cerrado
                 ? geo.formatearArea(t.areaCalculadaM2)
                 : '—',
-            geo.formatearDistancia(t.perimetroCalculadoM),
+            t.perimetroTexto,
             '${t.puntos.length}',
             t.modoCaptura,
             precision(t.precisionPromedioM),
@@ -698,7 +697,10 @@ List<pw.Widget> _seccionTrazados(DatosInformeTecnico d) {
 /// cerro donde debia y que ningun vertice quedo disparado por un salto del
 /// GPS — y para eso alcanza la forma real con su escala y su norte.
 List<pw.Widget> _croquis(DatosInformeTecnico d) {
-  final conForma = [for (final t in d.trazados) if (t.puntos.length >= 2) t];
+  final conForma = [
+    for (final t in d.trazados)
+      if (t.puntos.length >= 2) t,
+  ];
   if (conForma.isEmpty) return [];
 
   final filas = <pw.Widget>[];
@@ -751,6 +753,7 @@ pw.Widget _croquisDe(TrazadoTecnico t) {
                 t.geometria,
                 encuadre,
                 cierra,
+                unir: t.unePuntos,
               ),
             ),
             // El norte y la escala van como texto encima del lienzo: escribir
@@ -844,8 +847,9 @@ void _pintarTrazado(
   PdfPoint size,
   List<geo.PuntoGeo> puntos,
   geo.Encuadre encuadre,
-  bool cerrado,
-) {
+  bool cerrado, {
+  bool unir = true,
+}) {
   const margen = 14.0;
   final lado = (size.x < size.y ? size.x : size.y) - margen * 2;
   final desplazX = (size.x - lado) / 2;
@@ -861,6 +865,18 @@ void _pintarTrazado(
   }
 
   final vertices = [for (final p in puntos) aLienzo(p)];
+
+  // Un grupo de puntos sueltos (las plantas de un lote) son marcas aparte:
+  // sin lineas que las unan y sin un «primero», todas del mismo tamano.
+  if (!unir) {
+    canvas.setFillColor(PaletaInforme.cierre);
+    for (final v in vertices) {
+      canvas
+        ..drawEllipse(v.x, v.y, 2.4, 2.4)
+        ..fillPath();
+    }
+    return;
+  }
 
   canvas
     ..setLineWidth(1.2)
@@ -986,7 +1002,6 @@ List<pw.Widget> _seccionDatos(DatosInformeTecnico d) {
 
   return widgets;
 }
-
 
 List<pw.Widget> _seccionPendientes(DatosInformeTecnico d) {
   final pendientes = d.temasPendientes;
@@ -1137,11 +1152,7 @@ List<pw.Widget> _laminas(
   return filas;
 }
 
-pw.Widget _lamina(
-  int indice,
-  pw.MemoryImage imagen,
-  DatosInformeTecnico d,
-) {
+pw.Widget _lamina(int indice, pw.MemoryImage imagen, DatosInformeTecnico d) {
   final e = d.evidencias[indice];
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1187,7 +1198,14 @@ List<pw.Widget> _seccionAudio(DatosInformeTecnico d, FormatoInforme f) {
     _banda('8.', 'Audio de la visita'),
     pw.SizedBox(height: 8),
     _tabla(
-      encabezados: ['Tramo', 'Inicio', 'Duración', 'Peso', 'Motor', 'Transcrito'],
+      encabezados: [
+        'Tramo',
+        'Inicio',
+        'Duración',
+        'Peso',
+        'Motor',
+        'Transcrito',
+      ],
       anchos: [10, 14, 16, 14, 26, 20],
       filas: [
         for (final g in d.grabaciones)
@@ -1322,7 +1340,10 @@ pw.Widget _firma(String rol, String? nombre) {
 /// Va al final y no en la seccion 4 porque son tablas largas: cuarenta
 /// vertices de tres lotes empujarian todo lo demas a la tercera pagina.
 List<pw.Widget> _anexoVertices(DatosInformeTecnico d, FormatoInforme f) {
-  final conPuntos = [for (final t in d.trazados) if (t.puntos.isNotEmpty) t];
+  final conPuntos = [
+    for (final t in d.trazados)
+      if (t.puntos.isNotEmpty) t,
+  ];
   if (conPuntos.isEmpty) return [];
 
   final widgets = <pw.Widget>[

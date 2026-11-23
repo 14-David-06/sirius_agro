@@ -123,13 +123,23 @@ class TrazadoTecnico {
 
   bool get esPoligono => tipo == 'Poligono';
 
+  /// false en un grupo de puntos sueltos: las plantas de un lote no forman
+  /// una figura, asi que no tienen perimetro ni se dibujan unidas.
+  bool get unePuntos => tipo != 'Punto';
+
+  /// El perimetro o el largo, como texto para la tabla. Un grupo de puntos
+  /// sueltos lleva «—»: medir la linea de una planta a otra no dice nada.
+  String get perimetroTexto =>
+      unePuntos ? geo.formatearDistancia(perimetroCalculadoM) : '—';
+
   List<geo.PuntoGeo> get geometria => [for (final p in puntos) p.punto];
 
   /// Se recalcula y no se confia en la columna: la fila guarda el area para
   /// que la lista no recorra los puntos, pero el documento que se archiva
   /// tiene que poder rehacerse desde la geometria. Si los dos numeros no
   /// coinciden, manda la geometria — es lo unico que se camino.
-  double get areaCalculadaM2 => esPoligono && cerrado ? geo.areaM2(geometria) : 0;
+  double get areaCalculadaM2 =>
+      esPoligono && cerrado ? geo.areaM2(geometria) : 0;
 
   double get perimetroCalculadoM =>
       geo.longitudMetros(geometria, cerrado: esPoligono && cerrado);
@@ -203,8 +213,9 @@ class HallazgoTecnico {
   String get valorVigente =>
       (valorCorregido?.isNotEmpty ?? false) ? valorCorregido! : valor;
 
-  String get valorConUnidad =>
-      unidad == null || unidad!.isEmpty ? valorVigente : '$valorVigente $unidad';
+  String get valorConUnidad => unidad == null || unidad!.isEmpty
+      ? valorVigente
+      : '$valorVigente $unidad';
 }
 
 class EvidenciaTecnica {
@@ -291,6 +302,7 @@ class DatosInformeTecnico {
     this.fin,
     this.estado,
     this.tipoVisita,
+    this.numeroVisita,
     this.completitudPct = 0,
     this.visitador,
     this.productor,
@@ -326,6 +338,12 @@ class DatosInformeTecnico {
 
   final String? estado;
   final String? tipoVisita;
+
+  /// El consecutivo de la visita entre las del agricultor: 1 la primera.
+  /// Null si la visita no tiene agricultor.
+  final int? numeroVisita;
+
+  /// Acumulada: lo resuelto en esta visita y en las anteriores del agricultor.
   final int completitudPct;
   final String? visitador;
   final ProductorTecnico? productor;
@@ -356,10 +374,10 @@ class DatosInformeTecnico {
 
   Duration? get duracion => fin?.difference(inicio);
 
-  String get lugar => [vereda, municipio]
-      .whereType<String>()
-      .where((x) => x.isNotEmpty)
-      .join(' / ');
+  String get lugar => [
+    vereda,
+    municipio,
+  ].whereType<String>().where((x) => x.isNotEmpty).join(' / ');
 
   bool get tieneGps => latitud != null && longitud != null;
 
@@ -392,17 +410,14 @@ class DatosInformeTecnico {
 
   /// Suma de las areas de los poligonos cerrados, en metros cuadrados. Los
   /// recorridos no entran: una ruta no tiene area.
-  double get areaMedidaM2 => trazados.fold(
-        0.0,
-        (suma, t) => suma + t.areaCalculadaM2,
-      );
+  double get areaMedidaM2 =>
+      trazados.fold(0.0, (suma, t) => suma + t.areaCalculadaM2);
 
   int get puntosGpsTotales =>
       trazados.fold(0, (suma, t) => suma + t.puntos.length);
 
-  Duration get audioTotal => Duration(
-        seconds: grabaciones.fold(0, (suma, g) => suma + g.duracionSeg),
-      );
+  Duration get audioTotal =>
+      Duration(seconds: grabaciones.fold(0, (suma, g) => suma + g.duracionSeg));
 }
 
 // --- Formato ---
@@ -449,6 +464,10 @@ String duracionLegible(Duration? d) {
   if (horas == 0) return '$minutos min';
   return '$horas h $minutos min';
 }
+
+/// «N.º 2», o una raya si la visita no tiene agricultor y por eso no tiene
+/// lugar en ninguna historia.
+String numeroVisitaLegible(int? numero) => numero == null ? '—' : 'N.º $numero';
 
 String pesoLegible(int bytes) {
   if (bytes <= 0) return '—';
@@ -510,65 +529,80 @@ String markdownInformeTecnico(DatosInformeTecnico d) {
 
   l.add('# Informe tecnico de visita de campo');
   l.add('');
-  l.add('Documento interno de Sirius Regenerative · version ${d.version} · '
-      '${f.fechaLarga(d.generadoEn)}');
+  l.add(
+    'Documento interno de Sirius Regenerative · version ${d.version} · '
+    '${f.fechaLarga(d.generadoEn)}',
+  );
 
   if (d.consentimiento.marcadaParaEliminacion) {
     l.add('');
-    l.add('> VISITA MARCADA PARA ELIMINACION. El productor revoco su '
-        'autorizacion: los datos de este informe no se pueden usar y se '
-        'borran del servidor al sincronizar.');
+    l.add(
+      '> VISITA MARCADA PARA ELIMINACION. El productor revoco su '
+      'autorizacion: los datos de este informe no se pueden usar y se '
+      'borran del servidor al sincronizar.',
+    );
   }
 
   l.add('');
   l.add('## 1. Identificacion de la visita');
   l.add('');
-  l.addAll(_pares([
-    ['Codigo de visita', d.codigoVisita],
-    ['Fecha', f.fechaLarga(d.inicio)],
-    ['Hora de inicio', f.hora(d.inicio)],
-    ['Hora de cierre', d.fin == null ? 'Sin cerrar' : f.hora(d.fin!)],
-    ['Duracion', duracionLegible(d.duracion)],
-    ['Estado', d.estado ?? '—'],
-    ['Tipo de visita', d.tipoVisita ?? '—'],
-    ['Visitador', d.visitador ?? 'Sin registrar'],
-    ['Cobertura del cuestionario', '${d.completitudPct}%'],
-    ['Sincronizada', si(d.sincronizada)],
-  ]));
+  l.addAll(
+    _pares([
+      ['Codigo de visita', d.codigoVisita],
+      ['Fecha', f.fechaLarga(d.inicio)],
+      ['Hora de inicio', f.hora(d.inicio)],
+      ['Hora de cierre', d.fin == null ? 'Sin cerrar' : f.hora(d.fin!)],
+      ['Duracion', duracionLegible(d.duracion)],
+      ['Estado', d.estado ?? '—'],
+      ['Tipo de visita', d.tipoVisita ?? '—'],
+      ['Visita del agricultor', numeroVisitaLegible(d.numeroVisita)],
+      ['Visitador', d.visitador ?? 'Sin registrar'],
+      ['Cobertura del cuestionario', '${d.completitudPct}% (acumulada)'],
+      ['Sincronizada', si(d.sincronizada)],
+    ]),
+  );
 
   l.add('');
   l.add('## 2. Productor y predio');
   l.add('');
-  l.addAll(_pares([
-    ['Productor', p?.nombre ?? 'Sin registrar'],
-    ['Documento', _documento(p)],
-    ['Telefono', p?.telefono ?? 'Sin registrar'],
-    ['Codigo de productor', p?.codigoProductor ?? 'Pendiente de sincronizar'],
-    ['Organizacion', p?.organizacion ?? 'Ninguna'],
-    ['Finca', d.finca?.nombre ?? 'Sin registrar'],
-    ['Vereda / Municipio', d.lugar.isEmpty ? 'Sin registrar' : d.lugar],
-    ['Area declarada', _areaDeclarada(d, f)],
-  ]));
+  l.addAll(
+    _pares([
+      ['Productor', p?.nombre ?? 'Sin registrar'],
+      ['Documento', _documento(p)],
+      ['Telefono', p?.telefono ?? 'Sin registrar'],
+      ['Codigo de productor', p?.codigoProductor ?? 'Pendiente de sincronizar'],
+      ['Organizacion', p?.organizacion ?? 'Ninguna'],
+      ['Finca', d.finca?.nombre ?? 'Sin registrar'],
+      ['Vereda / Municipio', d.lugar.isEmpty ? 'Sin registrar' : d.lugar],
+      ['Area declarada', _areaDeclarada(d, f)],
+    ]),
+  );
 
   l.add('');
   l.add('## 3. Georreferenciacion');
   l.add('');
   if (d.tieneGps) {
-    l.addAll(_pares([
-      ['Punto de la visita', coordenadaDecimal(d.latitud!, d.longitud!)],
-      ['En sexagesimal', coordenadaSexagesimal(d.latitud!, d.longitud!)],
-      ['Precision reportada', precision(d.precisionGps)],
-    ]));
+    l.addAll(
+      _pares([
+        ['Punto de la visita', coordenadaDecimal(d.latitud!, d.longitud!)],
+        ['En sexagesimal', coordenadaSexagesimal(d.latitud!, d.longitud!)],
+        ['Precision reportada', precision(d.precisionGps)],
+      ]),
+    );
   } else {
-    l.add('- Sin coordenada de la visita: el telefono no tenia posicion '
-        'cuando se abrio.');
+    l.add(
+      '- Sin coordenada de la visita: el telefono no tenia posicion '
+      'cuando se abrio.',
+    );
   }
   final fincaLat = d.finca?.latitud;
   final fincaLon = d.finca?.longitud;
   if (fincaLat != null && fincaLon != null) {
-    l.addAll(_pares([
-      ['Punto de la finca', coordenadaDecimal(fincaLat, fincaLon)],
-    ]));
+    l.addAll(
+      _pares([
+        ['Punto de la finca', coordenadaDecimal(fincaLat, fincaLon)],
+      ]),
+    );
   }
   l.add('- Sistema de referencia: WGS84 (EPSG:4326).');
 
@@ -576,32 +610,42 @@ String markdownInformeTecnico(DatosInformeTecnico d) {
   l.add('## 4. Lotes y recorridos medidos');
   l.add('');
   if (d.trazados.isEmpty) {
-    l.add('No se camino ningun lote en esta visita. El area de la seccion 2 '
-        'es la que declaro el productor, no una medida.');
+    l.add(
+      'No se camino ningun lote en esta visita. El area de la seccion 2 '
+      'es la que declaro el productor, no una medida.',
+    );
   } else {
-    l.add('| Nombre | Que hay | Figura | Area | Perimetro | Vertices | '
-        'Captura | Precision media |');
+    l.add(
+      '| Nombre | Que hay | Figura | Area | Perimetro | Vertices | '
+      'Captura | Precision media |',
+    );
     l.add('| --- | --- | --- | --- | --- | --- | --- | --- |');
     for (final t in d.trazados) {
-      l.add(_fila([
-        t.nombre,
-        t.etiqueta ?? '—',
-        t.esPoligono && !t.cerrado ? '${t.tipo} (sin cerrar)' : t.tipo,
-        t.esPoligono && t.cerrado
-            ? geo.formatearArea(t.areaCalculadaM2)
-            : '—',
-        geo.formatearDistancia(t.perimetroCalculadoM),
-        '${t.puntos.length}',
-        t.modoCaptura,
-        precision(t.precisionPromedioM),
-      ]));
+      l.add(
+        _fila([
+          t.nombre,
+          t.etiqueta ?? '—',
+          t.esPoligono && !t.cerrado ? '${t.tipo} (sin cerrar)' : t.tipo,
+          t.esPoligono && t.cerrado
+              ? geo.formatearArea(t.areaCalculadaM2)
+              : '—',
+          t.perimetroTexto,
+          '${t.puntos.length}',
+          t.modoCaptura,
+          precision(t.precisionPromedioM),
+        ]),
+      );
     }
     l.add('');
-    l.add('- Area total medida, solo poligonos cerrados: '
-        '${geo.formatearArea(d.areaMedidaM2)}');
+    l.add(
+      '- Area total medida, solo poligonos cerrados: '
+      '${geo.formatearArea(d.areaMedidaM2)}',
+    );
     l.add('- Vertices capturados: ${d.puntosGpsTotales}');
-    l.add('- Las areas se calculan por excedente esferico sobre WGS84, la '
-        'misma formula de Google Earth: el numero coincide con el del KML.');
+    l.add(
+      '- Las areas se calculan por excedente esferico sobre WGS84, la '
+      'misma formula de Google Earth: el numero coincide con el del KML.',
+    );
   }
 
   l.add('');
@@ -611,8 +655,10 @@ String markdownInformeTecnico(DatosInformeTecnico d) {
     l.add('No hay datos extraidos para esta visita.');
   } else {
     final conteo = d.conteoPorCerteza;
-    l.add('${d.hallazgos.length} dato(s). Por certeza: '
-        '${conteo.entries.map((e) => '${e.key} ${e.value}').join(' · ')}.');
+    l.add(
+      '${d.hallazgos.length} dato(s). Por certeza: '
+      '${conteo.entries.map((e) => '${e.key} ${e.value}').join(' · ')}.',
+    );
     for (final entrada in d.porModulo.entries) {
       l.add('');
       l.add('### ${entrada.key}');
@@ -620,20 +666,24 @@ String markdownInformeTecnico(DatosInformeTecnico d) {
       l.add('| Campo | Valor | Certeza | Fuente | Estado | Audio |');
       l.add('| --- | --- | --- | --- | --- | --- |');
       for (final h in entrada.value) {
-        l.add(_fila([
-          h.entidad == null ? h.campo : '${h.campo} (${h.entidad})',
-          h.valorConUnidad.isEmpty ? '—' : h.valorConUnidad,
-          h.certeza,
-          h.fuente,
-          h.estado,
-          marcaAudio(h.segundoAudio),
-        ]));
+        l.add(
+          _fila([
+            h.entidad == null ? h.campo : '${h.campo} (${h.entidad})',
+            h.valorConUnidad.isEmpty ? '—' : h.valorConUnidad,
+            h.certeza,
+            h.fuente,
+            h.estado,
+            marcaAudio(h.segundoAudio),
+          ]),
+        );
       }
     }
     l.add('');
-    l.add('- Confirmado: lo dijo el agricultor textualmente. Estimado: dio un '
-        'aproximado. Inferido: se dedujo y exige razonamiento. Pendiente: no '
-        'salio en la conversacion, y no es un dato.');
+    l.add(
+      '- Confirmado: lo dijo el agricultor textualmente. Estimado: dio un '
+      'aproximado. Inferido: se dedujo y exige razonamiento. Pendiente: no '
+      'salio en la conversacion, y no es un dato.',
+    );
   }
 
   final pendientes = d.temasPendientes;
@@ -656,16 +706,16 @@ String markdownInformeTecnico(DatosInformeTecnico d) {
     l.add('| --- | --- | --- | --- | --- | --- |');
     for (var i = 0; i < d.evidencias.length; i++) {
       final e = d.evidencias[i];
-      l.add(_fila([
-        (i + 1).toString().padLeft(2, '0'),
-        soloNombre(e.archivoPath),
-        f.fechaHora(e.tomadaEn),
-        e.tieneGps
-            ? coordenadaDecimal(e.latitud!, e.longitud!)
-            : 'sin GPS',
-        marcaAudio(e.segundoAudio),
-        e.descripcion ?? '—',
-      ]));
+      l.add(
+        _fila([
+          (i + 1).toString().padLeft(2, '0'),
+          soloNombre(e.archivoPath),
+          f.fechaHora(e.tomadaEn),
+          e.tieneGps ? coordenadaDecimal(e.latitud!, e.longitud!) : 'sin GPS',
+          marcaAudio(e.segundoAudio),
+          e.descripcion ?? '—',
+        ]),
+      );
     }
   }
 
@@ -678,14 +728,16 @@ String markdownInformeTecnico(DatosInformeTecnico d) {
     l.add('| Tramo | Inicio | Duracion | Peso | Motor | Transcrito |');
     l.add('| --- | --- | --- | --- | --- | --- |');
     for (final g in d.grabaciones) {
-      l.add(_fila([
-        g.orden.toString().padLeft(2, '0'),
-        f.hora(g.inicio),
-        duracionLegible(Duration(seconds: g.duracionSeg)),
-        pesoLegible(g.tamanoBytes),
-        g.motor ?? '—',
-        si(g.transcrita),
-      ]));
+      l.add(
+        _fila([
+          g.orden.toString().padLeft(2, '0'),
+          f.hora(g.inicio),
+          duracionLegible(Duration(seconds: g.duracionSeg)),
+          pesoLegible(g.tamanoBytes),
+          g.motor ?? '—',
+          si(g.transcrita),
+        ]),
+      );
     }
     l.add('');
     l.add('- Audio total: ${duracionLegible(d.audioTotal)}');
@@ -695,28 +747,34 @@ String markdownInformeTecnico(DatosInformeTecnico d) {
   l.add('## 9. Consentimiento (Ley 1581 de 2012)');
   l.add('');
   final c = d.consentimiento;
-  l.addAll(_pares([
-    ['Autoriza grabar el audio', si(c.audio)],
-    ['Autoriza tomar fotos', si(c.fotos)],
-    ['Autoriza el uso de los datos', si(c.usoDatos)],
-    ['Consta en el audio, minuto', marcaAudio(c.segundoConsentimiento)],
-    ['Autorizacion de tratamiento del productor', _autorizacion(p, f)],
-    ['Marcada para eliminacion', si(c.marcadaParaEliminacion)],
-  ]));
+  l.addAll(
+    _pares([
+      ['Autoriza grabar el audio', si(c.audio)],
+      ['Autoriza tomar fotos', si(c.fotos)],
+      ['Autoriza el uso de los datos', si(c.usoDatos)],
+      ['Consta en el audio, minuto', marcaAudio(c.segundoConsentimiento)],
+      ['Autorizacion de tratamiento del productor', _autorizacion(p, f)],
+      ['Marcada para eliminacion', si(c.marcadaParaEliminacion)],
+    ]),
+  );
 
   l.add('');
   l.add('## 10. Trazabilidad');
   l.add('');
-  l.addAll(_pares([
-    ['Generado el', '${f.fechaLarga(d.generadoEn)}, ${f.hora(d.generadoEn)}'],
-    ['Version del informe', '${d.version}'],
-    ['Origen de los datos', 'Base local de la app, sin intervencion de IA'],
-    ['Modelo de IA registrado', d.modeloIa ?? 'No registrado'],
-  ]));
+  l.addAll(
+    _pares([
+      ['Generado el', '${f.fechaLarga(d.generadoEn)}, ${f.hora(d.generadoEn)}'],
+      ['Version del informe', '${d.version}'],
+      ['Origen de los datos', 'Base local de la app, sin intervencion de IA'],
+      ['Modelo de IA registrado', d.modeloIa ?? 'No registrado'],
+    ]),
+  );
   l.add('');
-  l.add('Las coordenadas, areas y perimetros de este documento se calculan '
-      'sobre los puntos que capturo el GPS del telefono. Ningun numero de '
-      'este informe lo escribio un modelo de lenguaje.');
+  l.add(
+    'Las coordenadas, areas y perimetros de este documento se calculan '
+    'sobre los puntos que capturo el GPS del telefono. Ningun numero de '
+    'este informe lo escribio un modelo de lenguaje.',
+  );
 
   return l.join('\n');
 }
@@ -744,5 +802,6 @@ String _autorizacion(ProductorTecnico? p, FormatoInforme f) {
 /// reconocer la tabla y muestren la fila como texto suelto.
 String _fila(List<String> celdas) => '| ${celdas.join(' | ')} |';
 
-List<String> _pares(List<List<String>> filas) =>
-    [for (final fila in filas) '- ${fila[0]}: ${fila[1]}'];
+List<String> _pares(List<List<String>> filas) => [
+  for (final fila in filas) '- ${fila[0]}: ${fila[1]}',
+];

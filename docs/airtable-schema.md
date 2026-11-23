@@ -124,6 +124,32 @@ identidad (`Codigo productor`, el record id) y el nombre canonico, y solo cuando
 la persona se reconocio por documento o por record id — nunca por nombre, que es
 justo lo que el documento existe para desempatar.
 
+**7c. Cada reunión con el agricultor es su propia visita, numerada.** Volver a
+ver a la misma persona otro día no se graba en la visita anterior: se abre una
+visita de seguimiento (desde la visita anterior, botón «Nueva visita de
+seguimiento»), que nace con la fecha de hoy, cuelga de la misma ficha y la
+misma finca, y pide su propio consentimiento. Si el visitador intenta grabar en
+una visita de otro día, la app se lo advierte y le ofrece el seguimiento.
+
+`Visitas.Numero de visita` es el consecutivo dentro del productor: 1 la
+primera, 2 la siguiente, **por `Inicio`** (y, si empatan, por `Codigo de
+visita`). Lo escribe el backend al sincronizar y **renumera todas las visitas
+del productor cada vez**, porque las visitas no suben en el orden en que
+pasaron: un teléfono que estuvo una semana sin señal sube la del lunes después
+de que otro subió la del jueves. Se parte del enlace `Visitas` de la ficha, no
+de una fórmula por nombre. Si renumerar falla, la sincronización sigue: el
+número se corrige con la próxima visita que suba de ese productor. La app
+calcula el mismo número en el teléfono con el mismo orden, sin red, sobre las
+visitas que tiene (las propias y las del índice de Airtable).
+
+`Completitud (%)` es **acumulada**: cuenta lo resuelto en esa visita y en las
+anteriores del mismo productor. Por eso el seguimiento no arranca en 0% ni
+vuelve a pedir lo que ya se contestó: la lista de temas pendientes es lo que
+falta con esa persona, no lo que faltó en esa conversación. Una visita que el
+productor revocó no aporta. Lo que se resuelve en una visita posterior no
+cambia el porcentaje de las anteriores: cada visita mide lo que se sabía ese
+día.
+
 ## Contrato de la IA (estructuración)
 
 El modelo debe devolver, por visita:
@@ -548,6 +574,19 @@ auditar no sirve para calcular nada.
 **2. Los puntos no se diezman al subir.** Un recorrido de 40 minutos son
 cientos de coordenadas y el JSON crece, pero submuestrear en el cliente destruye
 la única copia del lindero: lo que se manda es lo que se caminó.
+
+**3. Un lote también se puede dibujar sobre el mapa, y queda dicho.** Desde la
+pantalla del trazado, «Dibujar en el mapa» abre el satélite a pantalla completa
+con dos herramientas: **pincel** (se rodea el lote con el dedo sin soltar y se
+cierra solo) y **vértices** (un toque por esquina). El trazo del pincel se
+simplifica en pantalla (Douglas-Peucker, 3 px, máximo 150 vértices): lo que se
+quita es el temblor del dedo, y eso sí se hace en el cliente porque no es un
+dato medido — a diferencia de la decisión 2. Al guardar, lo dibujado
+**reemplaza** los puntos del trazado (se confirma si había puntos caminados con
+GPS), cada punto queda **sin precisión** y con `Nota` = «dibujado con pincel en
+el mapa» o «marcado en el mapa», y el trazado pasa a `Modo de captura =
+Manual`. Si el contorno se cruza consigo mismo se avisa antes de guardar: el
+área de un ocho no corresponde a ningún lote.
 
 ## Vistas que conviene crear a mano en Airtable
 

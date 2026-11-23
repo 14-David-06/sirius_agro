@@ -7,6 +7,7 @@ import '../data/db/app_database.dart';
 import '../data/sesion_repository.dart';
 import '../data/visita_repository.dart';
 import '../state/historial.dart';
+import '../state/mapa_sin_senal.dart';
 import '../state/providers.dart';
 import '../state/red.dart';
 import '../state/sesion.dart';
@@ -91,6 +92,11 @@ class _VisitasPageState extends ConsumerState<VisitasPage> {
     final semilla = ref.watch(semillaProvider);
     final visitas = ref.watch(visitasProvider);
     final sesion = ref.watch(sesionProvider).valueOrNull;
+
+    // Con wifi, el satelite del municipio y de las fincas se baja solo para
+    // verlo despues sin senal. Esta es la pantalla que siempre esta abierta,
+    // por eso la vigila aqui; no redibuja nada.
+    ref.watch(precargaMapasProvider);
 
     // Una visita puede desaparecer de la lista mientras esta marcada (se
     // borro, o la borro otra pantalla). Si su id sigue en la seleccion, los
@@ -205,12 +211,17 @@ class _VisitasPageState extends ConsumerState<VisitasPage> {
 class _VisitaCard extends ConsumerWidget {
   const _VisitaCard({
     required this.visita,
+    required this.numero,
     required this.seleccionando,
     required this.seleccionada,
     required this.onAlternar,
   });
 
   final Visita visita;
+
+  /// El consecutivo entre las visitas del agricultor. Null en las visitas sin
+  /// ficha.
+  final int? numero;
   final bool seleccionando;
   final bool seleccionada;
   final VoidCallback onAlternar;
@@ -227,8 +238,24 @@ class _VisitaCard extends ConsumerWidget {
     final productor =
         ref.watch(productorDeVisitaProvider(visita.id)).valueOrNull;
 
-    final fecha = DateFormat("EEEE d 'de' MMMM", 'es').format(visita.inicio);
+    // El ano solo cuando no es el actual: la historia de una finca cruza
+    // anos, y «12 de noviembre» sin ano deja de decir cual de los dos.
+    final crudo = DateFormat(
+      visita.inicio.year == DateTime.now().year
+          ? "EEEE d 'de' MMMM"
+          : "EEEE d 'de' MMMM 'de' y",
+      'es',
+    ).format(visita.inicio);
+    // La fecha en mayuscula inicial: `EEEE` en espanol viene en minuscula y
+    // arranca la linea con cara de dato.
+    final fecha =
+        crudo.isEmpty ? crudo : crudo[0].toUpperCase() + crudo.substring(1);
     final hora = DateFormat('h:mm a', 'es').format(visita.inicio);
+    // Con agricultor, la tarjeta se titula con el consecutivo y la fecha baja
+    // a la segunda linea: bajo el nombre de la persona, lo que se busca es
+    // «la segunda visita», y la fecha la confirma.
+    final titulo = numero == null ? fecha : 'Visita $numero';
+    final detalle = numero == null ? hora : '$fecha · $hora';
 
     return Card(
       // La tarjeta marcada se tine y se enmarca. Solo el check no alcanza:
@@ -292,17 +319,12 @@ class _VisitaCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          // La fecha en mayuscula inicial: `EEEE` en
-                          // espanol viene en minuscula y arranca la tarjeta
-                          // con cara de dato.
-                          fecha.isEmpty
-                              ? fecha
-                              : fecha[0].toUpperCase() + fecha.substring(1),
+                          titulo,
                           style: tema.textTheme.titleMedium,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          hora,
+                          detalle,
                           style: tema.textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -686,6 +708,7 @@ class _GrupoAgricultorSeccion extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 10),
             child: _VisitaCard(
               visita: visita,
+              numero: grupo.numeroDe(visita),
               seleccionando: seleccionando,
               seleccionada: seleccion.contains(visita.id),
               onAlternar: () => onAlternar(visita.id),

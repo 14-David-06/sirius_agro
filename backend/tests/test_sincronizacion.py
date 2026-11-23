@@ -427,3 +427,118 @@ async def test_una_visita_sin_informe_no_toca_la_tabla(settings):
 
     assert r.informes == 0
     assert not escritura.called
+
+
+# ------------------------------------------------- consecutivo de visitas
+
+
+def _visita_remota(rid: str, inicio: str | None, codigo: str, numero=None) -> dict:
+    fields: dict = {"Codigo de visita": codigo}
+    if inicio:
+        fields["Inicio"] = inicio
+    if numero is not None:
+        fields[sync.CAMPO_NUMERO_VISITA] = numero
+    return {"id": rid, "fields": fields}
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_las_visitas_del_agricultor_se_numeran_por_fecha(settings):
+    """Las visitas no suben en el orden en que pasaron: la del lunes puede
+    llegar despues que la del jueves. El numero sale de la fecha, y solo se
+    reescriben las que estan mal."""
+    respx.get(f"{API}/{sync.TBL_PRODUCTORES}").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "records": [
+                    {"id": "recProd", "fields": {"Visitas": ["recC", "recA", "recB"]}}
+                ]
+            },
+        )
+    )
+    respx.get(f"{API}/{sync.TBL_VISITAS}").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "records": [
+                    # La ultima en subir es la mas vieja.
+                    _visita_remota("recC", "2026-09-02T13:00:00.000Z", "c", numero=2),
+                    _visita_remota("recA", "2026-09-10T13:00:00.000Z", "a", numero=1),
+                    # Ya tiene el numero correcto: no se toca.
+                    _visita_remota("recB", "2026-09-20T13:00:00.000Z", "b", numero=3),
+                ]
+            },
+        )
+    )
+    escritura = respx.patch(f"{API}/{sync.TBL_VISITAS}").mock(
+        return_value=httpx.Response(200, json={"records": []})
+    )
+
+    async with httpx.AsyncClient() as cliente:
+        await sync._renumerar_visitas(
+            sync.Airtable(settings, cliente), "recProd", "c"
+        )
+
+    enviados = json.loads(escritura.calls.last.request.content)["records"]
+    assert {r["id"]: r["fields"][sync.CAMPO_NUMERO_VISITA] for r in enviados} == {
+        "recC": 1,
+        "recA": 2,
+    }
+
+
+def test_una_visita_sin_inicio_no_se_queda_con_el_uno():
+    ordenadas = sorted(
+        [
+            _visita_remota("recRota", None, "z"),
+            _visita_remota("recB", "2026-09-20T13:00:00.000Z", "b"),
+            _visita_remota("recA", "2026-09-10T13:00:00.000Z", "a"),
+        ],
+        key=sync._orden_cronologico,
+    )
+
+    assert [r["id"] for r in ordenadas] == ["recA", "recB", "recRota"]
+
+
+def test_el_empate_de_fecha_se_decide_por_el_codigo_como_en_la_app():
+    mismo = "2026-09-10T13:00:00.000Z"
+    ordenadas = sorted(
+        [_visita_remota("rec1", mismo, "bbb"), _visita_remota("rec2", mismo, "aaa")],
+        key=sync._orden_cronologico,
+    )
+
+    assert [r["id"] for r in ordenadas] == ["rec2", "rec1"]
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_si_renumerar_falla_la_visita_igual_se_sincroniza(settings):
+    """El numero se puede recalcular en la proxima visita; la conversacion que
+    se esta subiendo no se puede volver a grabar."""
+    _mockear_airtable()
+    # La ficha existe, pero leer sus visitas falla.
+    respx.get(f"{API}/{sync.TBL_PRODUCTORES}").mock(
+        return_value=httpx.Response(
+            200,
+            json={"records": [{"id": "recProd", "fields": {"Visitas": ["recVisita"]}}]},
+        )
+    )
+    respx.patch(f"{API}/{sync.TBL_PRODUCTORES}").mock(
+        return_value=httpx.Response(200, json={"records": []})
+    )
+    respx.get(f"{API}/{sync.TBL_VISITAS}").mock(
+        side_effect=[
+            # El upsert busca la visita por su codigo: no existe.
+            httpx.Response(200, json={"records": []}),
+            # La lectura para renumerar: Airtable se cae.
+            httpx.Response(503, text="Service Unavailable"),
+        ]
+    )
+    respx.post(f"{API}/{sync.TBL_VISITAS}").mock(
+        return_value=httpx.Response(200, json={"id": "recVisita"})
+    )
+
+    r = await sync.sincronizar(settings, _payload_completo())
+
+    assert r.record_id == "recVisita"
+    assert r.hallazgos == 1

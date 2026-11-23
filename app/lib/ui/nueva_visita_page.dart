@@ -22,7 +22,21 @@ import 'theme.dart';
 /// de un formulario. Si esta pantalla crece, el producto se convirtio en la
 /// encuesta que estaba tratando de reemplazar.
 class NuevaVisitaPage extends ConsumerStatefulWidget {
-  const NuevaVisitaPage({super.key});
+  const NuevaVisitaPage({
+    super.key,
+    this.seguimientoDe,
+    this.nombreFinca,
+    this.veredaId,
+  });
+
+  /// El agricultor al que se vuelve a visitar. Con el, la pantalla llega
+  /// llena con su ficha, su finca y su vereda: es la visita de seguimiento que
+  /// se abre desde una visita anterior. La visita nueva se cuelga de la MISMA
+  /// ficha, que es lo que mantiene la historia del agricultor en un solo
+  /// lugar y le da el numero siguiente.
+  final Productor? seguimientoDe;
+  final String? nombreFinca;
+  final String? veredaId;
 
   @override
   ConsumerState<NuevaVisitaPage> createState() => _NuevaVisitaPageState();
@@ -54,6 +68,13 @@ class _NuevaVisitaPageState extends ConsumerState<NuevaVisitaPage> {
   @override
   void initState() {
     super.initState();
+    final seguimiento = widget.seguimientoDe;
+    if (seguimiento != null) {
+      _elegido = seguimiento;
+      _nombreProductor.text = seguimiento.nombreCompleto;
+    }
+    _nombreFinca.text = widget.nombreFinca ?? '';
+    _veredaId = widget.veredaId;
     _ubicar();
     _contarConocidos();
     _refrescarDirectorio();
@@ -183,7 +204,11 @@ class _NuevaVisitaPageState extends ConsumerState<NuevaVisitaPage> {
     final sesion = ref.watch(sesionProvider).valueOrNull;
 
     return Scaffold(
-      appBar: const AppBarMarca(titulo: 'Nueva visita'),
+      appBar: AppBarMarca(
+        titulo: widget.seguimientoDe == null
+            ? 'Nueva visita'
+            : 'Visita de seguimiento',
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
         children: [
@@ -238,7 +263,13 @@ class _NuevaVisitaPageState extends ConsumerState<NuevaVisitaPage> {
           const SizedBox(height: 16),
           switch (veredas) {
             AsyncData(value: final lista) => DropdownButtonFormField<String>(
-                initialValue: _veredaId,
+                // La vereda de la visita anterior puede no estar en la lista
+                // de este telefono (una visita traida de Airtable con una
+                // vereda que aca no existe). Un valor fuera de la lista
+                // revienta el selector, asi que en ese caso se deja vacio.
+                initialValue: lista.any((v) => v.id == _veredaId)
+                    ? _veredaId
+                    : null,
                 decoration: const InputDecoration(labelText: 'Vereda'),
                 items: [
                   for (final v in lista)

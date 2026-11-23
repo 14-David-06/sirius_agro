@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../core/dibujo.dart';
 import '../core/geo.dart';
 import '../core/kml.dart';
 import 'db/app_database.dart';
@@ -39,7 +40,7 @@ enum ResultadoPunto {
 /// del trazado. Aca solo se aplican; no se eligen.
 class TrazadoRepository {
   TrazadoRepository(this._db, this._visitas, {Uuid? uuid})
-      : _uuid = uuid ?? const Uuid();
+    : _uuid = uuid ?? const Uuid();
 
   final AppDatabase _db;
   final VisitaRepository _visitas;
@@ -67,7 +68,9 @@ class TrazadoRepository {
     bool? cerrado,
   }) async {
     final id = _uuid.v4();
-    await _db.into(_db.trazados).insert(
+    await _db
+        .into(_db.trazados)
+        .insert(
           TrazadosCompanion.insert(
             id: id,
             visitaId: visitaId,
@@ -147,7 +150,9 @@ class TrazadoRepository {
       }
     }
 
-    await _db.into(_db.puntosTrazado).insert(
+    await _db
+        .into(_db.puntosTrazado)
+        .insert(
           PuntosTrazadoCompanion.insert(
             id: _uuid.v4(),
             trazadoId: trazadoId,
@@ -186,13 +191,14 @@ class TrazadoRepository {
   /// Borra un punto. Es la herramienta contra el salto del GPS: bajo un
   /// guadual el telefono tira un punto a 80 m y deja el lote con una punta.
   Future<void> eliminarPunto(String puntoId) async {
-    final punto = await (_db.select(_db.puntosTrazado)
-          ..where((p) => p.id.equals(puntoId)))
-        .getSingleOrNull();
+    final punto = await (_db.select(
+      _db.puntosTrazado,
+    )..where((p) => p.id.equals(puntoId))).getSingleOrNull();
     if (punto == null) return;
 
-    await (_db.delete(_db.puntosTrazado)..where((p) => p.id.equals(puntoId)))
-        .go();
+    await (_db.delete(
+      _db.puntosTrazado,
+    )..where((p) => p.id.equals(puntoId))).go();
     await _db.refrescarGeometria(punto.trazadoId);
   }
 
@@ -204,12 +210,196 @@ class TrazadoRepository {
     await eliminarPunto(puntos.last.id);
   }
 
-  Future<void> eliminarTodosLosPuntos(String trazadoId) async {
-    await (_db.delete(_db.puntosTrazado)
-          ..where((p) => p.trazadoId.equals(trazadoId)))
-        .go();
+  /// Cambia todos los puntos del trazado por los que se dibujaron sobre el
+  /// mapa, en el orden en que vienen.
+  ///
+  /// En una transaccion: un lote a medio reemplazar —los viejos borrados y la
+  /// mitad de los nuevos escritos— es peor que cualquiera de los dos. Los
+  /// puntos quedan sin precision, porque no la midio ningun GPS, y con la
+  /// nota de la herramienta que los puso. El trazado queda en modo manual:
+  /// todos los puso el dedo, ninguno el reloj.
+  ///
+  /// Quien llama confirma antes con el visitador si hay puntos caminados que
+  /// se van a perder: aca no se pregunta nada.
+  Future<void> reemplazarPuntos(
+    String trazadoId,
+    List<VerticeDibujado> vertices,
+  ) async {
+    final ahora = DateTime.now();
+    await _db.transaction(() async {
+      await (_db.delete(
+        _db.puntosTrazado,
+      )..where((p) => p.trazadoId.equals(trazadoId))).go();
+      for (var i = 0; i < vertices.length; i++) {
+        final v = vertices[i];
+        await _db
+            .into(_db.puntosTrazado)
+            .insert(
+              PuntosTrazadoCompanion.insert(
+                id: _uuid.v4(),
+                trazadoId: trazadoId,
+                orden: i + 1,
+                latitud: v.latitud,
+                longitud: v.longitud,
+                capturadoEn: ahora,
+                nota: Value(v.conPincel ? notaPincel : notaToque),
+              ),
+            );
+      }
+      await (_db.update(
+        _db.trazados,
+      )..where((t) => t.id.equals(trazadoId))).write(
+        TrazadosCompanion(
+          modoCaptura: const Value(ModoCaptura.manual),
+          actualizadoEn: Value(ahora),
+        ),
+      );
+    });
     await _db.refrescarGeometria(trazadoId);
   }
+
+  Future<void> eliminarTodosLosPuntos(String trazadoId) async {
+    await (_db.delete(
+      _db.puntosTrazado,
+    )..where((p) => p.trazadoId.equals(trazadoId))).go();
+    await _db.refrescarGeometria(trazadoId);
+  }
+
+  /// Cambia la nota de un punto. En un grupo es lo que dice que es cada uno:
+  /// «con monilia», «injerto nuevo», «la mas vieja del lote».
+  Future<void> actualizarNotaPunto(String puntoId, String? nota) async {
+    await (_db.update(_db.puntosTrazado)..where((p) => p.id.equals(puntoId)))
+        .write(PuntosTrazadoCompanion(nota: Value(_limpio(nota))));
+  }
+
+  /// Junta varios puntos sueltos en un solo grupo y devuelve su id.
+  ///
+  /// Es para cuando se marcaron de a uno con el boton rapido de la visita
+  /// —una planta, otra, otra— y despues se ve que son lo mismo: las plantas
+  /// enfermas del lote. El grupo sale al KML como una carpeta con una marca
+  /// por planta, y en la pantalla como un solo trazado con sus puntos.
+  ///
+  /// Nada se pierde al juntar:
+  ///  - el grupo es el trazado del primer punto que se marco, y los demas se
+  ///    borran despues de pasarle sus puntos;
+  ///  - los puntos quedan ordenados por hora de captura, que es el orden en
+  ///    que se caminaron;
+  ///  - si un punto tenia un nombre puesto a mano («Bocatoma») o un cultivo
+  ///    distinto al del grupo, eso pasa a su nota.
+  Future<String> agruparPuntos(
+    List<String> trazadoIds, {
+    String? nombre,
+  }) async {
+    final ids = trazadoIds.toSet().toList();
+    if (ids.length < 2) {
+      throw ArgumentError('Para agrupar hacen falta al menos dos puntos.');
+    }
+
+    return _db.transaction(() async {
+      final trazados = await (_db.select(
+        _db.trazados,
+      )..where((t) => t.id.isIn(ids))).get();
+      if (trazados.length != ids.length) {
+        throw StateError('Alguno de los puntos ya no existe.');
+      }
+      if (trazados.any((t) => t.tipo != TipoTrazado.punto)) {
+        throw ArgumentError(
+          'Solo se agrupan puntos sueltos, no lotes ni recorridos.',
+        );
+      }
+      if (trazados.map((t) => t.visitaId).toSet().length > 1) {
+        throw ArgumentError('Los puntos son de visitas distintas.');
+      }
+
+      // El orden en que se guardaron, para desempatar: la base guarda las
+      // horas al segundo, y dos toques rapidos caen en el mismo.
+      final posicion = {for (var i = 0; i < ids.length; i++) ids[i]: i};
+      int porHora(DateTime a, DateTime b, String idA, String idB) {
+        final c = a.compareTo(b);
+        return c != 0 ? c : posicion[idA]!.compareTo(posicion[idB]!);
+      }
+
+      final todos =
+          <({PuntoTrazado punto, Trazado origen})>[
+            for (final t in trazados)
+              for (final p in await _db.puntosDeTrazado(t.id))
+                (punto: p, origen: t),
+          ]..sort(
+            (a, b) => porHora(
+              a.punto.capturadoEn,
+              b.punto.capturadoEn,
+              a.origen.id,
+              b.origen.id,
+            ),
+          );
+
+      // El grupo es el trazado del primer punto que se marco: el grupo
+      // arranca donde arranco el recorrido de planta en planta.
+      final grupo = todos.isEmpty
+          ? (trazados
+                  ..sort((a, b) => porHora(a.creadoEn, b.creadoEn, a.id, b.id)))
+                .first
+          : todos.first.origen;
+
+      final etiquetas = {
+        for (final t in trazados)
+          if (t.etiqueta != null) t.etiqueta!,
+      };
+      final etiquetaComun = etiquetas.length == 1 ? etiquetas.first : null;
+
+      for (var i = 0; i < todos.length; i++) {
+        final (:punto, :origen) = todos[i];
+        final heredado = [
+          if (!_esNombrePorDefecto(origen.nombre)) origen.nombre,
+          if (origen.etiqueta != null && origen.etiqueta != etiquetaComun)
+            origen.etiqueta!,
+          if (punto.nota != null) punto.nota!,
+        ];
+        await (_db.update(
+          _db.puntosTrazado,
+        )..where((p) => p.id.equals(punto.id))).write(
+          PuntosTrazadoCompanion(
+            trazadoId: Value(grupo.id),
+            orden: Value(i + 1),
+            nota: Value(heredado.isEmpty ? null : heredado.join(' · ')),
+          ),
+        );
+      }
+
+      final notas = {
+        for (final t in trazados)
+          if (t.notas != null) t.notas!,
+      };
+      final modos = {for (final t in trazados) t.modoCaptura};
+
+      await (_db.update(
+        _db.trazados,
+      )..where((t) => t.id.equals(grupo.id))).write(
+        TrazadosCompanion(
+          nombre: Value(_limpio(nombre) ?? 'Grupo de ${todos.length} puntos'),
+          etiqueta: Value(etiquetaComun),
+          notas: Value(notas.isEmpty ? null : notas.join('\n')),
+          modoCaptura: Value(
+            modos.length == 1 ? modos.first : ModoCaptura.mixto,
+          ),
+          actualizadoEn: Value(DateTime.now()),
+        ),
+      );
+
+      for (final t in trazados) {
+        if (t.id == grupo.id) continue;
+        await (_db.delete(_db.trazados)..where((x) => x.id.equals(t.id))).go();
+      }
+
+      await _db.refrescarGeometria(grupo.id);
+      return grupo.id;
+    });
+  }
+
+  /// «Punto 3» lo puso la app; «Bocatoma» lo puso el visitador y vale la pena
+  /// conservarlo.
+  static bool _esNombrePorDefecto(String nombre) =>
+      RegExp(r'^Punto \d+$').hasMatch(nombre.trim());
 
   // ------------------------------------------------------------------ editar
 
@@ -230,7 +420,9 @@ class TrazadoRepository {
     double? precisionMaxM,
     bool? cerrado,
   }) async {
-    await (_db.update(_db.trazados)..where((t) => t.id.equals(trazadoId))).write(
+    await (_db.update(
+      _db.trazados,
+    )..where((t) => t.id.equals(trazadoId))).write(
       TrazadosCompanion(
         nombre: nombre == null || nombre.trim().isEmpty
             ? const Value.absent()
@@ -238,14 +430,19 @@ class TrazadoRepository {
         tipo: tipo == null ? const Value.absent() : Value(tipo),
         // Estos tres si aceptan vaciarse: «sin filtro de distancia» es una
         // eleccion valida y hay que poder volver a ella.
-        etiqueta: etiqueta == null ? const Value.absent() : Value(_limpio(etiqueta)),
+        etiqueta: etiqueta == null
+            ? const Value.absent()
+            : Value(_limpio(etiqueta)),
         notas: notas == null ? const Value.absent() : Value(_limpio(notas)),
-        intervaloSeg:
-            intervaloSeg == null ? const Value.absent() : Value(intervaloSeg),
-        distanciaMinM:
-            distanciaMinM == null ? const Value.absent() : Value(distanciaMinM),
-        precisionMaxM:
-            precisionMaxM == null ? const Value.absent() : Value(precisionMaxM),
+        intervaloSeg: intervaloSeg == null
+            ? const Value.absent()
+            : Value(intervaloSeg),
+        distanciaMinM: distanciaMinM == null
+            ? const Value.absent()
+            : Value(distanciaMinM),
+        precisionMaxM: precisionMaxM == null
+            ? const Value.absent()
+            : Value(precisionMaxM),
         cerrado: cerrado == null ? const Value.absent() : Value(cerrado),
         actualizadoEn: Value(DateTime.now()),
       ),
@@ -257,19 +454,20 @@ class TrazadoRepository {
   /// foranea rechaza el borrado, igual que al eliminar una visita.
   Future<void> eliminarTrazado(String trazadoId) async {
     await _db.transaction(() async {
-      await (_db.delete(_db.puntosTrazado)
-            ..where((p) => p.trazadoId.equals(trazadoId)))
-          .go();
-      await (_db.delete(_db.trazados)..where((t) => t.id.equals(trazadoId)))
-          .go();
+      await (_db.delete(
+        _db.puntosTrazado,
+      )..where((p) => p.trazadoId.equals(trazadoId))).go();
+      await (_db.delete(
+        _db.trazados,
+      )..where((t) => t.id.equals(trazadoId))).go();
     });
   }
 
   // ------------------------------------------------------------------ leer
 
-  Future<Trazado?> porId(String trazadoId) =>
-      (_db.select(_db.trazados)..where((t) => t.id.equals(trazadoId)))
-          .getSingleOrNull();
+  Future<Trazado?> porId(String trazadoId) => (_db.select(
+    _db.trazados,
+  )..where((t) => t.id.equals(trazadoId))).getSingleOrNull();
 
   Future<List<Trazado>> trazadosDeVisita(String visitaId) =>
       _db.trazadosDeVisita(visitaId);
@@ -292,9 +490,9 @@ class TrazadoRepository {
     bool incluirPuntoVisita = true,
   }) async {
     final ctx = await _visitas.contextoInforme(visitaId);
-    final visita = await (_db.select(_db.visitas)
-          ..where((v) => v.id.equals(visitaId)))
-        .getSingle();
+    final visita = await (_db.select(
+      _db.visitas,
+    )..where((v) => v.id.equals(visitaId))).getSingle();
 
     final lista = soloTrazadoId == null
         ? await _db.trazadosDeVisita(visitaId)
@@ -308,7 +506,9 @@ class TrazadoRepository {
     }
 
     final referencias = <PuntoKml>[];
-    if (incluirPuntoVisita && visita.latitud != null && visita.longitud != null) {
+    if (incluirPuntoVisita &&
+        visita.latitud != null &&
+        visita.longitud != null) {
       referencias.add(
         PuntoKml(
           nombre: 'Inicio de la visita',
@@ -336,7 +536,8 @@ class TrazadoRepository {
       }
     }
 
-    final quien = (ctx['finca'] ?? ctx['productor'] ?? 'Visita de campo') as String;
+    final quien =
+        (ctx['finca'] ?? ctx['productor'] ?? 'Visita de campo') as String;
     return DocumentoKml(
       nombre: quien,
       descripcion: [
@@ -398,13 +599,18 @@ class TrazadoRepository {
         if (t.distanciaMinM != null && t.distanciaMinM! > 0)
           'Distancia minima': '${t.distanciaMinM!.toStringAsFixed(0)} m',
         if (t.precisionMaxM != null && t.precisionMaxM! > 0)
-          'Precision maxima aceptada': '${t.precisionMaxM!.toStringAsFixed(0)} m',
+          'Precision maxima aceptada':
+              '${t.precisionMaxM!.toStringAsFixed(0)} m',
         'Puntos': '${puntos.length}',
         if (esAnillo) 'Area (ha)': (areaM2(geos) / 10000).toStringAsFixed(4),
         if (esAnillo)
-          'Perimetro (m)':
-              longitudMetros(geos, cerrado: true).toStringAsFixed(1),
-        if (!esAnillo && geos.length > 1)
+          'Perimetro (m)': longitudMetros(
+            geos,
+            cerrado: true,
+          ).toStringAsFixed(1),
+        // Un grupo de puntos sueltos no tiene largo: la linea que une una
+        // planta con la siguiente no existe en el terreno.
+        if (!esAnillo && t.tipo.unePuntos && geos.length > 1)
           'Largo (m)': longitudMetros(geos).toStringAsFixed(1),
         'Capturado el': _fechaCorta(t.creadoEn),
       },
@@ -439,8 +645,12 @@ class TrazadoRepository {
     }
 
     final temporal = await getTemporaryDirectory();
-    final archivo = File(p.join(temporal.path, await nombreKml(visitaId,
-        soloTrazadoId: soloTrazadoId)));
+    final archivo = File(
+      p.join(
+        temporal.path,
+        await nombreKml(visitaId, soloTrazadoId: soloTrazadoId),
+      ),
+    );
     // Se escribe en UTF-8 explicito: el encabezado del KML lo declara, y si el
     // archivo saliera en otra codificacion los nombres con eñe abririan rotos.
     await archivo.writeAsString(construirKml(doc), encoding: utf8);
@@ -448,11 +658,13 @@ class TrazadoRepository {
   }
 
   Future<String> nombreKml(String visitaId, {String? soloTrazadoId}) async {
-    final visita = await (_db.select(_db.visitas)
-          ..where((v) => v.id.equals(visitaId)))
-        .getSingle();
+    final visita = await (_db.select(
+      _db.visitas,
+    )..where((v) => v.id.equals(visitaId))).getSingle();
     final ctx = await _visitas.contextoInforme(visitaId);
-    final quien = slugArchivo((ctx['finca'] ?? ctx['productor'] ?? '') as String);
+    final quien = slugArchivo(
+      (ctx['finca'] ?? ctx['productor'] ?? '') as String,
+    );
     final sufijo = soloTrazadoId == null
         ? ''
         : '-${slugArchivo((await porId(soloTrazadoId))?.nombre ?? 'trazado')}';

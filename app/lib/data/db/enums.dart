@@ -84,14 +84,22 @@ enum TipoTrazado {
   /// acceso. Tiene largo, no area.
   ruta('Ruta'),
 
-  /// Un punto suelto: la bocatoma, el arbol enfermo, donde se saco la muestra
-  /// de suelo.
+  /// Puntos sueltos: uno solo (la bocatoma, donde se saco la muestra de
+  /// suelo) o un grupo con nombre (las plantas enfermas de un lote, los focos
+  /// de plaga, los arboles de sombra). Cada punto es una cosa aparte: no se
+  /// unen con lineas, no tienen largo ni area y en el KML sale una marca por
+  /// punto.
   punto('Punto');
 
   const TipoTrazado(this.airtable);
   final String airtable;
 
   bool get esPoligono => this == TipoTrazado.poligono;
+
+  /// Si los puntos se leen en orden como una figura (el contorno, el
+  /// recorrido) o cada uno por su lado. Manda sobre si se dibuja la linea que
+  /// los une y si tiene sentido medir un largo.
+  bool get unePuntos => this != TipoTrazado.punto;
 }
 
 /// Como se estan poniendo los puntos. Es del visitador, no de la app: la
@@ -148,48 +156,48 @@ class _AirtableConverter<T extends Enum> extends TypeConverter<T, String> {
 
 class CertezaConverter extends _AirtableConverter<Certeza> {
   const CertezaConverter()
-      : super(Certeza.values, _airtable, Certeza.pendiente);
+    : super(Certeza.values, _airtable, Certeza.pendiente);
   static String _airtable(Certeza v) => v.airtable;
 }
 
 class EstadoHallazgoConverter extends _AirtableConverter<EstadoHallazgo> {
   const EstadoHallazgoConverter()
-      : super(EstadoHallazgo.values, _airtable, EstadoHallazgo.propuestoPorIa);
+    : super(EstadoHallazgo.values, _airtable, EstadoHallazgo.propuestoPorIa);
   static String _airtable(EstadoHallazgo v) => v.airtable;
 }
 
 class HablanteConverter extends _AirtableConverter<Hablante> {
   const HablanteConverter()
-      : super(Hablante.values, _airtable, Hablante.noIdentificado);
+    : super(Hablante.values, _airtable, Hablante.noIdentificado);
   static String _airtable(Hablante v) => v.airtable;
 }
 
 class EntidadDestinoConverter extends _AirtableConverter<EntidadDestino> {
   const EntidadDestinoConverter()
-      : super(EntidadDestino.values, _airtable, EntidadDestino.visita);
+    : super(EntidadDestino.values, _airtable, EntidadDestino.visita);
   static String _airtable(EntidadDestino v) => v.airtable;
 }
 
 class FuenteHallazgoConverter extends _AirtableConverter<FuenteHallazgo> {
   const FuenteHallazgoConverter()
-      : super(FuenteHallazgo.values, _airtable, FuenteHallazgo.audio);
+    : super(FuenteHallazgo.values, _airtable, FuenteHallazgo.audio);
   static String _airtable(FuenteHallazgo v) => v.airtable;
 }
 
 class EstadoSyncConverter extends _AirtableConverter<EstadoSync> {
   const EstadoSyncConverter()
-      : super(EstadoSync.values, _airtable, EstadoSync.pendiente);
+    : super(EstadoSync.values, _airtable, EstadoSync.pendiente);
   static String _airtable(EstadoSync v) => v.airtable;
 }
 
 class TipoTrazadoConverter extends _AirtableConverter<TipoTrazado> {
   const TipoTrazadoConverter()
-      : super(TipoTrazado.values, _airtable, TipoTrazado.poligono);
+    : super(TipoTrazado.values, _airtable, TipoTrazado.poligono);
   static String _airtable(TipoTrazado v) => v.airtable;
 }
 
 class ModoCapturaConverter extends _AirtableConverter<ModoCaptura> {
   const ModoCapturaConverter()
-      : super(ModoCaptura.values, _airtable, ModoCaptura.manual);
+    : super(ModoCaptura.values, _airtable, ModoCaptura.manual);
   static String _airtable(ModoCaptura v) => v.airtable;
 }

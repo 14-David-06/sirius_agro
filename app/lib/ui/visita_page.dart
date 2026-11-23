@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../core/iconos_modulo.dart';
 import '../core/servicio_grabacion.dart';
@@ -10,6 +11,7 @@ import '../state/providers.dart';
 import '../state/sincronizador.dart';
 import 'consentimiento_page.dart';
 import 'marca.dart';
+import 'nueva_visita_page.dart';
 import 'reproductor_audio.dart';
 import 'theme.dart';
 import 'visita_secciones.dart';
@@ -54,10 +56,11 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
     final historial = ref.watch(historialProvider);
     final bajando = historial.trabajando;
     final ctrl = ref.read(grabacionProvider(visitaId).notifier);
+    final numero = ref.watch(numeroVisitaProvider(visitaId)).valueOrNull;
 
     return Scaffold(
       appBar: AppBarMarca(
-        titulo: 'Visita en curso',
+        titulo: numero == null ? 'Visita en curso' : 'Visita $numero',
         actions: [
           if (visita != null)
             Padding(
@@ -111,12 +114,21 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                     children: [
+                      // Una visita de otro dia ya paso. Lo que se converse hoy
+                      // con la misma persona es otra visita, con su fecha y su
+                      // numero: si se grabara aqui, el audio de hoy quedaria
+                      // archivado con la fecha de la vez anterior.
+                      if (visita.soloLectura || !esDeHoy(visita.inicio)) ...[
+                        _TarjetaSeguimiento(visita: visita),
+                        const SizedBox(height: 20),
+                      ],
                       if (!visita.soloLectura)
                       _PanelGrabacion(
                         visitaId: visitaId,
                         estado: grabacion,
                         puedeGrabar: visita.consienteAudio,
-                        onIniciar: ctrl.iniciar,
+                        onIniciar: () =>
+                            _iniciarGrabacion(context, ref, visita, ctrl),
                         onPausa: ctrl.alternarPausa,
                         onDetener: () async {
                           final ok = await ctrl.detener();
@@ -165,6 +177,7 @@ class _VisitaPageState extends ConsumerState<VisitaPage> {
                       ],
                       const SizedBox(height: 28),
                       const TituloSeccion('Cobertura de la conversacion'),
+                      _ResueltosAntes(visitaId: visitaId),
                       _Faltantes(visitaId: visitaId),
                       const SizedBox(height: 28),
                       const TituloSeccion('Entregable'),
@@ -203,6 +216,185 @@ Future<void> pedirPermisoDeNuevo(BuildContext context, String visitaId) async {
   if (ok == true && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Permiso actualizado.')),
+    );
+  }
+}
+
+/// Si [fecha] cae hoy, en la hora del telefono.
+bool esDeHoy(DateTime fecha, {DateTime? ahora}) {
+  final hoy = ahora ?? DateTime.now();
+  final f = fecha.toLocal();
+  return f.year == hoy.year && f.month == hoy.month && f.day == hoy.day;
+}
+
+String _fechaLarga(DateTime fecha) =>
+    DateFormat("EEEE d 'de' MMMM 'de' y", 'es').format(fecha.toLocal());
+
+/// Abre la visita de seguimiento: la pantalla de nueva visita, llena con el
+/// agricultor, la finca y la vereda de [visita].
+///
+/// No crea nada por su cuenta. La visita nueva necesita el GPS de hoy y el
+/// consentimiento de hoy, y los dos se piden en el flujo de siempre: el
+/// permiso de grabar se da en cada visita, no una vez para todas.
+Future<void> abrirSeguimiento(
+  BuildContext context,
+  WidgetRef ref,
+  Visita visita,
+) async {
+  final repo = ref.read(repoProvider);
+  final productor = await repo.productorDeVisita(visita.id);
+  final finca = await repo.fincaDeVisita(visita.id);
+  if (!context.mounted) return;
+  await Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => NuevaVisitaPage(
+        seguimientoDe: productor,
+        nombreFinca: finca?.nombre,
+        veredaId: visita.veredaLocalId,
+      ),
+    ),
+  );
+}
+
+enum _GrabarEn { seguimiento, estaVisita }
+
+/// El boton de grabar, con una pregunta antes cuando la visita es de otro dia.
+///
+/// No se bloquea: puede haber una razon para seguir en la visita vieja (una
+/// conversacion que cruzo la medianoche). Pero la opcion por defecto es la
+/// visita de seguimiento, que es lo que casi siempre paso: el visitador volvio
+/// a la finca y abrio la visita anterior para «seguir».
+Future<void> _iniciarGrabacion(
+  BuildContext context,
+  WidgetRef ref,
+  Visita visita,
+  GrabacionController ctrl,
+) async {
+  if (!esDeHoy(visita.inicio)) {
+    final fecha = _fechaLarga(visita.inicio);
+    final eleccion = await showDialog<_GrabarEn>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Esta visita es de otro dia'),
+        content: Text(
+          'Se hizo el $fecha. Si hoy volvio a reunirse con el agricultor, '
+          'registrelo como visita de seguimiento: queda con la fecha de hoy, '
+          'con el numero siguiente, y solo le pide lo que falto.\n\n'
+          'Si graba aqui, el audio de hoy queda dentro de la visita del '
+          '$fecha.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_GrabarEn.estaVisita),
+            child: const Text('Grabar en esta'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(_GrabarEn.seguimiento),
+            child: const Text('Visita de seguimiento'),
+          ),
+        ],
+      ),
+    );
+    if (!context.mounted) return;
+    switch (eleccion) {
+      case _GrabarEn.seguimiento:
+        await abrirSeguimiento(context, ref, visita);
+        return;
+      case _GrabarEn.estaVisita:
+        break;
+      case null:
+        // Cerro el dialogo sin elegir: no se graba nada.
+        return;
+    }
+  }
+  await ctrl.iniciar();
+}
+
+/// La salida para cuando se vuelve a ver al agricultor: una visita nueva, con
+/// su fecha y su numero, en vez de seguir escribiendo sobre la anterior.
+class _TarjetaSeguimiento extends ConsumerWidget {
+  const _TarjetaSeguimiento({required this.visita});
+
+  final Visita visita;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final scheme = tema.colorScheme;
+    final productor =
+        ref.watch(productorDeVisitaProvider(visita.id)).valueOrNull;
+    final nombre = productor?.nombreCompleto ?? 'el agricultor';
+
+    return Card(
+      color: scheme.surfaceContainerLow,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.event_repeat, size: 20, color: scheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Si vuelve a reunirse con $nombre',
+                    style: tema.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Esta visita fue el ${_fechaLarga(visita.inicio)}. Lo de hoy '
+              'va en una visita de seguimiento: queda con la fecha de hoy, '
+              'con el numero siguiente, y solo pide lo que falto.',
+              style: tema.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => abrirSeguimiento(context, ref, visita),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Nueva visita de seguimiento'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Lo que ya se sabia del agricultor antes de esta visita. Sin esta linea, un
+/// seguimiento que arranca en 60% parece un error.
+class _ResueltosAntes extends ConsumerWidget {
+  const _ResueltosAntes({required this.visitaId});
+
+  final String visitaId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cuantos = ref.watch(resueltosAntesProvider(visitaId)).valueOrNull ?? 0;
+    if (cuantos == 0) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+      child: Text(
+        cuantos == 1
+            ? '1 tema ya se resolvio en visitas anteriores de este '
+                'agricultor. Aqui solo sale lo que falta.'
+            : '$cuantos temas ya se resolvieron en visitas anteriores de '
+                'este agricultor. Aqui solo sale lo que falta.',
+        style: TextStyle(
+          fontSize: 12.5,
+          height: 1.35,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
     );
   }
 }

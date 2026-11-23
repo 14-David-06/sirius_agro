@@ -79,6 +79,10 @@ class TrazadoKml {
 
   List<PuntoGeo> get geos => [for (final p in puntos) p.geo];
 
+  /// Varios puntos sueltos con un nombre comun: las plantas de un lote, los
+  /// focos de plaga. Cada uno sale como su propia marca.
+  bool get esGrupo => geometria == GeometriaKml.punto && puntos.length > 1;
+
   /// La geometria efectiva. Un poligono con menos de tres puntos no se puede
   /// escribir como tal: KML lo acepta y Google Earth lo dibuja como nada.
   GeometriaKml get efectiva {
@@ -157,6 +161,8 @@ String construirKml(DocumentoKml doc) {
 /// Una carpeta por trazado: la geometria y, si se pidio, sus vertices. Asi
 /// cada lote se prende y apaga entero en el arbol de Google Earth.
 String _carpetaTrazado(TrazadoKml t, bool incluirVertices) {
+  if (t.esGrupo) return _carpetaGrupo(t);
+
   final b = StringBuffer()
     ..writeln('    <Folder>')
     ..writeln('      <name>${_xml(t.nombre)}</name>')
@@ -195,6 +201,37 @@ String _carpetaTrazado(TrazadoKml t, bool incluirVertices) {
   return b.toString();
 }
 
+/// Un grupo de puntos sueltos no es una figura: cada punto es una planta, un
+/// foco, un arbol, y tiene que poder tocarse en Google Earth y leer su nota.
+/// Sale una carpeta con una marca por punto, numeradas como en la pantalla, y
+/// cada una lleva el grupo en sus datos para que en QGIS se pueda filtrar.
+String _carpetaGrupo(TrazadoKml t) {
+  final b = StringBuffer()
+    ..writeln('    <Folder>')
+    ..writeln('      <name>${_xml(t.nombre)}</name>')
+    ..writeln('      <open>0</open>');
+
+  final descripcion = _descripcion(t);
+  if (descripcion.isNotEmpty) {
+    b.writeln('      <description>${_xml(descripcion)}</description>');
+  }
+
+  for (var i = 0; i < t.puntos.length; i++) {
+    b.write(
+      _marcaPunto(
+        t.puntos[i],
+        '${t.nombre} ${i + 1}',
+        '#sirius-punto',
+        6,
+        datos: {...t.datos, 'Grupo': t.nombre, 'Numero': '${i + 1}'},
+      ),
+    );
+  }
+
+  b.writeln('    </Folder>');
+  return b.toString();
+}
+
 String _poligono(List<PuntoKml> puntos) {
   // El anillo se cierra repitiendo el primer punto: sin eso el poligono no es
   // valido y Google Earth lo descarta en silencio.
@@ -220,7 +257,8 @@ String _poligono(List<PuntoKml> puntos) {
       '        </Polygon>\n';
 }
 
-String _linea(List<PuntoKml> puntos) => '        <LineString>\n'
+String _linea(List<PuntoKml> puntos) =>
+    '        <LineString>\n'
     '          <tessellate>1</tessellate>\n'
     '          <altitudeMode>clampToGround</altitudeMode>\n'
     '          <coordinates>\n'
@@ -228,11 +266,18 @@ String _linea(List<PuntoKml> puntos) => '        <LineString>\n'
     '          </coordinates>\n'
     '        </LineString>\n';
 
-String _punto(PuntoKml p) => '        <Point>\n'
+String _punto(PuntoKml p) =>
+    '        <Point>\n'
     '          <coordinates>${p.coordenada}</coordinates>\n'
     '        </Point>\n';
 
-String _marcaPunto(PuntoKml p, String nombre, String estilo, int sangria) {
+String _marcaPunto(
+  PuntoKml p,
+  String nombre,
+  String estilo,
+  int sangria, {
+  Map<String, String> datos = const {},
+}) {
   final e = ' ' * sangria;
   final b = StringBuffer()
     ..writeln('$e<Placemark>')
@@ -254,8 +299,26 @@ String _marcaPunto(PuntoKml p, String nombre, String estilo, int sangria) {
       ..writeln('$e  </TimeStamp>');
   }
 
+  b.writeln('$e  <styleUrl>$estilo</styleUrl>');
+  // Los datos van por punto y no solo en la carpeta: QGIS importa cada marca
+  // como una fila, y una fila sin grupo ni nota no se puede filtrar.
+  final extendidos = {
+    ...datos,
+    if (p.precisionM != null) 'Precision (m)': p.precisionM!.toStringAsFixed(1),
+    if (p.momento != null) 'Capturado en': _hora(p.momento!),
+    if (p.nota != null && p.nota!.trim().isNotEmpty) 'Nota': p.nota!.trim(),
+  };
+  if (datos.isNotEmpty) {
+    b.writeln('$e  <ExtendedData>');
+    for (final d in extendidos.entries) {
+      b
+        ..writeln('$e    <Data name="${_xml(d.key)}">')
+        ..writeln('$e      <value>${_xml(d.value)}</value>')
+        ..writeln('$e    </Data>');
+    }
+    b.writeln('$e  </ExtendedData>');
+  }
   b
-    ..writeln('$e  <styleUrl>$estilo</styleUrl>')
     ..writeln('$e  <Point><coordinates>${p.coordenada}</coordinates></Point>')
     ..writeln('$e</Placemark>');
   return b.toString();
@@ -301,10 +364,10 @@ String _coordenadas(List<PuntoKml> puntos, int sangria) {
 }
 
 String _estiloDe(GeometriaKml g) => switch (g) {
-      GeometriaKml.poligono => '#sirius-lote',
-      GeometriaKml.ruta => '#sirius-ruta',
-      GeometriaKml.punto => '#sirius-punto',
-    };
+  GeometriaKml.poligono => '#sirius-lote',
+  GeometriaKml.ruta => '#sirius-ruta',
+  GeometriaKml.punto => '#sirius-punto',
+};
 
 /// Los colores de la marca. KML los pide en **aabbggrr** — alfa primero y los
 /// canales al reves del hexadecimal de siempre. El verde 6EB100 sale

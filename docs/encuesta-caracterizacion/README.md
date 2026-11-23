@@ -11,6 +11,9 @@ La visita no cambió de forma de trabajar:
 2. La lista «Cobertura de la conversación» le muestra, por módulo, los temas que faltan por tocar.
 3. Al procesar la grabación, la IA saca de la conversación lo que se dijo de cada tema, con su cita.
 4. Los temas que ya se hablaron salen de la lista y sube el porcentaje de cobertura.
+5. Si no alcanzó el tiempo, la siguiente reunión con el productor es una **visita de seguimiento** (Visita 2, 3…):
+   queda con su propia fecha, y su lista solo trae lo que faltó en las visitas anteriores. La cobertura es acumulada
+   por productor. Detalle en `docs/airtable-schema.md`, decisión 7c.
 
 Lo que cambió es el catálogo de temas:
 

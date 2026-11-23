@@ -9,6 +9,7 @@ import '../state/providers.dart';
 import '../state/red.dart';
 import '../state/trazado.dart';
 import 'croquis.dart';
+import 'dibujo_mapa_page.dart';
 import 'mapa_trazado.dart';
 import 'marca.dart';
 import 'theme.dart';
@@ -55,14 +56,13 @@ class _TrazadoPageState extends ConsumerState<TrazadoPage> {
   @override
   Widget build(BuildContext context) {
     final trazado = ref.watch(trazadoProvider(trazadoId)).valueOrNull;
-    final puntos = ref.watch(puntosTrazadoProvider(trazadoId)).valueOrNull ?? [];
+    final puntos =
+        ref.watch(puntosTrazadoProvider(trazadoId)).valueOrNull ?? [];
     final captura = ref.watch(capturaProvider(trazadoId));
     final ctrl = ref.read(capturaProvider(trazadoId).notifier);
 
     if (trazado == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -124,7 +124,11 @@ class _TrazadoPageState extends ConsumerState<TrazadoPage> {
                 _ListaPuntos(trazado: trazado, puntos: puntos),
                 const SizedBox(height: 24),
                 const TituloSeccion('Salida'),
-                _PanelExportar(visitaId: visitaId, trazado: trazado, puntos: puntos),
+                _PanelExportar(
+                  visitaId: visitaId,
+                  trazado: trazado,
+                  puntos: puntos,
+                ),
               ],
             ),
           ),
@@ -143,18 +147,11 @@ class _TrazadoPageState extends ConsumerState<TrazadoPage> {
     final trazado = ref.read(trazadoProvider(trazadoId)).valueOrNull;
     if (trazado == null) return;
 
-    final puntos =
-        ref.read(puntosTrazadoProvider(trazadoId)).valueOrNull ?? const [];
-    // Un trazado de tipo punto es una marca sola: el segundo vertice no lo
-    // dibujaria mas grande, lo volveria otra cosa.
-    if (trazado.tipo == TipoTrazado.punto && puntos.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Este trazado ya tiene su punto.')),
-      );
-      return;
-    }
-
-    await ref.read(trazadoRepoProvider).agregarPunto(
+    // Un trazado de tipo punto acepta varios: es un grupo de puntos sueltos
+    // (las plantas de un lote), y cada toque es una planta mas.
+    await ref
+        .read(trazadoRepoProvider)
+        .agregarPunto(
           trazadoId: trazadoId,
           latitud: latitud,
           longitud: longitud,
@@ -169,7 +166,9 @@ class _TrazadoPageState extends ConsumerState<TrazadoPage> {
   ) async {
     final datos = await mostrarFichaTrazado(context, trazado: trazado);
     if (datos == null) return;
-    await ref.read(trazadoRepoProvider).actualizarTrazado(
+    await ref
+        .read(trazadoRepoProvider)
+        .actualizarTrazado(
           trazado.id,
           nombre: datos.nombre,
           tipo: datos.tipo,
@@ -183,7 +182,9 @@ class _TrazadoPageState extends ConsumerState<TrazadoPage> {
     WidgetRef ref,
     Trazado trazado,
   ) async {
-    final puntos = await ref.read(trazadoRepoProvider).puntosDeTrazado(trazado.id);
+    final puntos = await ref
+        .read(trazadoRepoProvider)
+        .puntosDeTrazado(trazado.id);
     if (!context.mounted) return;
 
     final ok = await showDialog<bool>(
@@ -196,7 +197,7 @@ class _TrazadoPageState extends ConsumerState<TrazadoPage> {
           puntos.isEmpty
               ? 'No tiene puntos capturados.'
               : 'Se van ${puntos.length} punto(s) que se caminaron en la '
-                  'finca. Esto no se deshace.',
+                    'finca. Esto no se deshace.',
         ),
         actions: [
           TextButton(
@@ -289,11 +290,16 @@ class _Vista extends ConsumerWidget {
         ),
         const SizedBox(height: 10),
         if (!mapa)
-          Croquis(puntos: puntos, cerrado: _cerradoEfectivo(trazado))
+          Croquis(
+            puntos: puntos,
+            cerrado: _cerradoEfectivo(trazado),
+            unirPuntos: trazado.tipo.unePuntos,
+          )
         else ...[
           MapaTrazado(
             puntos: puntos,
             cerrado: _cerradoEfectivo(trazado),
+            unirPuntos: trazado.tipo.unePuntos,
             centroPorDefecto: centro,
             onTocar: tocarAgrega ? onPunto : null,
           ),
@@ -310,7 +316,7 @@ class _Vista extends ConsumerWidget {
             subtitle: Text(
               tocarAgrega
                   ? 'Cada toque deja un vertice donde tocaste, sin precision '
-                      'de GPS. Para el lindero real, caminalo.'
+                        'de GPS. Para el lindero real, caminalo.'
                   : 'Prendelo para dibujar el lote sobre el mapa con el dedo.',
               style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
             ),
@@ -319,8 +325,9 @@ class _Vista extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                'Sin red las teselas no bajan: el mapa puede salir en blanco. '
-                'Los puntos se guardan igual y el croquis los muestra.',
+                'Sin red el satelite muestra lo guardado en el telefono (el '
+                'municipio y alrededor de las fincas); las calles pueden salir '
+                'en blanco. Los puntos se guardan igual.',
                 style: TextStyle(
                   fontSize: 11.5,
                   height: 1.35,
@@ -329,6 +336,26 @@ class _Vista extends ConsumerWidget {
               ),
             ),
         ],
+        const SizedBox(height: 8),
+        // A pantalla completa y con herramientas propias: dibujar en el mapa
+        // chico de arriba, dentro de una pantalla que se desplaza, peleaba con
+        // el dedo que quiere mover la lista.
+        OutlinedButton.icon(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => DibujoMapaPage(
+                visitaId: trazado.visitaId,
+                trazadoId: trazado.id,
+              ),
+            ),
+          ),
+          icon: const Icon(Icons.draw_outlined, size: 18),
+          label: Text(
+            trazado.tipo.unePuntos
+                ? 'Dibujar en el mapa (pincel o vertices)'
+                : 'Marcar puntos en el mapa',
+          ),
+        ),
       ],
     );
   }
@@ -346,6 +373,49 @@ class _Medidas extends StatelessWidget {
   Widget build(BuildContext context) {
     final geos = [for (final p in puntos) PuntoGeo(p.latitud, p.longitud)];
     final anillo = _cerradoEfectivo(trazado);
+
+    // Un grupo de puntos sueltos no tiene area ni largo. Lo que importa de un
+    // grupo de plantas es cuantas son, que tan bien las ubico el GPS y que
+    // tan repartidas estan.
+    if (!trazado.tipo.unePuntos) {
+      final precisiones = [
+        for (final p in puntos)
+          if (p.precisionM != null) p.precisionM!,
+      ];
+      final media = precisiones.isEmpty
+          ? null
+          : precisiones.reduce((a, b) => a + b) / precisiones.length;
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              _Dato(
+                etiqueta: 'Puntos',
+                valor: '${puntos.length}',
+                icono: Icons.scatter_plot_outlined,
+              ),
+              _Dato(
+                etiqueta: 'GPS promedio',
+                valor: media == null ? '—' : '±${media.round()} m',
+                icono: Icons.gps_fixed,
+                ayuda: media == null
+                    ? 'Los puntos marcados en el mapa no tienen precision.'
+                    : null,
+              ),
+              _Dato(
+                etiqueta: 'Mas separados',
+                valor: geos.length < 2
+                    ? '—'
+                    : formatearDistancia(_mayorSeparacion(geos)),
+                icono: Icons.open_in_full,
+                ayuda: 'La distancia entre los dos puntos mas alejados.',
+              ),
+            ].map((w) => Expanded(child: w)).toList(growable: false),
+          ),
+        ),
+      );
+    }
 
     // Se calcula aca y no se lee de la fila: la fila se refresca en cada
     // cambio, pero si alguna vez las dos se separan, lo que el visitador ve
@@ -371,8 +441,8 @@ class _Medidas extends StatelessWidget {
               // parece que la app no supo calcularla.
               ayuda: area == null
                   ? (trazado.tipo.esPoligono
-                      ? 'El anillo esta abierto o falta un tercer punto.'
-                      : 'Un ${trazado.tipo.airtable.toLowerCase()} no encierra area.')
+                        ? 'El anillo esta abierto o falta un tercer punto.'
+                        : 'Un ${trazado.tipo.airtable.toLowerCase()} no encierra area.')
                   : null,
             ),
             _Dato(
@@ -380,13 +450,24 @@ class _Medidas extends StatelessWidget {
               valor: formatearDistancia(largo),
               icono: Icons.straighten,
             ),
-          ]
-              .map((w) => Expanded(child: w))
-              .toList(growable: false),
+          ].map((w) => Expanded(child: w)).toList(growable: false),
         ),
       ),
     );
   }
+}
+
+/// La distancia entre los dos puntos mas alejados del grupo. Es cuadratica,
+/// pero un grupo son decenas de plantas, no miles.
+double _mayorSeparacion(List<PuntoGeo> geos) {
+  var mayor = 0.0;
+  for (var i = 0; i < geos.length; i++) {
+    for (var j = i + 1; j < geos.length; j++) {
+      final d = distanciaMetros(geos[i], geos[j]);
+      if (d > mayor) mayor = d;
+    }
+  }
+  return mayor;
 }
 
 class _Dato extends StatelessWidget {
@@ -460,10 +541,7 @@ class _PanelCaptura extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: estado.buscandoGps ||
-                        (esPunto && puntos.isNotEmpty)
-                    ? null
-                    : () => ctrl.marcarPunto(),
+                onPressed: estado.buscandoGps ? null : () => ctrl.marcarPunto(),
                 style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
                 icon: estado.buscandoGps
                     ? const SizedBox(
@@ -476,15 +554,21 @@ class _PanelCaptura extends ConsumerWidget {
                   estado.buscandoGps
                       ? 'Fijando posicion...'
                       : esPunto && puntos.isNotEmpty
-                          ? 'Este trazado ya tiene su punto'
-                          : 'Marcar un punto aqui',
+                      ? 'Marcar otro punto aqui (${puntos.length + 1})'
+                      : 'Marcar un punto aqui',
                 ),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Un punto marcado a mano entra siempre, con la precision que '
-              'haya. Los filtros de abajo son solo para el modo automatico.',
+              esPunto
+                  ? 'Parate junto a cada planta (o foco, o arbol) y toca el '
+                        'boton: cada toque guarda un punto aparte, numerado, con '
+                        'su hora y su precision. En la lista de abajo se le pone '
+                        'una nota a cada uno.'
+                  : 'Un punto marcado a mano entra siempre, con la precision '
+                        'que haya. Los filtros de abajo son solo para el modo '
+                        'automatico.',
               style: TextStyle(
                 fontSize: 11.5,
                 height: 1.35,
@@ -553,9 +637,9 @@ class _PanelCaptura extends ConsumerWidget {
                         Text(
                           estado.capturando
                               ? 'Capturando cada ${_intervalo(trazado)} s. '
-                                  'Camina el contorno.'
+                                    'Camina el contorno.'
                               : 'Para contornos curvos, donde marcar esquina '
-                                  'por esquina daria un lote de seis lados.',
+                                    'por esquina daria un lote de seis lados.',
                           style: tema.textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -635,7 +719,13 @@ class _Opciones extends ConsumerWidget {
       children: [
         _FilaOpcion(
           titulo: 'Un punto cada',
-          opciones: const {'5 s': 5, '10 s': 10, '15 s': 15, '30 s': 30, '1 min': 60},
+          opciones: const {
+            '5 s': 5,
+            '10 s': 10,
+            '15 s': 15,
+            '30 s': 30,
+            '1 min': 60,
+          },
           actual: (trazado.intervaloSeg == null || trazado.intervaloSeg! < 3)
               ? 10
               : trazado.intervaloSeg!,
@@ -645,7 +735,13 @@ class _Opciones extends ConsumerWidget {
         const SizedBox(height: 10),
         _FilaOpcion(
           titulo: 'Ignorar si esta a menos de',
-          opciones: const {'Nada': 0.0, '2 m': 2.0, '5 m': 5.0, '10 m': 10.0, '20 m': 20.0},
+          opciones: const {
+            'Nada': 0.0,
+            '2 m': 2.0,
+            '5 m': 5.0,
+            '10 m': 10.0,
+            '20 m': 20.0,
+          },
           actual: trazado.distanciaMinM ?? 5.0,
           bloqueado: false,
           onElegir: (v) => repo.actualizarTrazado(trazado.id, distanciaMinM: v),
@@ -653,7 +749,12 @@ class _Opciones extends ConsumerWidget {
         const SizedBox(height: 10),
         _FilaOpcion(
           titulo: 'Descartar si el GPS falla mas de',
-          opciones: const {'Sin limite': 0.0, '10 m': 10.0, '20 m': 20.0, '50 m': 50.0},
+          opciones: const {
+            'Sin limite': 0.0,
+            '10 m': 10.0,
+            '20 m': 20.0,
+            '50 m': 50.0,
+          },
           actual: trazado.precisionMaxM ?? 0.0,
           bloqueado: false,
           onElegir: (v) => repo.actualizarTrazado(trazado.id, precisionMaxM: v),
@@ -703,8 +804,7 @@ class _FilaOpcion<T> extends StatelessWidget {
               ChoiceChip(
                 label: Text(o.key),
                 selected: o.value == actual,
-                onSelected:
-                    bloqueado ? null : (_) => onElegir(o.value),
+                onSelected: bloqueado ? null : (_) => onElegir(o.value),
                 visualDensity: VisualDensity.compact,
               ),
           ],
@@ -790,6 +890,18 @@ class _ListaPuntos extends ConsumerStatefulWidget {
 class _ListaPuntosState extends ConsumerState<_ListaPuntos> {
   String? _abierto;
 
+  /// La nota es lo que dice que es cada punto de un grupo: «con monilia»,
+  /// «injerto nuevo». Sale en la lista, en el KML y en la ficha de Google
+  /// Earth al tocar la marca.
+  Future<void> _editarNota(PuntoTrazado punto, int numero) async {
+    final nota = await showDialog<String>(
+      context: context,
+      builder: (_) => _DialogoNota(numero: numero, inicial: punto.nota),
+    );
+    if (nota == null) return;
+    await ref.read(trazadoRepoProvider).actualizarNotaPunto(punto.id, nota);
+  }
+
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
@@ -797,11 +909,15 @@ class _ListaPuntosState extends ConsumerState<_ListaPuntos> {
     final puntos = widget.puntos;
 
     if (puntos.isEmpty) {
-      return const Card(
+      return Card(
         child: ListTile(
-          leading: Icon(Icons.place_outlined),
-          title: Text('Sin puntos todavia'),
-          subtitle: Text('Marca uno a mano o prende el recorrido.'),
+          leading: const Icon(Icons.place_outlined),
+          title: const Text('Sin puntos todavia'),
+          subtitle: Text(
+            widget.trazado.tipo.unePuntos
+                ? 'Marca uno a mano o prende el recorrido.'
+                : 'Marca el primero con el boton de arriba.',
+          ),
         ),
       );
     }
@@ -847,11 +963,24 @@ class _ListaPuntosState extends ConsumerState<_ListaPuntos> {
                 ].join(' · '),
                 style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
               ),
-              trailing: IconButton(
-                tooltip: 'Borrar este punto',
-                icon: const Icon(Icons.close, size: 18),
-                onPressed: () =>
-                    ref.read(trazadoRepoProvider).eliminarPunto(puntos[i].id),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: puntos[i].nota == null
+                        ? 'Agregar una nota'
+                        : 'Cambiar la nota',
+                    icon: const Icon(Icons.edit_note, size: 20),
+                    onPressed: () => _editarNota(puntos[i], i + 1),
+                  ),
+                  IconButton(
+                    tooltip: 'Borrar este punto',
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () => ref
+                        .read(trazadoRepoProvider)
+                        .eliminarPunto(puntos[i].id),
+                  ),
+                ],
               ),
               onTap: () => setState(
                 () => _abierto = _abierto == puntos[i].id ? null : puntos[i].id,
@@ -859,6 +988,54 @@ class _ListaPuntosState extends ConsumerState<_ListaPuntos> {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Pide la nota de un punto. Devuelve el texto (vacio = borrar la nota) o
+/// null si se cancelo.
+class _DialogoNota extends StatefulWidget {
+  const _DialogoNota({required this.numero, this.inicial});
+
+  final int numero;
+  final String? inicial;
+
+  @override
+  State<_DialogoNota> createState() => _DialogoNotaState();
+}
+
+class _DialogoNotaState extends State<_DialogoNota> {
+  late final _control = TextEditingController(text: widget.inicial ?? '');
+
+  @override
+  void dispose() {
+    _control.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Nota del punto ${widget.numero}'),
+      content: TextField(
+        controller: _control,
+        autofocus: true,
+        maxLines: 2,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(
+          hintText: 'Con monilia, injerto nuevo, la mas alta...',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_control.text),
+          child: const Text('Guardar'),
+        ),
+      ],
     );
   }
 }
@@ -930,7 +1107,10 @@ class _PanelExportarState extends ConsumerState<_PanelExportar> {
               dense: true,
               value: _soloEste,
               onChanged: (v) => setState(() => _soloEste = v),
-              title: const Text('Solo este trazado', style: TextStyle(fontSize: 13)),
+              title: const Text(
+                'Solo este trazado',
+                style: TextStyle(fontSize: 13),
+              ),
               subtitle: Text(
                 _soloEste
                     ? 'Sale «${widget.trazado.nombre}» y nada mas.'
@@ -938,21 +1118,24 @@ class _PanelExportarState extends ConsumerState<_PanelExportar> {
                 style: const TextStyle(fontSize: 11.5),
               ),
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              value: _conVertices,
-              onChanged: (v) => setState(() => _conVertices = v),
-              title: const Text(
-                'Incluir cada punto como marca',
-                style: TextStyle(fontSize: 13),
+            // En un grupo de puntos sueltos cada punto ya sale como marca
+            // propia: el interruptor no cambiaria nada.
+            if (widget.trazado.tipo.unePuntos)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                value: _conVertices,
+                onChanged: (v) => setState(() => _conVertices = v),
+                title: const Text(
+                  'Incluir cada punto como marca',
+                  style: TextStyle(fontSize: 13),
+                ),
+                subtitle: const Text(
+                  'Con su hora y su precision. Util para revisar la captura; '
+                  'en un recorrido largo son cientos de marcas.',
+                  style: TextStyle(fontSize: 11.5),
+                ),
               ),
-              subtitle: const Text(
-                'Con su hora y su precision. Util para revisar la captura; '
-                'en un recorrido largo son cientos de marcas.',
-                style: TextStyle(fontSize: 11.5),
-              ),
-            ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
@@ -983,8 +1166,8 @@ class _PanelExportarState extends ConsumerState<_PanelExportar> {
                   _trabajando
                       ? 'Armando el KML...'
                       : hayPuntos
-                          ? 'Exportar y compartir'
-                          : 'Falta capturar puntos',
+                      ? 'Exportar y compartir'
+                      : 'Falta capturar puntos',
                 ),
               ),
             ),
@@ -1000,7 +1183,9 @@ class _PanelExportarState extends ConsumerState<_PanelExportar> {
     setState(() => _trabajando = true);
 
     try {
-      final archivo = await ref.read(trazadoRepoProvider).exportarKml(
+      final archivo = await ref
+          .read(trazadoRepoProvider)
+          .exportarKml(
             widget.visitaId,
             soloTrazadoId: _soloEste ? widget.trazado.id : null,
             incluirVertices: _conVertices,
@@ -1018,8 +1203,9 @@ class _PanelExportarState extends ConsumerState<_PanelExportar> {
             ),
           ],
           subject: widget.trazado.nombre,
-          sharePositionOrigin:
-              caja == null ? null : caja.localToGlobal(Offset.zero) & caja.size,
+          sharePositionOrigin: caja == null
+              ? null
+              : caja.localToGlobal(Offset.zero) & caja.size,
         ),
       );
     } catch (e) {
@@ -1074,9 +1260,12 @@ class _HojaFicha extends StatefulWidget {
 }
 
 class _HojaFichaState extends State<_HojaFicha> {
-  late final _nombre = TextEditingController(text: widget.trazado?.nombre ?? '');
-  late final _etiqueta =
-      TextEditingController(text: widget.trazado?.etiqueta ?? '');
+  late final _nombre = TextEditingController(
+    text: widget.trazado?.nombre ?? '',
+  );
+  late final _etiqueta = TextEditingController(
+    text: widget.trazado?.etiqueta ?? '',
+  );
   late final _notas = TextEditingController(text: widget.trazado?.notas ?? '');
   late TipoTrazado _tipo = widget.trazado?.tipo ?? TipoTrazado.poligono;
 
@@ -1193,17 +1382,18 @@ class _HojaFichaState extends State<_HojaFicha> {
   }
 
   String _tituloTipo(TipoTrazado t) => switch (t) {
-        TipoTrazado.poligono => 'Un lote (poligono con area)',
-        TipoTrazado.ruta => 'Un recorrido (linea)',
-        TipoTrazado.punto => 'Un punto suelto',
-      };
+    TipoTrazado.poligono => 'Un lote (poligono con area)',
+    TipoTrazado.ruta => 'Un recorrido (linea)',
+    TipoTrazado.punto => 'Puntos sueltos (uno o un grupo)',
+  };
 
   String _ayudaTipo(TipoTrazado t) => switch (t) {
-        TipoTrazado.poligono =>
-          'Se camina el contorno y se cierra. Da hectareas.',
-        TipoTrazado.ruta =>
-          'El lindero, el camino de acceso, la ronda por el cultivo. Da largo.',
-        TipoTrazado.punto =>
-          'La bocatoma, el arbol enfermo, donde se saco la muestra de suelo.',
-      };
+    TipoTrazado.poligono => 'Se camina el contorno y se cierra. Da hectareas.',
+    TipoTrazado.ruta =>
+      'El lindero, el camino de acceso, la ronda por el cultivo. Da largo.',
+    TipoTrazado.punto =>
+      'La bocatoma, o un grupo: las plantas enfermas de un lote, los '
+          'focos de plaga, los arboles de sombra. Cada punto queda aparte, '
+          'numerado y con su nota.',
+  };
 }

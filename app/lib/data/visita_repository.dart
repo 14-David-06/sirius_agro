@@ -36,6 +36,18 @@ class GrupoAgricultor {
 
   DateTime get ultima => visitas.first.inicio;
 
+  /// El consecutivo de [visita] entre las del agricultor: 1 la mas vieja. Null
+  /// en el grupo de las visitas sin ficha, que no son de nadie y no tienen
+  /// orden que contar.
+  ///
+  /// Sale de la misma lista que se dibuja (de la mas reciente a la mas vieja),
+  /// asi que coincide con `AppDatabase.numeroDeVisita` sin otra consulta.
+  int? numeroDe(Visita visita) {
+    if (sinFicha) return null;
+    final i = visitas.indexWhere((v) => v.id == visita.id);
+    return i == -1 ? null : visitas.length - i;
+  }
+
   /// Cuantas de estas visitas son espejo de Airtable y no se registraron aqui.
   int get espejadas => visitas.where((v) => v.soloLectura).length;
 
@@ -403,6 +415,28 @@ class VisitaRepository {
           .watchSingleOrNull();
     });
   }
+
+  /// La finca de esta visita, o null si se creo sin nombre de finca.
+  Future<Finca?> fincaDeVisita(String visitaId) async {
+    final v = await (_db.select(_db.visitas)
+          ..where((t) => t.id.equals(visitaId)))
+        .getSingleOrNull();
+    if (v?.fincaLocalId == null) return null;
+    return (_db.select(_db.fincas)
+          ..where((f) => f.id.equals(v!.fincaLocalId!)))
+        .getSingleOrNull();
+  }
+
+  /// El consecutivo de la visita entre las del agricultor (1, 2, 3...), vivo.
+  ///
+  /// Escucha toda la tabla de visitas y no solo esta: el numero cambia cuando
+  /// baja de Airtable una visita mas vieja del mismo agricultor, y esa es
+  /// justamente una fila distinta.
+  Stream<int?> observarNumeroDeVisita(String visitaId) => _db
+      .select(_db.visitas)
+      .watch()
+      .asyncMap((_) => _db.numeroDeVisita(visitaId))
+      .distinct();
 
   // ---------------------------------------------- el directorio de agricultores
 
@@ -1615,6 +1649,7 @@ class VisitaRepository {
       version: version ?? await proximaVersion(visitaId, tipoInformeTecnico),
       estado: v.estado,
       tipoVisita: v.tipoVisita,
+      numeroVisita: await _db.numeroDeVisita(visitaId),
       completitudPct: v.completitudPct,
       visitador: visitador?.nombre,
       productor: productor == null
@@ -1732,6 +1767,9 @@ class VisitaRepository {
     ])
       ..orderBy([
         OrderingTerm(expression: _db.visitas.inicio, mode: OrderingMode.desc),
+        // El mismo desempate que usa el consecutivo en la base: sin el, dos
+        // visitas del mismo segundo podrian intercambiar sus numeros.
+        OrderingTerm(expression: _db.visitas.id, mode: OrderingMode.desc),
       ]);
 
     return consulta.watch().map((filas) {
@@ -1798,6 +1836,7 @@ class VisitaRepository {
     var audios = 0;
     var informes = 0;
     var hallazgosFuera = 0;
+    final agricultores = <String>{};
 
     // El catalogo decide que hallazgos pueden entrar: `Hallazgos.claveTecnica`
     // es una clave foranea, y una clave que este telefono no conoce —porque su
@@ -1935,6 +1974,14 @@ class VisitaRepository {
       fotos += await _bajarEvidencias(codigo, v, bajar, onPaso);
       audios += await _bajarAudios(codigo, v, bajar, onPaso);
       espejadas++;
+      if (productorId != null) agricultores.add(productorId);
+    }
+
+    // Lo que se resolvio en las visitas que acaban de entrar ya no le falta a
+    // las de este telefono: el seguimiento de hoy no tiene por que pedir lo
+    // que otro visitador pregunto el mes pasado.
+    for (final productorId in agricultores) {
+      await _db.refrescarCompletitudDelAgricultor(productorId);
     }
 
     return ResultadoEspejo(

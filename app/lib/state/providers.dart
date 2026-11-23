@@ -115,8 +115,24 @@ final productorDeVisitaProvider =
   return ref.watch(repoProvider).observarProductorDeVisita(visitaId);
 });
 
+/// El consecutivo de la visita entre las de su agricultor: 1, 2, 3...
+/// Null si la visita no tiene agricultor.
+final numeroVisitaProvider = StreamProvider.family<int?, String>((ref, visitaId) {
+  return ref.watch(repoProvider).observarNumeroDeVisita(visitaId);
+});
+
+/// Cuantos obligatorios ya se habian resuelto en las visitas anteriores del
+/// agricultor. Cero en la primera visita.
+final resueltosAntesProvider =
+    FutureProvider.family<int, String>((ref, visitaId) async {
+  ref.watch(visitaProvider(visitaId));
+  return ref.watch(dbProvider).obligatoriosResueltosAntes(visitaId);
+});
+
 /// Obligatorios que faltan y que SI se le pueden preguntar al agricultor.
-/// `motivo_llegada` no entra aqui aunque cuente para la completitud.
+/// Acumulado: lo que se resolvio en visitas anteriores del mismo agricultor
+/// ya no aparece. `motivo_llegada` no entra aqui aunque cuente para la
+/// completitud.
 final faltantesProvider =
     FutureProvider.family<List<CatalogoCampo>, String>((ref, visitaId) async {
   // Se reevalua cuando cambia la visita, que es lo que pasa al recalcular

@@ -693,6 +693,84 @@ async def _upsert_hijos(
     return len(registros)
 
 
+# --------------------------------------------------- consecutivo de visitas
+
+CAMPO_NUMERO_VISITA = "Numero de visita"
+
+# Cuantos record ids caben en un OR() de filterByFormula sin reventar la URL.
+# El mismo tope que usa el historial al leer las visitas de un agricultor.
+_IDS_POR_TANDA = 40
+
+
+def _orden_cronologico(registro: dict) -> tuple[int, str, str]:
+    """Por `Inicio` y, si empatan, por `Codigo de visita`.
+
+    Es el mismo orden que usa la app para numerar en el telefono (fecha y
+    luego el UUID), asi que los dos lados dan el mismo numero. Una visita sin
+    `Inicio` esta rota y va al final en vez de quedarse con el 1.
+    """
+    f = registro.get("fields", {})
+    inicio = f.get("Inicio")
+    if not isinstance(inicio, str):
+        return (1, "", registro.get("id", ""))
+    # Airtable devuelve las fechas en UTC con el mismo formato, asi que se
+    # pueden comparar como texto; parsearlas solo agregaria formas de fallar.
+    return (0, inicio, str(f.get("Codigo de visita") or registro.get("id", "")))
+
+
+async def _renumerar_visitas(at: Airtable, productor_id: str, codigo: str) -> None:
+    """Deja `Numero de visita` en 1, 2, 3... sobre las visitas del agricultor.
+
+    Se recalcula entero en cada sincronizacion, y no se le asigna un numero
+    solo a la visita que llega, porque las visitas no suben en el orden en que
+    pasaron: un telefono que estuvo una semana sin senal sube la visita del
+    lunes despues de que otro ya subio la del jueves. Numerar al llegar dejaria
+    la del lunes como la ultima.
+
+    Se parte del enlace `Visitas` de la ficha y no de una formula por nombre,
+    por la misma razon que el historial: dos homonimos terminarian numerados
+    juntos.
+
+    Si falla no tumba la sincronizacion. El numero se puede recalcular en la
+    proxima visita que suba de este agricultor; la conversacion que se esta
+    subiendo no se puede volver a grabar.
+    """
+    try:
+        ficha = await at.buscar(
+            TBL_PRODUCTORES, f"RECORD_ID() = '{_escapar(productor_id)}'"
+        )
+        if ficha is None:
+            return
+        enlazadas = ficha.get("fields", {}).get("Visitas")
+        if not isinstance(enlazadas, list):
+            return
+        ids = [x for x in enlazadas if isinstance(x, str)]
+        if not ids:
+            return
+
+        registros: list[dict] = []
+        for i in range(0, len(ids), _IDS_POR_TANDA):
+            condiciones = ",".join(
+                f"RECORD_ID()='{_escapar(x)}'" for x in ids[i : i + _IDS_POR_TANDA]
+            )
+            registros.extend(await at.listar(TBL_VISITAS, f"OR({condiciones})"))
+
+        cambios = [
+            {"id": r["id"], "fields": {CAMPO_NUMERO_VISITA: n}}
+            for n, r in enumerate(sorted(registros, key=_orden_cronologico), start=1)
+            if r.get("fields", {}).get(CAMPO_NUMERO_VISITA) != n
+        ]
+        if cambios:
+            await at.escribir_lote(TBL_VISITAS, cambios)
+    except HTTPException as exc:
+        logger.warning(
+            "Visita %s: no se pudo renumerar las visitas del productor %s: %s",
+            codigo,
+            productor_id,
+            exc.detail,
+        )
+
+
 # --------------------------------------------------------- entrada publica
 
 
@@ -719,6 +797,9 @@ async def sincronizar(settings: Settings, p: VisitaPayload) -> VisitaSyncResult:
             await at.actualizar(TBL_VISITAS, visita_id, fields)
         else:
             visita_id = (await at.crear(TBL_VISITAS, fields))["id"]
+
+        if productor_id:
+            await _renumerar_visitas(at, productor_id, p.codigo_visita)
 
         grabaciones = await _upsert_hijos(
             at,

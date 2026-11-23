@@ -52,8 +52,9 @@ class SeccionAgricultor extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tema = Theme.of(context);
     final scheme = tema.colorScheme;
-    final productor =
-        ref.watch(productorDeVisitaProvider(visitaId)).valueOrNull;
+    final productor = ref
+        .watch(productorDeVisitaProvider(visitaId))
+        .valueOrNull;
     final faltan = faltantesDeAgricultor(productor);
     final completa = faltan.isEmpty;
 
@@ -63,9 +64,7 @@ class SeccionAgricultor extends ConsumerWidget {
           ? null
           : RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: tema.marca.aviso.withValues(alpha: 0.3),
-              ),
+              side: BorderSide(color: tema.marca.aviso.withValues(alpha: 0.3)),
             ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -104,8 +103,9 @@ class SeccionAgricultor extends ConsumerWidget {
                         color: completa
                             ? scheme.onSurfaceVariant
                             : tema.marca.aviso,
-                        fontWeight:
-                            completa ? FontWeight.w400 : FontWeight.w600,
+                        fontWeight: completa
+                            ? FontWeight.w400
+                            : FontWeight.w600,
                       ),
                     ),
                   ],
@@ -221,10 +221,10 @@ class SeccionFotos extends ConsumerWidget {
                   // el de audio gobierna el grabador. Cada permiso lo suyo.
                   onPressed: visita.consienteFotos
                       ? () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => CamaraPage(visitaId: visitaId),
-                            ),
-                          )
+                          MaterialPageRoute(
+                            builder: (_) => CamaraPage(visitaId: visitaId),
+                          ),
+                        )
                       : null,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 44),
@@ -454,7 +454,7 @@ class _SeccionTrazadosState extends ConsumerState<SeccionTrazados> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Lotes y recorridos',
+                        'Lotes, recorridos y puntos',
                         style: tema.textTheme.titleMedium,
                       ),
                       const SizedBox(height: 2),
@@ -507,6 +507,24 @@ class _SeccionTrazadosState extends ConsumerState<SeccionTrazados> {
                 _marcando ? 'Buscando la coordenada...' : 'Marcar punto aca',
               ),
             ),
+            // Los puntos marcados de a uno con el boton de arriba se pueden
+            // juntar despues en un grupo con nombre: las plantas enfermas, los
+            // focos de plaga.
+            if (trazados.where((t) => t.tipo == TipoTrazado.punto).length >=
+                2) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => _agrupar(trazados),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.scatter_plot_outlined),
+                label: const Text('Agrupar puntos'),
+              ),
+            ],
             if (trazados.isNotEmpty) ...[
               const SizedBox(height: 10),
               const Divider(height: 1),
@@ -523,10 +541,10 @@ class _SeccionTrazadosState extends ConsumerState<SeccionTrazados> {
   /// nada.
   ///
   /// Cada toque deja un trazado propio de tipo punto —«Punto 1», «Punto 2»—
-  /// en vez de acumular puntos dentro de uno solo. No es capricho del modelo:
-  /// en el KML un trazado de tipo punto sale como UNA marca, asi que varios
-  /// puntos metidos en el mismo trazado se perderian todos menos el primero.
-  /// Separados, cada marca llega a Google Earth con su hora y su precision.
+  /// en vez de meterlo en un grupo: con un toque y sin preguntar, la app no
+  /// sabe si la bocatoma y el foco de plaga son lo mismo. Si lo son, el boton
+  /// «Agrupar puntos» los junta despues; y para marcar plantas seguidas en un
+  /// grupo desde el principio esta «Nuevo» con el tipo «Puntos sueltos».
   Future<void> _marcarPunto() async {
     if (_marcando) return;
     setState(() => _marcando = true);
@@ -552,7 +570,8 @@ class _SeccionTrazadosState extends ConsumerState<SeccionTrazados> {
       if (!mounted) return;
       setState(() => _marcando = false);
 
-      final coordenada = '${pos.latitude.toStringAsFixed(6)}, '
+      final coordenada =
+          '${pos.latitude.toStringAsFixed(6)}, '
           '${pos.longitude.toStringAsFixed(6)}';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -584,13 +603,55 @@ class _SeccionTrazadosState extends ConsumerState<SeccionTrazados> {
     }
   }
 
+  /// Junta puntos sueltos en un grupo con nombre. El visitador elige cuales y
+  /// como se llama el grupo; el resto lo hace `agruparPuntos` del repositorio
+  /// de trazados, sin perder nombres ni notas.
+  Future<void> _agrupar(List<Trazado> trazados) async {
+    final candidatos = trazados
+        .where((t) => t.tipo == TipoTrazado.punto)
+        .toList();
+    final eleccion = await showModalBottomSheet<_Agrupacion>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _HojaAgrupar(candidatos: candidatos),
+    );
+    if (eleccion == null || !mounted) return;
+
+    final mensajero = ScaffoldMessenger.of(context);
+    final navegador = Navigator.of(context);
+    try {
+      final id = await ref
+          .read(trazadoRepoProvider)
+          .agruparPuntos(eleccion.ids, nombre: eleccion.nombre);
+      mensajero.showSnackBar(
+        SnackBar(
+          content: Text('${eleccion.ids.length} puntos agrupados.'),
+          action: SnackBarAction(
+            label: 'Abrir',
+            onPressed: () => navegador.push(
+              MaterialPageRoute(
+                builder: (_) => TrazadoPage(visitaId: visitaId, trazadoId: id),
+              ),
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      mensajero.showSnackBar(
+        SnackBar(content: Text('No se pudieron agrupar: $e')),
+      );
+    }
+  }
+
   /// Crea el trazado y entra derecho a la pantalla de captura: el visitador
   /// toco «Nuevo» porque esta parado en el lote, no para administrar una lista.
   Future<void> _nuevo(BuildContext context, WidgetRef ref) async {
     final ficha = await mostrarFichaTrazado(context);
     if (ficha == null) return;
 
-    final id = await ref.read(trazadoRepoProvider).crearTrazado(
+    final id = await ref
+        .read(trazadoRepoProvider)
+        .crearTrazado(
           visitaId: visitaId,
           nombre: ficha.nombre,
           tipo: ficha.tipo,
@@ -606,6 +667,143 @@ class _SeccionTrazadosState extends ConsumerState<SeccionTrazados> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => TrazadoPage(visitaId: visitaId, trazadoId: id),
+      ),
+    );
+  }
+}
+
+class _Agrupacion {
+  const _Agrupacion({required this.ids, required this.nombre});
+  final List<String> ids;
+  final String nombre;
+}
+
+/// Elegir que puntos van al grupo y como se llama. Arranca con todos los
+/// puntos sueltos marcados: lo comun es haber marcado las plantas de un lote
+/// seguidas y querer juntarlas todas.
+class _HojaAgrupar extends ConsumerStatefulWidget {
+  const _HojaAgrupar({required this.candidatos});
+
+  final List<Trazado> candidatos;
+
+  @override
+  ConsumerState<_HojaAgrupar> createState() => _HojaAgruparState();
+}
+
+class _HojaAgruparState extends ConsumerState<_HojaAgrupar> {
+  late final Set<String> _elegidos = {for (final t in widget.candidatos) t.id};
+  final _nombre = TextEditingController();
+
+  @override
+  void dispose() {
+    _nombre.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final puedeAgrupar = _elegidos.length >= 2;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        20 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Agrupar puntos', style: tema.textTheme.titleLarge),
+          const SizedBox(height: 4),
+          Text(
+            'Quedan en un solo grupo, numerados por la hora en que se '
+            'marcaron. Si un punto tenia nombre propio, pasa a su nota.',
+            style: tema.textTheme.bodySmall?.copyWith(
+              color: tema.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _nombre,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              labelText: 'Nombre del grupo',
+              hintText: 'Plantas con monilia, focos de broca...',
+            ),
+          ),
+          const SizedBox(height: 8),
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final t in widget.candidatos)
+                  _CasillaPunto(
+                    trazado: t,
+                    elegido: _elegidos.contains(t.id),
+                    onCambio: (v) => setState(
+                      () => v ? _elegidos.add(t.id) : _elegidos.remove(t.id),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: puedeAgrupar
+                ? () => Navigator.of(context).pop(
+                    _Agrupacion(ids: _elegidos.toList(), nombre: _nombre.text),
+                  )
+                : null,
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+            child: Text(
+              puedeAgrupar
+                  ? 'Agrupar ${_elegidos.length} puntos'
+                  : 'Elige al menos dos',
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CasillaPunto extends ConsumerWidget {
+  const _CasillaPunto({
+    required this.trazado,
+    required this.elegido,
+    required this.onCambio,
+  });
+
+  final Trazado trazado;
+  final bool elegido;
+  final ValueChanged<bool> onCambio;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final puntos =
+        ref.watch(puntosTrazadoProvider(trazado.id)).valueOrNull ?? const [];
+    return CheckboxListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      value: elegido,
+      onChanged: (v) => onCambio(v ?? false),
+      title: Text(trazado.nombre),
+      subtitle: Text(
+        [
+          puntos.length == 1 ? '1 punto' : '${puntos.length} puntos',
+          if (puntos.isNotEmpty)
+            DateFormat('h:mm a', 'es').format(puntos.first.capturadoEn),
+          if (trazado.etiqueta != null) trazado.etiqueta!,
+        ].join(' · '),
+        style: const TextStyle(fontSize: 11.5),
       ),
     );
   }
@@ -631,28 +829,32 @@ class _FilaTrazado extends ConsumerWidget {
     final anillo = trazado.tipo.esPoligono && trazado.cerrado;
     final geos = [for (final p in puntos) PuntoGeo(p.latitud, p.longitud)];
 
-    final medida = anillo && geos.length >= 3
+    // Un grupo de puntos sueltos no se mide: se cuenta, y eso ya lo dice
+    // «N punto(s)».
+    final medida = !trazado.tipo.unePuntos
+        ? null
+        : anillo && geos.length >= 3
         ? formatearArea(areaM2(geos))
         : geos.length > 1
-            ? formatearDistancia(longitudMetros(geos, cerrado: anillo))
-            : 'sin medida';
+        ? formatearDistancia(longitudMetros(geos, cerrado: anillo))
+        : 'sin medida';
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4),
       dense: true,
-      leading: Icon(
-        switch (trazado.tipo) {
-          TipoTrazado.poligono => Icons.crop_square,
-          TipoTrazado.ruta => Icons.polyline,
-          TipoTrazado.punto => Icons.place_outlined,
-        },
-        color: puntos.isEmpty ? scheme.outline : tema.marca.exito,
-      ),
+      leading: Icon(switch (trazado.tipo) {
+        TipoTrazado.poligono => Icons.crop_square,
+        TipoTrazado.ruta => Icons.polyline,
+        TipoTrazado.punto =>
+          puntos.length > 1
+              ? Icons.scatter_plot_outlined
+              : Icons.place_outlined,
+      }, color: puntos.isEmpty ? scheme.outline : tema.marca.exito),
       title: Text(trazado.nombre, style: tema.textTheme.bodyLarge),
       subtitle: Text(
         [
           '${puntos.length} punto(s)',
-          medida,
+          ?medida,
           if (trazado.etiqueta != null) trazado.etiqueta!,
           // Un poligono sin cerrar se avisa aca: en el KML sale como linea y
           // quien lo abra no va a ver un lote.
@@ -677,10 +879,8 @@ class _FilaTrazado extends ConsumerWidget {
       ),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => TrazadoPage(
-            visitaId: visitaId,
-            trazadoId: trazado.id,
-          ),
+          builder: (_) =>
+              TrazadoPage(visitaId: visitaId, trazadoId: trazado.id),
         ),
       ),
     );
@@ -776,13 +976,15 @@ class SeccionInforme extends ConsumerWidget {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Icon(informes.isEmpty ? Icons.auto_stories : Icons.refresh),
+                    : Icon(
+                        informes.isEmpty ? Icons.auto_stories : Icons.refresh,
+                      ),
                 label: Text(
                   estado.trabajando
                       ? 'Escribiendo el informe...'
                       : informes.isEmpty
-                          ? 'Generar informe'
-                          : 'Generar de nuevo',
+                      ? 'Generar informe'
+                      : 'Generar de nuevo',
                 ),
               ),
             ),
@@ -796,12 +998,22 @@ class SeccionInforme extends ConsumerWidget {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                   dense: true,
                   leading: Icon(
-                    i.entregado ? Icons.mark_email_read_outlined : Icons.article_outlined,
-                    color: i.entregado ? tema.marca.exito : scheme.onSurfaceVariant,
+                    i.entregado
+                        ? Icons.mark_email_read_outlined
+                        : Icons.article_outlined,
+                    color: i.entregado
+                        ? tema.marca.exito
+                        : scheme.onSurfaceVariant,
                   ),
-                  title: Text('Version ${i.version}', style: tema.textTheme.bodyLarge),
+                  title: Text(
+                    'Version ${i.version}',
+                    style: tema.textTheme.bodyLarge,
+                  ),
                   subtitle: Text(
-                    DateFormat("d 'de' MMMM, h:mm a", 'es').format(i.generadoEn),
+                    DateFormat(
+                      "d 'de' MMMM, h:mm a",
+                      'es',
+                    ).format(i.generadoEn),
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(
@@ -868,7 +1080,7 @@ class SeccionInformeTecnico extends ConsumerWidget {
                         estado.error ??
                             (informes.isEmpty
                                 ? 'Coordenadas, areas medidas y datos '
-                                    'ordenados. No necesita senal.'
+                                      'ordenados. No necesita senal.'
                                 : '${informes.length} generado(s)'),
                         style: tema.textTheme.bodySmall?.copyWith(
                           color: estado.error != null
@@ -894,14 +1106,17 @@ class SeccionInformeTecnico extends ConsumerWidget {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Icon(informes.isEmpty ? Icons.table_chart_outlined
-                        : Icons.refresh),
+                    : Icon(
+                        informes.isEmpty
+                            ? Icons.table_chart_outlined
+                            : Icons.refresh,
+                      ),
                 label: Text(
                   estado.trabajando
                       ? 'Armando el informe...'
                       : informes.isEmpty
-                          ? 'Generar informe tecnico'
-                          : 'Generar de nuevo',
+                      ? 'Generar informe tecnico'
+                      : 'Generar de nuevo',
                 ),
               ),
             ),
@@ -921,7 +1136,10 @@ class SeccionInformeTecnico extends ConsumerWidget {
                     style: tema.textTheme.bodyLarge,
                   ),
                   subtitle: Text(
-                    DateFormat("d 'de' MMMM, h:mm a", 'es').format(i.generadoEn),
+                    DateFormat(
+                      "d 'de' MMMM, h:mm a",
+                      'es',
+                    ).format(i.generadoEn),
                   ),
                   // Compartir e imprimir, sin pantalla intermedia: el
                   // documento es una cuadricula de tablas y leerlo en el
@@ -952,8 +1170,9 @@ class SeccionInformeTecnico extends ConsumerWidget {
 
   Future<void> _generar(BuildContext context, WidgetRef ref) async {
     final mensajero = ScaffoldMessenger.of(context);
-    final resultado =
-        await ref.read(informeTecnicoProvider(visitaId).notifier).generar();
+    final resultado = await ref
+        .read(informeTecnicoProvider(visitaId).notifier)
+        .generar();
     if (resultado == null) return;
 
     mensajero.showSnackBar(
@@ -992,8 +1211,9 @@ class SeccionInformeTecnico extends ConsumerWidget {
           ],
           fileNameOverrides: [nombre],
           subject: informe.titulo,
-          sharePositionOrigin:
-              caja == null ? null : caja.localToGlobal(Offset.zero) & caja.size,
+          sharePositionOrigin: caja == null
+              ? null
+              : caja.localToGlobal(Offset.zero) & caja.size,
         ),
       );
 
@@ -1049,7 +1269,8 @@ class SeccionInformeTecnico extends ConsumerWidget {
     return nombreArchivoInforme(
       productor: ctx['productor'] as String?,
       finca: ctx['finca'] as String?,
-      fecha: DateTime.tryParse(ctx['fecha'] as String? ?? '') ??
+      fecha:
+          DateTime.tryParse(ctx['fecha'] as String? ?? '') ??
           informe.generadoEn,
       sufijo: '-tecnico-v${informe.version}',
     );
@@ -1074,7 +1295,10 @@ class SeccionFotosSoloLectura extends ConsumerWidget {
     // Las que de verdad se pueden abrir. Una evidencia sin archivo local
     // conserva lo que se anoto de ella, pero no es una miniatura: ponerla en
     // la grilla era el icono de imagen rota que no explicaba nada.
-    final fotos = [for (final f in todas) if (f.archivoPath.isNotEmpty) f];
+    final fotos = [
+      for (final f in todas)
+        if (f.archivoPath.isNotEmpty) f,
+    ];
     final sinArchivo = todas.length - fotos.length;
 
     return Card(
@@ -1102,9 +1326,9 @@ class SeccionFotosSoloLectura extends ConsumerWidget {
               Text(
                 sinArchivo == 1
                     ? 'A 1 foto no se le pudo bajar la imagen. Vuelve a abrir '
-                        'la visita con señal para reintentarlo.'
+                          'la visita con señal para reintentarlo.'
                     : 'A $sinArchivo fotos no se les pudo bajar la imagen. '
-                        'Vuelve a abrir la visita con señal para reintentarlo.',
+                          'Vuelve a abrir la visita con señal para reintentarlo.',
                 style: TextStyle(
                   fontSize: 12.5,
                   height: 1.35,
@@ -1241,9 +1465,9 @@ class SeccionComplemento extends ConsumerWidget {
                       hilo != null
                           ? 'Ya hay una conversacion guardada'
                           : faltan.isEmpty
-                              ? 'Escribi lo que quedo a medias y queda registrado'
-                              : 'Faltan ${faltan.length} dato(s). Escribilos y '
-                                  'quedan registrados',
+                          ? 'Escribi lo que quedo a medias y queda registrado'
+                          : 'Faltan ${faltan.length} dato(s). Escribilos y '
+                                'quedan registrados',
                       style: tema.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),

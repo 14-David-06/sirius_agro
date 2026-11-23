@@ -354,6 +354,72 @@ class AppDatabase extends _$AppDatabase {
         .write(const CatalogoCamposCompanion(activo: Value(false)));
   }
 
+  // ------------------------------------------------ las visitas del agricultor
+
+  Future<Visita?> _visita(String visitaId) =>
+      (select(visitas)..where((v) => v.id.equals(visitaId))).getSingleOrNull();
+
+  /// Esta visita y las anteriores del mismo agricultor, de la mas vieja a la
+  /// mas nueva.
+  ///
+  /// «Anterior» es por fecha de inicio y, si dos empezaron en el mismo
+  /// segundo, por id: hace falta un orden total para que el consecutivo no
+  /// cambie entre una consulta y la siguiente. Entran las propias y las
+  /// traidas de Airtable, porque las dos son visitas que pasaron.
+  ///
+  /// Una visita sin agricultor no tiene historia: se devuelve sola.
+  Future<List<Visita>> visitasDelAgricultorHasta(String visitaId) async {
+    final v = await _visita(visitaId);
+    if (v == null) return const [];
+    final productorId = v.productorLocalId;
+    if (productorId == null) return [v];
+
+    return (select(visitas)
+          ..where(
+            (x) =>
+                x.productorLocalId.equals(productorId) &
+                (x.inicio.isSmallerThanValue(v.inicio) |
+                    (x.inicio.equals(v.inicio) &
+                        x.id.isSmallerOrEqualValue(v.id))),
+          )
+          ..orderBy([
+            (x) => OrderingTerm(expression: x.inicio),
+            (x) => OrderingTerm(expression: x.id),
+          ]))
+        .get();
+  }
+
+  /// El consecutivo de la visita dentro de las del agricultor: 1 la primera,
+  /// 2 la siguiente. Null si la visita no tiene agricultor.
+  ///
+  /// Se calcula, no se guarda: si el telefono baja de Airtable una visita mas
+  /// vieja que las suyas, los numeros se corren solos en vez de quedar dos
+  /// «Visita 1». En Airtable el mismo numero lo escribe el backend.
+  Future<int?> numeroDeVisita(String visitaId) async {
+    final v = await _visita(visitaId);
+    if (v == null || v.productorLocalId == null) return null;
+    return (await visitasDelAgricultorHasta(visitaId)).length;
+  }
+
+  /// Las visitas propias del mismo agricultor que vienen DESPUES de esta.
+  ///
+  /// Su cobertura depende de lo que se resolvio en esta, asi que hay que
+  /// recalcularla cuando esta cambia. Las de Airtable no: su porcentaje es el
+  /// que quedo alla.
+  Future<List<Visita>> _posterioresPropias(Visita v) {
+    final productorId = v.productorLocalId;
+    if (productorId == null) return Future.value(const []);
+    return (select(visitas)
+          ..where(
+            (x) =>
+                x.productorLocalId.equals(productorId) &
+                x.soloLectura.equals(false) &
+                (x.inicio.isBiggerThanValue(v.inicio) |
+                    (x.inicio.equals(v.inicio) & x.id.isBiggerThanValue(v.id))),
+          ))
+        .get();
+  }
+
   // ---------------------------------------------------------------- faltantes
 
   /// Las claves obligatorias que esta visita ya resolvio.
@@ -361,7 +427,38 @@ class AppDatabase extends _$AppDatabase {
   /// "Resuelto" es deliberadamente estricto: un hallazgo Pendiente o Descartado
   /// no cuenta, y uno No legible tampoco. Si contaran, la completitud diria 100%
   /// sobre datos que nadie puede usar.
-  Future<Set<String>> clavesResueltas(String visitaId) async {
+  Future<Set<String>> clavesResueltas(String visitaId) =>
+      _clavesResueltasEn([visitaId]);
+
+  /// Lo que ya se sabe del agricultor hasta esta visita: lo que resolvio esta
+  /// y lo que resolvieron las anteriores.
+  ///
+  /// Es lo que hace que la visita de seguimiento arranque donde quedo la
+  /// anterior en vez de volver a pedir las 85 preguntas. Una visita que el
+  /// productor revoco no aporta: sus hallazgos se borran al sincronizar.
+  Future<Set<String>> clavesResueltasAcumuladas(String visitaId) async {
+    final ids = [
+      for (final v in await visitasDelAgricultorHasta(visitaId))
+        if (v.id == visitaId || !v.marcadaParaEliminacion) v.id,
+    ];
+    return _clavesResueltasEn(ids.isEmpty ? [visitaId] : ids);
+  }
+
+  /// Cuantos obligatorios quedaron resueltos en las visitas ANTERIORES a esta.
+  /// Es el «ya se sabia» que la pantalla le muestra al visitador para que
+  /// entienda por que el seguimiento no arranca en 0%.
+  Future<int> obligatoriosResueltosAntes(String visitaId) async {
+    final anteriores = [
+      for (final v in await visitasDelAgricultorHasta(visitaId))
+        if (v.id != visitaId && !v.marcadaParaEliminacion) v.id,
+    ];
+    if (anteriores.isEmpty) return 0;
+    final claves = await _clavesResueltasEn(anteriores);
+    final obligatorios = await obligatoriosActivos();
+    return obligatorios.where((c) => claves.contains(c.claveTecnica)).length;
+  }
+
+  Future<Set<String>> _clavesResueltasEn(List<String> visitaIds) async {
     final noResuelven = [
       Certeza.pendiente.airtable,
       Certeza.noLegible.airtable,
@@ -369,7 +466,7 @@ class AppDatabase extends _$AppDatabase {
     final filas = await (selectOnly(hallazgos, distinct: true)
           ..addColumns([hallazgos.claveTecnica])
           ..where(
-            hallazgos.visitaId.equals(visitaId) &
+            hallazgos.visitaId.isIn(visitaIds) &
                 hallazgos.certeza.isNotIn(noResuelven) &
                 hallazgos.estado
                     .isNotValue(EstadoHallazgo.descartado.airtable),
@@ -382,13 +479,14 @@ class AppDatabase extends _$AppDatabase {
         .toSet();
   }
 
-  /// Obligatorios que la conversacion todavia no resolvio, con su pregunta guia.
+  /// Obligatorios que todavia no se resolvieron con este agricultor, con su
+  /// pregunta guia: ni en esta conversacion ni en las visitas anteriores.
   ///
   /// El modelo NO decide esta lista: es una resta. Lo unico que hace el modelo
   /// (Dia 11) es redactar las preguntas, y las redacta con la `preguntaGuia`
   /// que ya viene aqui.
   Future<List<CatalogoCampo>> faltantes(String visitaId) async {
-    final resueltas = await clavesResueltas(visitaId);
+    final resueltas = await clavesResueltasAcumuladas(visitaId);
     final obligatorios = await obligatoriosActivos();
     return obligatorios
         .where((c) => !resueltas.contains(c.claveTecnica))
@@ -411,20 +509,53 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Completitud determinista: obligatorios resueltos / obligatorios activos.
+  /// Es acumulada: cuenta lo resuelto en esta visita y en las anteriores del
+  /// mismo agricultor, porque lo que mide es cuanto se sabe de el.
   /// Devuelve 0 si el catalogo local esta vacio, nunca 100: una app sin catalogo
   /// no puede afirmar que la visita esta completa.
   Future<int> calcularCompletitud(String visitaId) async {
     final obligatorios = await obligatoriosActivos();
     if (obligatorios.isEmpty) return 0;
 
-    final resueltas = await clavesResueltas(visitaId);
+    final resueltas = await clavesResueltasAcumuladas(visitaId);
     final resueltos =
         obligatorios.where((c) => resueltas.contains(c.claveTecnica)).length;
     return ((resueltos / obligatorios.length) * 100).round();
   }
 
   /// Recalcula y persiste. Se llama despues de cada cambio en hallazgos.
+  ///
+  /// Tambien recalcula las visitas propias posteriores del mismo agricultor:
+  /// si a la visita 1 se le completa un dato despues de hecha la 2, la 2 ya no
+  /// tiene por que pedirlo.
   Future<int> refrescarCompletitud(String visitaId) async {
+    final pct = await _guardarCompletitud(visitaId);
+    final v = await _visita(visitaId);
+    if (v != null) {
+      for (final posterior in await _posterioresPropias(v)) {
+        await _guardarCompletitud(posterior.id);
+      }
+    }
+    return pct;
+  }
+
+  /// Recalcula las visitas propias de un agricultor. Se usa cuando entran
+  /// visitas suyas desde Airtable: lo que se resolvio en ellas cambia lo que
+  /// le falta a las de este telefono.
+  Future<void> refrescarCompletitudDelAgricultor(String productorId) async {
+    final propias = await (select(visitas)
+          ..where(
+            (x) =>
+                x.productorLocalId.equals(productorId) &
+                x.soloLectura.equals(false),
+          ))
+        .get();
+    for (final v in propias) {
+      await _guardarCompletitud(v.id);
+    }
+  }
+
+  Future<int> _guardarCompletitud(String visitaId) async {
     final pct = await calcularCompletitud(visitaId);
     await (update(visitas)..where((v) => v.id.equals(visitaId)))
         .write(VisitasCompanion(completitudPct: Value(pct)));
@@ -525,7 +656,11 @@ class AppDatabase extends _$AppDatabase {
     await (update(trazados)..where((t) => t.id.equals(trazadoId))).write(
       TrazadosCompanion(
         areaM2: Value(esAnillo && geos.length >= 3 ? areaM2(geos) : null),
-        perimetroM: Value(longitudMetros(geos, cerrado: esAnillo)),
+        // Un grupo de puntos sueltos tampoco tiene largo: la linea de una
+        // planta a la siguiente no existe en el terreno.
+        perimetroM: Value(
+          trazado.tipo.unePuntos ? longitudMetros(geos, cerrado: esAnillo) : null,
+        ),
         actualizadoEn: Value(DateTime.now()),
       ),
     );

@@ -20,12 +20,17 @@ class Croquis extends StatelessWidget {
     super.key,
     required this.puntos,
     required this.cerrado,
+    this.unirPuntos = true,
     this.resaltado,
     this.altura = 240,
   });
 
   final List<PuntoTrazado> puntos;
   final bool cerrado;
+
+  /// false en un grupo de puntos sueltos: cada planta es una marca aparte, y
+  /// una linea entre ellas dibujaria un recorrido que nadie camino.
+  final bool unirPuntos;
 
   /// Id del punto que la lista tiene seleccionado. Se dibuja mas grande para
   /// poder mirar la lista y el dibujo a la vez y saber cual es cual.
@@ -66,6 +71,7 @@ class Croquis extends StatelessWidget {
           painter: _PintorCroquis(
             puntos: puntos,
             cerrado: cerrado,
+            unirPuntos: unirPuntos,
             resaltado: resaltado,
             trazo: tema.marca.exito,
             relleno: tema.marca.exito.withValues(alpha: 0.18),
@@ -84,6 +90,7 @@ class _PintorCroquis extends CustomPainter {
   _PintorCroquis({
     required this.puntos,
     required this.cerrado,
+    required this.unirPuntos,
     required this.resaltado,
     required this.trazo,
     required this.relleno,
@@ -94,6 +101,7 @@ class _PintorCroquis extends CustomPainter {
 
   final List<PuntoTrazado> puntos;
   final bool cerrado;
+  final bool unirPuntos;
   final String? resaltado;
   final Color trazo;
   final Color relleno;
@@ -122,7 +130,7 @@ class _PintorCroquis extends CustomPainter {
 
     final pantalla = [for (final g in geos) aPantalla(g)];
 
-    if (pantalla.length > 1) {
+    if (unirPuntos && pantalla.length > 1) {
       final camino = Path()..moveTo(pantalla.first.dx, pantalla.first.dy);
       for (final o in pantalla.skip(1)) {
         camino.lineTo(o.dx, o.dy);
@@ -144,18 +152,21 @@ class _PintorCroquis extends CustomPainter {
 
     for (var i = 0; i < pantalla.length; i++) {
       final destacado = puntos[i].id == resaltado;
-      final esPrimero = i == 0;
       // El primer punto se marca distinto: en un poligono es donde cierra el
       // anillo, y saber donde arranco es lo que permite entender la figura.
+      // En un grupo de puntos sueltos no hay arranque: todos iguales, un poco
+      // mas grandes porque cada uno es una cosa y no un vertice.
+      final esPrimero = unirPuntos && i == 0;
+      final radio = destacado ? 7.5 : (esPrimero || !unirPuntos ? 5.5 : 3.5);
       lienzo
         ..drawCircle(
           pantalla[i],
-          destacado ? 7.5 : (esPrimero ? 5.5 : 3.5),
+          radio,
           Paint()..color = esPrimero ? inicio : trazo,
         )
         ..drawCircle(
           pantalla[i],
-          destacado ? 7.5 : (esPrimero ? 5.5 : 3.5),
+          radio,
           Paint()
             ..color = fondoTexto
             ..style = PaintingStyle.stroke
@@ -213,12 +224,16 @@ class _PintorCroquis extends CustomPainter {
 
   void _texto(Canvas lienzo, String texto, Offset donde, Color color) {
     TextPainter(
-      text: TextSpan(
-        text: texto,
-        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: color),
-      ),
-      textDirection: TextDirection.ltr,
-    )
+        text: TextSpan(
+          text: texto,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )
       ..layout()
       ..paint(lienzo, donde);
   }
@@ -227,5 +242,6 @@ class _PintorCroquis extends CustomPainter {
   bool shouldRepaint(_PintorCroquis viejo) =>
       viejo.puntos != puntos ||
       viejo.cerrado != cerrado ||
+      viejo.unirPuntos != unirPuntos ||
       viejo.resaltado != resaltado;
 }

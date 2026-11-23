@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 en adelante. Mismo motivo que backup_rules.xml: el satelite
+     guardado (files/mapas) se vuelve a bajar solo y no cabe en el respaldo. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="mapas/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="mapas/" />
+    </device-transfer>
+</data-extraction-rules>

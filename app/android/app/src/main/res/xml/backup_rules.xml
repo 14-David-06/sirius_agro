@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 y anteriores. El satelite guardado para ver sin senal
+     (files/mapas) pesa decenas de MB y se vuelve a bajar solo: no va al
+     respaldo, que tiene tope de 25 MB por app y fallaria entero por el. -->
+<full-backup-content>
+    <exclude domain="file" path="mapas/" />
+</full-backup-content>

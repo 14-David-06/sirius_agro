@@ -212,6 +212,62 @@ void main() {
     expect(kml, isNot(contains('& Anexos')));
   });
 
+  group('grupo de lotes', () {
+    List<PuntoKml> corrido(double grados) => [
+      for (final p in _cuadrado) _p(p.latitud, p.longitud + grados),
+    ];
+
+    final kml = construirKml(
+      DocumentoKml(
+        nombre: 'Finca',
+        trazados: [
+          TrazadoKml(
+            nombre: 'Palma 2015',
+            geometria: GeometriaKml.poligono,
+            puntos: _cuadrado,
+            grupo: 'Finca El Recreo',
+          ),
+          TrazadoKml(
+            nombre: 'Lote suelto',
+            geometria: GeometriaKml.poligono,
+            puntos: corrido(0.01),
+          ),
+          TrazadoKml(
+            nombre: 'Potrero',
+            geometria: GeometriaKml.poligono,
+            puntos: corrido(0.002),
+            grupo: 'Finca El Recreo',
+          ),
+        ],
+      ),
+    );
+
+    test('los del grupo salen juntos en una carpeta con su nombre', () {
+      final grupo = kml.indexOf('<name>Finca El Recreo</name>');
+      expect(grupo, isNot(-1));
+      // Una sola carpeta para el grupo, aunque sus lotes no esten seguidos.
+      expect('<name>Finca El Recreo</name>'.allMatches(kml), hasLength(1));
+      final palma = kml.indexOf('<name>Palma 2015</name>');
+      final potrero = kml.indexOf('<name>Potrero</name>');
+      final suelto = kml.indexOf('<name>Lote suelto</name>');
+      // El grupo va donde aparece su primer lote, con los dos adentro; el
+      // suelto, despues.
+      expect(grupo < palma && palma < potrero && potrero < suelto, isTrue);
+    });
+
+    test('la carpeta del grupo lleva el area sumada', () {
+      expect(kml, contains('2 trazados'));
+      expect(kml, contains('Area total:'));
+    });
+
+    test('las carpetas quedan bien anidadas', () {
+      expect(
+        '<Folder>'.allMatches(kml).length,
+        '</Folder>'.allMatches(kml).length,
+      );
+    });
+  });
+
   test('el documento arranca con el encabezado XML y el namespace', () {
     final kml = construirKml(const DocumentoKml(nombre: 'Vacia'));
     expect(kml, startsWith('<?xml version="1.0" encoding="UTF-8"?>'));

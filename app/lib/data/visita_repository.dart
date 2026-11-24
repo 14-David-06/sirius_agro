@@ -2639,6 +2639,7 @@ class VisitaRepository {
         'modo_captura': t.modoCaptura.airtable,
         if (t.etiqueta != null) 'etiqueta': t.etiqueta,
         if (t.notas != null) 'notas': t.notas,
+        if (t.grupo != null) 'grupo': t.grupo,
         if (t.intervaloSeg != null) 'intervalo_seg': t.intervaloSeg,
         if (t.distanciaMinM != null) 'distancia_min_m': t.distanciaMinM,
         if (t.precisionMaxM != null) 'precision_max_m': t.precisionMaxM,

@@ -317,11 +317,22 @@ void main() {
       expect(primero['nombre'], 'Lote de arriba');
       expect(primero['modo_captura'], 'Manual');
       expect(primero['intervalo_seg'], 10);
+      // Suelto: el grupo no viaja vacio.
+      expect(primero.containsKey('grupo'), isFalse);
       // La huella de como se capturo viaja con el punto: sin ella el area no
       // se puede auditar seis meses despues.
       final punto = (primero['puntos'] as List).single as Map<String, dynamic>;
       expect(punto['precision_m'], 4.5);
       expect(punto['automatico'], isFalse);
+    });
+
+    test('el grupo viaja con cada trazado', () async {
+      await repo.crearTrazado(visitaId: visitaId, grupo: 'Finca El Recreo');
+
+      final payload = await visitas.payloadDeVisita(visitaId);
+      final primero = (payload['trazados'] as List).single as Map;
+
+      expect(primero['grupo'], 'Finca El Recreo');
     });
 
     test('eliminar la visita se lleva trazados y puntos', () async {

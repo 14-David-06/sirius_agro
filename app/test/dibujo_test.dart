@@ -140,4 +140,40 @@ void main() {
       expect(seCruza(cuadrado.sublist(0, 3), cerrado: true), isFalse);
     });
   });
+
+  group('tocar dentro de un lote', () {
+    const cuadrado = [
+      PuntoGeo(4.50, -72.90),
+      PuntoGeo(4.50, -72.89),
+      PuntoGeo(4.51, -72.89),
+      PuntoGeo(4.51, -72.90),
+    ];
+
+    test('el centro esta dentro y lo de al lado no', () {
+      expect(contienePunto(cuadrado, const PuntoGeo(4.505, -72.895)), isTrue);
+      expect(contienePunto(cuadrado, const PuntoGeo(4.505, -72.885)), isFalse);
+      expect(contienePunto(cuadrado, const PuntoGeo(4.515, -72.895)), isFalse);
+    });
+
+    test('en una L, el hueco de la esquina no es del lote', () {
+      const ele = [
+        PuntoGeo(4.50, -72.90),
+        PuntoGeo(4.50, -72.88),
+        PuntoGeo(4.51, -72.88),
+        PuntoGeo(4.51, -72.89),
+        PuntoGeo(4.52, -72.89),
+        PuntoGeo(4.52, -72.90),
+      ];
+      expect(contienePunto(ele, const PuntoGeo(4.515, -72.895)), isTrue);
+      expect(contienePunto(ele, const PuntoGeo(4.505, -72.885)), isTrue);
+      expect(contienePunto(ele, const PuntoGeo(4.515, -72.885)), isFalse);
+    });
+
+    test('dos puntos no encierran nada', () {
+      expect(
+        contienePunto(cuadrado.sublist(0, 2), const PuntoGeo(4.50, -72.895)),
+        isFalse,
+      );
+    });
+  });
 }

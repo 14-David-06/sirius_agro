@@ -17,6 +17,10 @@ import 'geo.dart';
 /// caminado con GPS, y quien lo revise despues tiene que poder saberlo.
 typedef VerticeDibujado = ({double latitud, double longitud, bool conPincel});
 
+/// Un lote dibujado de mas en la misma pasada, con el nombre que se le puso
+/// al dibujarlo. Sin nombre, toma el de por defecto («Lote 3»).
+typedef LoteDibujado = ({List<VerticeDibujado> vertices, String? nombre});
+
 /// La nota de un punto que salio de un trazo de pincel.
 const notaPincel = 'dibujado con pincel en el mapa';
 
@@ -141,6 +145,31 @@ bool seCruza(List<PuntoGeo> puntos, {required bool cerrado}) {
     }
   }
   return false;
+}
+
+/// Si [punto] cae dentro del anillo [anillo].
+///
+/// Es lo que deja elegir, con un toque sobre el mapa, cual de los lotes
+/// dibujados se sigue editando. Rayo hacia el este contando cruces, en grados:
+/// a la escala de una finca la curvatura no mueve un punto de un lado al otro
+/// del lindero.
+bool contienePunto(List<PuntoGeo> anillo, PuntoGeo punto) {
+  final n = anillo.length;
+  if (n < 3) return false;
+  var dentro = false;
+  for (var i = 0, j = n - 1; i < n; j = i++) {
+    final a = anillo[i];
+    final b = anillo[j];
+    if ((a.latitud > punto.latitud) != (b.latitud > punto.latitud)) {
+      final corte =
+          (b.longitud - a.longitud) *
+              (punto.latitud - a.latitud) /
+              (b.latitud - a.latitud) +
+          a.longitud;
+      if (punto.longitud < corte) dentro = !dentro;
+    }
+  }
+  return dentro;
 }
 
 double _distanciaASegmento(Offset p, Offset a, Offset b) {

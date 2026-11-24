@@ -546,6 +546,13 @@ class Trazados extends Table {
   TextColumn get etiqueta => text().nullable()();
   TextColumn get notas => text().nullable()();
 
+  /// El grupo al que pertenece: «Finca El Recreo», «Cacao». Los trazados de
+  /// una visita con el mismo grupo se muestran juntos, con el area sumada, y
+  /// salen al KML en una misma carpeta. Es un nombre y no una tabla aparte a
+  /// proposito: agrupar es ponerle el mismo nombre a varios, y cada uno sigue
+  /// siendo un lote completo, con su cultivo y sus puntos. null = suelto.
+  TextColumn get grupo => text().nullable()();
+
   /// Cada cuantos segundos se pone un punto en modo automatico. null o 0
   /// significa que este trazado no captura solo.
   IntColumn get intervaloSeg => integer().nullable()();

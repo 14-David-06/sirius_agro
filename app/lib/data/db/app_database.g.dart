@@ -10268,6 +10268,15 @@ class $TrazadosTable extends Trazados with TableInfo<$TrazadosTable, Trazado> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _grupoMeta = const VerificationMeta('grupo');
+  @override
+  late final GeneratedColumn<String> grupo = GeneratedColumn<String>(
+    'grupo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _intervaloSegMeta = const VerificationMeta(
     'intervaloSeg',
   );
@@ -10394,6 +10403,7 @@ class $TrazadosTable extends Trazados with TableInfo<$TrazadosTable, Trazado> {
     modoCaptura,
     etiqueta,
     notas,
+    grupo,
     intervaloSeg,
     distanciaMinM,
     precisionMaxM,
@@ -10448,6 +10458,12 @@ class $TrazadosTable extends Trazados with TableInfo<$TrazadosTable, Trazado> {
       context.handle(
         _notasMeta,
         notas.isAcceptableOrUnknown(data['notas']!, _notasMeta),
+      );
+    }
+    if (data.containsKey('grupo')) {
+      context.handle(
+        _grupoMeta,
+        grupo.isAcceptableOrUnknown(data['grupo']!, _grupoMeta),
       );
     }
     if (data.containsKey('intervalo_seg')) {
@@ -10568,6 +10584,10 @@ class $TrazadosTable extends Trazados with TableInfo<$TrazadosTable, Trazado> {
         DriftSqlType.string,
         data['${effectivePrefix}notas'],
       ),
+      grupo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}grupo'],
+      ),
       intervaloSeg: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}intervalo_seg'],
@@ -10637,6 +10657,13 @@ class Trazado extends DataClass implements Insertable<Trazado> {
   final String? etiqueta;
   final String? notas;
 
+  /// El grupo al que pertenece: «Finca El Recreo», «Cacao». Los trazados de
+  /// una visita con el mismo grupo se muestran juntos, con el area sumada, y
+  /// salen al KML en una misma carpeta. Es un nombre y no una tabla aparte a
+  /// proposito: agrupar es ponerle el mismo nombre a varios, y cada uno sigue
+  /// siendo un lote completo, con su cultivo y sus puntos. null = suelto.
+  final String? grupo;
+
   /// Cada cuantos segundos se pone un punto en modo automatico. null o 0
   /// significa que este trazado no captura solo.
   final int? intervaloSeg;
@@ -10672,6 +10699,7 @@ class Trazado extends DataClass implements Insertable<Trazado> {
     required this.modoCaptura,
     this.etiqueta,
     this.notas,
+    this.grupo,
     this.intervaloSeg,
     this.distanciaMinM,
     this.precisionMaxM,
@@ -10702,6 +10730,9 @@ class Trazado extends DataClass implements Insertable<Trazado> {
     }
     if (!nullToAbsent || notas != null) {
       map['notas'] = Variable<String>(notas);
+    }
+    if (!nullToAbsent || grupo != null) {
+      map['grupo'] = Variable<String>(grupo);
     }
     if (!nullToAbsent || intervaloSeg != null) {
       map['intervalo_seg'] = Variable<int>(intervaloSeg);
@@ -10743,6 +10774,9 @@ class Trazado extends DataClass implements Insertable<Trazado> {
       notas: notas == null && nullToAbsent
           ? const Value.absent()
           : Value(notas),
+      grupo: grupo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(grupo),
       intervaloSeg: intervaloSeg == null && nullToAbsent
           ? const Value.absent()
           : Value(intervaloSeg),
@@ -10783,6 +10817,7 @@ class Trazado extends DataClass implements Insertable<Trazado> {
       modoCaptura: serializer.fromJson<ModoCaptura>(json['modoCaptura']),
       etiqueta: serializer.fromJson<String?>(json['etiqueta']),
       notas: serializer.fromJson<String?>(json['notas']),
+      grupo: serializer.fromJson<String?>(json['grupo']),
       intervaloSeg: serializer.fromJson<int?>(json['intervaloSeg']),
       distanciaMinM: serializer.fromJson<double?>(json['distanciaMinM']),
       precisionMaxM: serializer.fromJson<double?>(json['precisionMaxM']),
@@ -10806,6 +10841,7 @@ class Trazado extends DataClass implements Insertable<Trazado> {
       'modoCaptura': serializer.toJson<ModoCaptura>(modoCaptura),
       'etiqueta': serializer.toJson<String?>(etiqueta),
       'notas': serializer.toJson<String?>(notas),
+      'grupo': serializer.toJson<String?>(grupo),
       'intervaloSeg': serializer.toJson<int?>(intervaloSeg),
       'distanciaMinM': serializer.toJson<double?>(distanciaMinM),
       'precisionMaxM': serializer.toJson<double?>(precisionMaxM),
@@ -10827,6 +10863,7 @@ class Trazado extends DataClass implements Insertable<Trazado> {
     ModoCaptura? modoCaptura,
     Value<String?> etiqueta = const Value.absent(),
     Value<String?> notas = const Value.absent(),
+    Value<String?> grupo = const Value.absent(),
     Value<int?> intervaloSeg = const Value.absent(),
     Value<double?> distanciaMinM = const Value.absent(),
     Value<double?> precisionMaxM = const Value.absent(),
@@ -10845,6 +10882,7 @@ class Trazado extends DataClass implements Insertable<Trazado> {
     modoCaptura: modoCaptura ?? this.modoCaptura,
     etiqueta: etiqueta.present ? etiqueta.value : this.etiqueta,
     notas: notas.present ? notas.value : this.notas,
+    grupo: grupo.present ? grupo.value : this.grupo,
     intervaloSeg: intervaloSeg.present ? intervaloSeg.value : this.intervaloSeg,
     distanciaMinM: distanciaMinM.present
         ? distanciaMinM.value
@@ -10873,6 +10911,7 @@ class Trazado extends DataClass implements Insertable<Trazado> {
           : this.modoCaptura,
       etiqueta: data.etiqueta.present ? data.etiqueta.value : this.etiqueta,
       notas: data.notas.present ? data.notas.value : this.notas,
+      grupo: data.grupo.present ? data.grupo.value : this.grupo,
       intervaloSeg: data.intervaloSeg.present
           ? data.intervaloSeg.value
           : this.intervaloSeg,
@@ -10908,6 +10947,7 @@ class Trazado extends DataClass implements Insertable<Trazado> {
           ..write('modoCaptura: $modoCaptura, ')
           ..write('etiqueta: $etiqueta, ')
           ..write('notas: $notas, ')
+          ..write('grupo: $grupo, ')
           ..write('intervaloSeg: $intervaloSeg, ')
           ..write('distanciaMinM: $distanciaMinM, ')
           ..write('precisionMaxM: $precisionMaxM, ')
@@ -10931,6 +10971,7 @@ class Trazado extends DataClass implements Insertable<Trazado> {
     modoCaptura,
     etiqueta,
     notas,
+    grupo,
     intervaloSeg,
     distanciaMinM,
     precisionMaxM,
@@ -10953,6 +10994,7 @@ class Trazado extends DataClass implements Insertable<Trazado> {
           other.modoCaptura == this.modoCaptura &&
           other.etiqueta == this.etiqueta &&
           other.notas == this.notas &&
+          other.grupo == this.grupo &&
           other.intervaloSeg == this.intervaloSeg &&
           other.distanciaMinM == this.distanciaMinM &&
           other.precisionMaxM == this.precisionMaxM &&
@@ -10973,6 +11015,7 @@ class TrazadosCompanion extends UpdateCompanion<Trazado> {
   final Value<ModoCaptura> modoCaptura;
   final Value<String?> etiqueta;
   final Value<String?> notas;
+  final Value<String?> grupo;
   final Value<int?> intervaloSeg;
   final Value<double?> distanciaMinM;
   final Value<double?> precisionMaxM;
@@ -10992,6 +11035,7 @@ class TrazadosCompanion extends UpdateCompanion<Trazado> {
     this.modoCaptura = const Value.absent(),
     this.etiqueta = const Value.absent(),
     this.notas = const Value.absent(),
+    this.grupo = const Value.absent(),
     this.intervaloSeg = const Value.absent(),
     this.distanciaMinM = const Value.absent(),
     this.precisionMaxM = const Value.absent(),
@@ -11012,6 +11056,7 @@ class TrazadosCompanion extends UpdateCompanion<Trazado> {
     this.modoCaptura = const Value.absent(),
     this.etiqueta = const Value.absent(),
     this.notas = const Value.absent(),
+    this.grupo = const Value.absent(),
     this.intervaloSeg = const Value.absent(),
     this.distanciaMinM = const Value.absent(),
     this.precisionMaxM = const Value.absent(),
@@ -11035,6 +11080,7 @@ class TrazadosCompanion extends UpdateCompanion<Trazado> {
     Expression<String>? modoCaptura,
     Expression<String>? etiqueta,
     Expression<String>? notas,
+    Expression<String>? grupo,
     Expression<int>? intervaloSeg,
     Expression<double>? distanciaMinM,
     Expression<double>? precisionMaxM,
@@ -11055,6 +11101,7 @@ class TrazadosCompanion extends UpdateCompanion<Trazado> {
       if (modoCaptura != null) 'modo_captura': modoCaptura,
       if (etiqueta != null) 'etiqueta': etiqueta,
       if (notas != null) 'notas': notas,
+      if (grupo != null) 'grupo': grupo,
       if (intervaloSeg != null) 'intervalo_seg': intervaloSeg,
       if (distanciaMinM != null) 'distancia_min_m': distanciaMinM,
       if (precisionMaxM != null) 'precision_max_m': precisionMaxM,
@@ -11077,6 +11124,7 @@ class TrazadosCompanion extends UpdateCompanion<Trazado> {
     Value<ModoCaptura>? modoCaptura,
     Value<String?>? etiqueta,
     Value<String?>? notas,
+    Value<String?>? grupo,
     Value<int?>? intervaloSeg,
     Value<double?>? distanciaMinM,
     Value<double?>? precisionMaxM,
@@ -11097,6 +11145,7 @@ class TrazadosCompanion extends UpdateCompanion<Trazado> {
       modoCaptura: modoCaptura ?? this.modoCaptura,
       etiqueta: etiqueta ?? this.etiqueta,
       notas: notas ?? this.notas,
+      grupo: grupo ?? this.grupo,
       intervaloSeg: intervaloSeg ?? this.intervaloSeg,
       distanciaMinM: distanciaMinM ?? this.distanciaMinM,
       precisionMaxM: precisionMaxM ?? this.precisionMaxM,
@@ -11138,6 +11187,9 @@ class TrazadosCompanion extends UpdateCompanion<Trazado> {
     }
     if (notas.present) {
       map['notas'] = Variable<String>(notas.value);
+    }
+    if (grupo.present) {
+      map['grupo'] = Variable<String>(grupo.value);
     }
     if (intervaloSeg.present) {
       map['intervalo_seg'] = Variable<int>(intervaloSeg.value);
@@ -11185,6 +11237,7 @@ class TrazadosCompanion extends UpdateCompanion<Trazado> {
           ..write('modoCaptura: $modoCaptura, ')
           ..write('etiqueta: $etiqueta, ')
           ..write('notas: $notas, ')
+          ..write('grupo: $grupo, ')
           ..write('intervaloSeg: $intervaloSeg, ')
           ..write('distanciaMinM: $distanciaMinM, ')
           ..write('precisionMaxM: $precisionMaxM, ')
@@ -19369,6 +19422,7 @@ typedef $$TrazadosTableCreateCompanionBuilder =
       Value<ModoCaptura> modoCaptura,
       Value<String?> etiqueta,
       Value<String?> notas,
+      Value<String?> grupo,
       Value<int?> intervaloSeg,
       Value<double?> distanciaMinM,
       Value<double?> precisionMaxM,
@@ -19390,6 +19444,7 @@ typedef $$TrazadosTableUpdateCompanionBuilder =
       Value<ModoCaptura> modoCaptura,
       Value<String?> etiqueta,
       Value<String?> notas,
+      Value<String?> grupo,
       Value<int?> intervaloSeg,
       Value<double?> distanciaMinM,
       Value<double?> precisionMaxM,
@@ -19446,6 +19501,11 @@ class $$TrazadosTableFilterComposer
 
   ColumnFilters<String> get notas => $composableBuilder(
     column: $table.notas,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get grupo => $composableBuilder(
+    column: $table.grupo,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19544,6 +19604,11 @@ class $$TrazadosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get grupo => $composableBuilder(
+    column: $table.grupo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get intervaloSeg => $composableBuilder(
     column: $table.intervaloSeg,
     builder: (column) => ColumnOrderings(column),
@@ -19628,6 +19693,9 @@ class $$TrazadosTableAnnotationComposer
   GeneratedColumn<String> get notas =>
       $composableBuilder(column: $table.notas, builder: (column) => column);
 
+  GeneratedColumn<String> get grupo =>
+      $composableBuilder(column: $table.grupo, builder: (column) => column);
+
   GeneratedColumn<int> get intervaloSeg => $composableBuilder(
     column: $table.intervaloSeg,
     builder: (column) => column,
@@ -19706,6 +19774,7 @@ class $$TrazadosTableTableManager
                 Value<ModoCaptura> modoCaptura = const Value.absent(),
                 Value<String?> etiqueta = const Value.absent(),
                 Value<String?> notas = const Value.absent(),
+                Value<String?> grupo = const Value.absent(),
                 Value<int?> intervaloSeg = const Value.absent(),
                 Value<double?> distanciaMinM = const Value.absent(),
                 Value<double?> precisionMaxM = const Value.absent(),
@@ -19725,6 +19794,7 @@ class $$TrazadosTableTableManager
                 modoCaptura: modoCaptura,
                 etiqueta: etiqueta,
                 notas: notas,
+                grupo: grupo,
                 intervaloSeg: intervaloSeg,
                 distanciaMinM: distanciaMinM,
                 precisionMaxM: precisionMaxM,
@@ -19746,6 +19816,7 @@ class $$TrazadosTableTableManager
                 Value<ModoCaptura> modoCaptura = const Value.absent(),
                 Value<String?> etiqueta = const Value.absent(),
                 Value<String?> notas = const Value.absent(),
+                Value<String?> grupo = const Value.absent(),
                 Value<int?> intervaloSeg = const Value.absent(),
                 Value<double?> distanciaMinM = const Value.absent(),
                 Value<double?> precisionMaxM = const Value.absent(),
@@ -19765,6 +19836,7 @@ class $$TrazadosTableTableManager
                 modoCaptura: modoCaptura,
                 etiqueta: etiqueta,
                 notas: notas,
+                grupo: grupo,
                 intervaloSeg: intervaloSeg,
                 distanciaMinM: distanciaMinM,
                 precisionMaxM: precisionMaxM,

@@ -97,6 +97,30 @@ void main() {
       expect(await db.obligatoriosActivos(), hasLength(86));
     });
 
+    test('agrega el grupo de los trazados de la v19 sin perder los lotes',
+        () async {
+      final visitaId = await VisitaRepository(db)
+          .crearVisita(inicio: DateTime(2026, 9, 7, 9));
+      await db.into(db.trazados).insert(
+            TrazadosCompanion.insert(
+              id: 't1',
+              visitaId: visitaId,
+              nombre: 'Lote 1',
+              creadoEn: DateTime(2026, 9, 7, 10),
+            ),
+          );
+      await db.customStatement('ALTER TABLE trazados DROP COLUMN grupo');
+      expect(await db.columnasDe('trazados'), isNot(contains('grupo')));
+
+      await db.migration.onUpgrade(Migrator(db), 18, db.schemaVersion);
+
+      expect(await db.columnasDe('trazados'), contains('grupo'));
+      final lote = await db.select(db.trazados).getSingle();
+      expect(lote.nombre, 'Lote 1');
+      // Lo que ya estaba queda suelto, como siempre fue.
+      expect(lote.grupo, isNull);
+    });
+
     test('agrega las cinco columnas de la v2', () async {
       await envejecer();
       expect(await db.columnasDe('visitadores'), isNot(contains('id_empleado')));

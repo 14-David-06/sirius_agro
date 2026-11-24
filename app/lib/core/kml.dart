@@ -58,12 +58,17 @@ class TrazadoKml {
     this.cerrado = true,
     this.etiqueta,
     this.notas,
+    this.grupo,
     this.datos = const {},
   });
 
   final String nombre;
   final GeometriaKml geometria;
   final List<PuntoKml> puntos;
+
+  /// Los trazados con el mismo grupo salen juntos en una carpeta con ese
+  /// nombre: en Google Earth la finca se prende y apaga entera.
+  final String? grupo;
 
   /// Solo aplica al poligono. Un poligono sin cerrar no es un poligono, asi
   /// que cuando esto es false el trazado sale como linea: es mejor entregar el
@@ -136,9 +141,25 @@ String construirKml(DocumentoKml doc) {
 
   b.write(_estilos);
 
-  for (final t in doc.trazados) {
-    if (t.puntos.isEmpty) continue;
-    b.write(_carpetaTrazado(t, doc.incluirVertices));
+  // Cada grupo sale donde aparece su primer trazado, con todos los suyos
+  // adentro; los sueltos, cada uno en su lugar.
+  final conPuntos = [
+    for (final t in doc.trazados)
+      if (t.puntos.isNotEmpty) t,
+  ];
+  final escritos = <String>{};
+  for (final t in conPuntos) {
+    final grupo = t.grupo;
+    if (grupo == null) {
+      b.write(_carpetaTrazado(t, doc.incluirVertices));
+    } else if (escritos.add(grupo)) {
+      b.write(
+        _carpetaDeGrupo(grupo, [
+          for (final m in conPuntos)
+            if (m.grupo == grupo) m,
+        ], doc.incluirVertices),
+      );
+    }
   }
 
   if (doc.referencias.isNotEmpty) {
@@ -197,6 +218,42 @@ String _carpetaTrazado(TrazadoKml t, bool incluirVertices) {
     b.writeln('      </Folder>');
   }
 
+  b.writeln('    </Folder>');
+  return b.toString();
+}
+
+/// La carpeta de un grupo de trazados («Finca El Recreo»), con la carpeta de
+/// cada uno adentro y el area sumada en la ficha.
+String _carpetaDeGrupo(
+  String grupo,
+  List<TrazadoKml> miembros,
+  bool incluirVertices,
+) {
+  final lotes = [
+    for (final t in miembros)
+      if (t.efectiva == GeometriaKml.poligono) t,
+  ];
+  final total = lotes.fold<double>(0, (s, t) => s + areaM2(t.geos));
+  final descripcion = [
+    miembros.length == 1 ? '1 trazado' : '${miembros.length} trazados',
+    if (lotes.isNotEmpty) 'Area total: ${formatearArea(total)}',
+  ].join('\n');
+
+  final b = StringBuffer()
+    ..writeln('    <Folder>')
+    ..writeln('      <name>${_xml(grupo)}</name>')
+    ..writeln('      <open>1</open>')
+    ..writeln('      <description>${_xml(descripcion)}</description>');
+  for (final t in miembros) {
+    // Una sangria mas: la carpeta de cada trazado queda dentro de la del
+    // grupo, y el archivo se sigue pudiendo leer a ojo.
+    b.write(
+      _carpetaTrazado(
+        t,
+        incluirVertices,
+      ).split('\n').map((l) => l.isEmpty ? l : '  $l').join('\n'),
+    );
+  }
   b.writeln('    </Folder>');
   return b.toString();
 }

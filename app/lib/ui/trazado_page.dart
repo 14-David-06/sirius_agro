@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../core/geo.dart';
 import '../data/db/app_database.dart';
+import '../data/trazado_repository.dart';
 import '../state/providers.dart';
 import '../state/red.dart';
 import '../state/trazado.dart';
@@ -100,6 +101,25 @@ class _TrazadoPageState extends ConsumerState<TrazadoPage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
+                if (trazado.grupo != null) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.folder_outlined,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Del grupo «${trazado.grupo}»',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 _Vista(
                   trazado: trazado,
                   puntos: puntos,
@@ -164,17 +184,25 @@ class _TrazadoPageState extends ConsumerState<TrazadoPage> {
     WidgetRef ref,
     Trazado trazado,
   ) async {
-    final datos = await mostrarFichaTrazado(context, trazado: trazado);
+    final repo = ref.read(trazadoRepoProvider);
+    final grupos = TrazadoRepository.gruposDe(
+      await repo.trazadosDeVisita(trazado.visitaId),
+    );
+    if (!context.mounted) return;
+    final datos = await mostrarFichaTrazado(
+      context,
+      trazado: trazado,
+      grupos: grupos,
+    );
     if (datos == null) return;
-    await ref
-        .read(trazadoRepoProvider)
-        .actualizarTrazado(
-          trazado.id,
-          nombre: datos.nombre,
-          tipo: datos.tipo,
-          etiqueta: datos.etiqueta ?? '',
-          notas: datos.notas ?? '',
-        );
+    await repo.actualizarTrazado(
+      trazado.id,
+      nombre: datos.nombre,
+      tipo: datos.tipo,
+      etiqueta: datos.etiqueta ?? '',
+      notas: datos.notas ?? '',
+      grupo: datos.grupo ?? '',
+    );
   }
 
   Future<void> _eliminar(
@@ -350,11 +378,11 @@ class _Vista extends ConsumerWidget {
             ),
           ),
           icon: const Icon(Icons.draw_outlined, size: 18),
-          label: Text(
-            trazado.tipo.unePuntos
-                ? 'Dibujar en el mapa (pincel o vertices)'
-                : 'Marcar puntos en el mapa',
-          ),
+          label: Text(switch (trazado.tipo) {
+            TipoTrazado.poligono => 'Dibujar en el mapa (uno o varios lotes)',
+            TipoTrazado.ruta => 'Dibujar en el mapa (pincel o vertices)',
+            TipoTrazado.punto => 'Marcar puntos en el mapa',
+          }),
         ),
       ],
     );
@@ -1226,12 +1254,16 @@ class FichaTrazado {
     required this.tipo,
     this.etiqueta,
     this.notas,
+    this.grupo,
   });
 
   final String nombre;
   final TipoTrazado tipo;
   final String? etiqueta;
   final String? notas;
+
+  /// Vacio o null = suelto, fuera de cualquier grupo.
+  final String? grupo;
 }
 
 /// Hoja de creacion/edicion. Devuelve null si el visitador se arrepintio.
@@ -1239,21 +1271,27 @@ class FichaTrazado {
 /// El nombre puede quedar vacio: el repositorio pone «Lote 2» y eso alcanza
 /// para arrancar. Obligar a nombrar antes de capturar es poner un formulario
 /// entre el visitador y el lote.
+///
+/// [grupos] son los que ya tiene la visita: se ofrecen con un toque, porque
+/// meter un lote en un grupo existente escribiendo el nombre a mano es como
+/// terminan «Finca El Recreo» y «finca el recreo» siendo dos grupos.
 Future<FichaTrazado?> mostrarFichaTrazado(
   BuildContext context, {
   Trazado? trazado,
+  List<String> grupos = const [],
 }) {
   return showModalBottomSheet<FichaTrazado>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => _HojaFicha(trazado: trazado),
+    builder: (_) => _HojaFicha(trazado: trazado, grupos: grupos),
   );
 }
 
 class _HojaFicha extends StatefulWidget {
-  const _HojaFicha({this.trazado});
+  const _HojaFicha({this.trazado, this.grupos = const []});
 
   final Trazado? trazado;
+  final List<String> grupos;
 
   @override
   State<_HojaFicha> createState() => _HojaFichaState();
@@ -1267,6 +1305,7 @@ class _HojaFichaState extends State<_HojaFicha> {
     text: widget.trazado?.etiqueta ?? '',
   );
   late final _notas = TextEditingController(text: widget.trazado?.notas ?? '');
+  late final _grupo = TextEditingController(text: widget.trazado?.grupo ?? '');
   late TipoTrazado _tipo = widget.trazado?.tipo ?? TipoTrazado.poligono;
 
   @override
@@ -1274,6 +1313,7 @@ class _HojaFichaState extends State<_HojaFicha> {
     _nombre.dispose();
     _etiqueta.dispose();
     _notas.dispose();
+    _grupo.dispose();
     super.dispose();
   }
 
@@ -1289,94 +1329,137 @@ class _HojaFichaState extends State<_HojaFicha> {
         20,
         20 + MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            editando ? 'Editar trazado' : 'Nuevo trazado',
-            style: tema.textTheme.titleLarge,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '¿QUE SE VA A DIBUJAR?',
-            style: TextStyle(
-              fontSize: 10.5,
-              letterSpacing: 1,
-              fontWeight: FontWeight.w700,
-              color: tema.colorScheme.primary,
+      // Con el teclado abierto y el grupo, la hoja ya no cabe en un telefono
+      // chico: se desplaza en vez de desbordarse.
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              editando ? 'Editar trazado' : 'Nuevo trazado',
+              style: tema.textTheme.titleLarge,
             ),
-          ),
-          const SizedBox(height: 8),
-          RadioGroup<TipoTrazado>(
-            groupValue: _tipo,
-            onChanged: (v) => setState(() => _tipo = v ?? _tipo),
-            child: Column(
-              children: [
-                for (final t in TipoTrazado.values)
-                  RadioListTile<TipoTrazado>(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    value: t,
-                    title: Text(
-                      _tituloTipo(t),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    subtitle: Text(
-                      _ayudaTipo(t),
-                      style: const TextStyle(fontSize: 11.5, height: 1.3),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _nombre,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Nombre',
-              hintText: 'Lote de arriba, lindero con el vecino...',
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _etiqueta,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Que hay sembrado (opcional)',
-              hintText: 'Platano, pasto, cacao joven...',
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _notas,
-            maxLines: 2,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Notas (opcional)',
-              hintText: 'Lo que haya que recordar de este pedazo',
-            ),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(
-              FichaTrazado(
-                nombre: _nombre.text,
-                tipo: _tipo,
-                etiqueta: _etiqueta.text,
-                notas: _notas.text,
+            const SizedBox(height: 16),
+            Text(
+              '¿QUE SE VA A DIBUJAR?',
+              style: TextStyle(
+                fontSize: 10.5,
+                letterSpacing: 1,
+                fontWeight: FontWeight.w700,
+                color: tema.colorScheme.primary,
               ),
             ),
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-            child: Text(editando ? 'Guardar' : 'Crear y empezar'),
-          ),
-          const SizedBox(height: 6),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-        ],
+            const SizedBox(height: 8),
+            RadioGroup<TipoTrazado>(
+              groupValue: _tipo,
+              onChanged: (v) => setState(() => _tipo = v ?? _tipo),
+              child: Column(
+                children: [
+                  for (final t in TipoTrazado.values)
+                    RadioListTile<TipoTrazado>(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: t,
+                      title: Text(
+                        _tituloTipo(t),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        _ayudaTipo(t),
+                        style: const TextStyle(fontSize: 11.5, height: 1.3),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _nombre,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Nombre',
+                hintText: 'Lote de arriba, lindero con el vecino...',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _etiqueta,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Que hay sembrado (opcional)',
+                hintText: 'Platano, pasto, cacao joven...',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _notas,
+              maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Notas (opcional)',
+                hintText: 'Lo que haya que recordar de este pedazo',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _grupo,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: 'Grupo (opcional)',
+                hintText: 'Finca El Recreo, cacao...',
+                helperText:
+                    'Los trazados con el mismo grupo se ven juntos y '
+                    'suman su area. Vacio = suelto.',
+                suffixIcon: _grupo.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Sacarlo del grupo',
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(_grupo.clear),
+                      ),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            if (widget.grupos.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final g in widget.grupos)
+                    ChoiceChip(
+                      avatar: const Icon(Icons.folder_outlined, size: 16),
+                      label: Text(g),
+                      selected: _grupo.text.trim() == g,
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      onSelected: (_) => setState(() => _grupo.text = g),
+                    ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(
+                FichaTrazado(
+                  nombre: _nombre.text,
+                  tipo: _tipo,
+                  etiqueta: _etiqueta.text,
+                  notas: _notas.text,
+                  grupo: _grupo.text,
+                ),
+              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+              child: Text(editando ? 'Guardar' : 'Crear y empezar'),
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        ),
       ),
     );
   }

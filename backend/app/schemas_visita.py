@@ -95,6 +95,10 @@ class TrazadoPayload(BaseModel):
     etiqueta: str | None = None
     notas: str | None = None
 
+    # Los lotes dibujados o agrupados juntos («Finca El Recreo») comparten este
+    # nombre. Cada uno sigue siendo un trazado completo; el grupo solo los junta.
+    grupo: str | None = None
+
     # La configuracion con la que se capturo. Se guarda porque explica la
     # figura: un contorno con un punto cada 30 s tiene menos detalle que uno
     # cada 5, y eso no se puede deducir mirando el area.

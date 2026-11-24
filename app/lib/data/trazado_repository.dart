@@ -62,6 +62,7 @@ class TrazadoRepository {
     ModoCaptura modoCaptura = ModoCaptura.manual,
     String? etiqueta,
     String? notas,
+    String? grupo,
     int? intervaloSeg,
     double? distanciaMinM,
     double? precisionMaxM,
@@ -81,6 +82,7 @@ class TrazadoRepository {
             modoCaptura: Value(modoCaptura),
             etiqueta: Value(_limpio(etiqueta)),
             notas: Value(_limpio(notas)),
+            grupo: Value(_limpio(grupo)),
             intervaloSeg: Value(intervaloSeg),
             distanciaMinM: Value(distanciaMinM),
             precisionMaxM: Value(precisionMaxM),
@@ -226,36 +228,146 @@ class TrazadoRepository {
     List<VerticeDibujado> vertices,
   ) async {
     final ahora = DateTime.now();
-    await _db.transaction(() async {
-      await (_db.delete(
-        _db.puntosTrazado,
-      )..where((p) => p.trazadoId.equals(trazadoId))).go();
-      for (var i = 0; i < vertices.length; i++) {
-        final v = vertices[i];
-        await _db
-            .into(_db.puntosTrazado)
-            .insert(
-              PuntosTrazadoCompanion.insert(
-                id: _uuid.v4(),
-                trazadoId: trazadoId,
-                orden: i + 1,
-                latitud: v.latitud,
-                longitud: v.longitud,
-                capturadoEn: ahora,
-                nota: Value(v.conPincel ? notaPincel : notaToque),
-              ),
-            );
-      }
-      await (_db.update(
-        _db.trazados,
-      )..where((t) => t.id.equals(trazadoId))).write(
-        TrazadosCompanion(
-          modoCaptura: const Value(ModoCaptura.manual),
-          actualizadoEn: Value(ahora),
-        ),
-      );
-    });
+    await _db.transaction(() => _escribirDibujo(trazadoId, vertices, ahora));
     await _db.refrescarGeometria(trazadoId);
+  }
+
+  /// Guarda de una vez todo lo que se dibujo sobre el mapa: los puntos del
+  /// trazado que se abrio y un lote nuevo por cada figura de mas. Devuelve
+  /// los ids de los lotes nuevos, en el orden de [nuevos].
+  ///
+  /// Si [propios] viene vacio, el trazado que se abrio queda como estaba: es
+  /// el caso de abrir un lote ya caminado para dibujar los vecinos sin tocarlo.
+  /// [nombrePropio], si viene, le cambia el nombre de todos modos.
+  ///
+  /// Cada lote nuevo es del mismo tipo que el que se abrio y lleva el nombre
+  /// que se le puso al dibujarlo, o el de por defecto («Lote 3»). Con
+  /// [grupo], el que se abrio y todos los nuevos quedan en ese grupo: son los
+  /// poligonos que se dibujaron juntos. Todo en una transaccion: si algo
+  /// falla, no quedan lotes a medio crear ni un grupo a medias.
+  ///
+  /// Igual que [reemplazarPuntos], no pregunta nada: si hay puntos caminados
+  /// que se van a perder, quien llama ya lo confirmo.
+  Future<List<String>> guardarDibujo({
+    required String trazadoId,
+    required List<VerticeDibujado> propios,
+    String? nombrePropio,
+    List<LoteDibujado> nuevos = const [],
+    String? grupo,
+  }) async {
+    final trazado = await porId(trazadoId);
+    if (trazado == null) {
+      throw StateError('El trazado ya no existe.');
+    }
+    final ahora = DateTime.now();
+    final enGrupo = _limpio(grupo);
+    return _db.transaction(() async {
+      if (propios.isNotEmpty) {
+        await _escribirDibujo(trazadoId, propios, ahora);
+      }
+      final nombre = _limpio(nombrePropio);
+      if (nombre != null || enGrupo != null) {
+        await (_db.update(
+          _db.trazados,
+        )..where((t) => t.id.equals(trazadoId))).write(
+          TrazadosCompanion(
+            nombre: nombre == null ? const Value.absent() : Value(nombre),
+            grupo: enGrupo == null ? const Value.absent() : Value(enGrupo),
+            actualizadoEn: Value(ahora),
+          ),
+        );
+      }
+      if (propios.isNotEmpty) await _db.refrescarGeometria(trazadoId);
+
+      final ids = <String>[];
+      for (final lote in nuevos) {
+        if (lote.vertices.isEmpty) continue;
+        final id = await crearTrazado(
+          visitaId: trazado.visitaId,
+          tipo: trazado.tipo,
+          nombre: lote.nombre,
+          grupo: enGrupo,
+        );
+        await _escribirDibujo(id, lote.vertices, ahora);
+        await _db.refrescarGeometria(id);
+        ids.add(id);
+      }
+      return ids;
+    });
+  }
+
+  /// Le cambia el nombre a un grupo: a todos sus trazados de la visita a la
+  /// vez, o el grupo se parte en dos. Con [nuevo] vacio el grupo se deshace y
+  /// sus lotes quedan sueltos; ninguno se borra.
+  Future<void> renombrarGrupo(
+    String visitaId,
+    String grupo,
+    String nuevo,
+  ) async {
+    await (_db.update(
+      _db.trazados,
+    )..where((t) => t.visitaId.equals(visitaId) & t.grupo.equals(grupo))).write(
+      TrazadosCompanion(
+        grupo: Value(_limpio(nuevo)),
+        actualizadoEn: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// `Grupo 2`: el nombre que se le propone a un grupo nuevo, contando los
+  /// que ya tiene la visita. El visitador lo cambia por «Finca El Recreo».
+  static String grupoPorDefecto(Iterable<Trazado> deLaVisita) {
+    final grupos = {
+      for (final t in deLaVisita)
+        if (t.grupo != null) t.grupo!,
+    };
+    var n = grupos.length + 1;
+    while (grupos.contains('Grupo $n')) {
+      n++;
+    }
+    return 'Grupo $n';
+  }
+
+  /// Los nombres de grupo de la visita, en el orden en que aparecen.
+  static List<String> gruposDe(Iterable<Trazado> deLaVisita) => {
+    for (final t in deLaVisita)
+      if (t.grupo != null) t.grupo!,
+  }.toList();
+
+  /// Cambia los puntos de [trazadoId] por [vertices]. Va siempre dentro de
+  /// una transaccion de quien llama.
+  Future<void> _escribirDibujo(
+    String trazadoId,
+    List<VerticeDibujado> vertices,
+    DateTime ahora,
+  ) async {
+    await (_db.delete(
+      _db.puntosTrazado,
+    )..where((p) => p.trazadoId.equals(trazadoId))).go();
+    for (var i = 0; i < vertices.length; i++) {
+      final v = vertices[i];
+      await _db
+          .into(_db.puntosTrazado)
+          .insert(
+            PuntosTrazadoCompanion.insert(
+              id: _uuid.v4(),
+              trazadoId: trazadoId,
+              orden: i + 1,
+              latitud: v.latitud,
+              longitud: v.longitud,
+              capturadoEn: ahora,
+              nota: Value(v.conPincel ? notaPincel : notaToque),
+            ),
+          );
+    }
+    await (_db.update(
+      _db.trazados,
+    )..where((t) => t.id.equals(trazadoId))).write(
+      TrazadosCompanion(
+        modoCaptura: const Value(ModoCaptura.manual),
+        actualizadoEn: Value(ahora),
+      ),
+    );
   }
 
   Future<void> eliminarTodosLosPuntos(String trazadoId) async {
@@ -415,6 +527,7 @@ class TrazadoRepository {
     TipoTrazado? tipo,
     String? etiqueta,
     String? notas,
+    String? grupo,
     int? intervaloSeg,
     double? distanciaMinM,
     double? precisionMaxM,
@@ -434,6 +547,8 @@ class TrazadoRepository {
             ? const Value.absent()
             : Value(_limpio(etiqueta)),
         notas: notas == null ? const Value.absent() : Value(_limpio(notas)),
+        // Vacio = sacarlo del grupo.
+        grupo: grupo == null ? const Value.absent() : Value(_limpio(grupo)),
         intervaloSeg: intervaloSeg == null
             ? const Value.absent()
             : Value(intervaloSeg),
@@ -572,6 +687,7 @@ class TrazadoRepository {
       cerrado: t.cerrado,
       etiqueta: t.etiqueta,
       notas: t.notas,
+      grupo: t.grupo,
       puntos: [
         for (final p in puntos)
           PuntoKml(
@@ -592,6 +708,9 @@ class TrazadoRepository {
         if (ctx['finca'] != null) 'Finca': '${ctx['finca']}',
         if (ctx['vereda'] != null) 'Vereda': '${ctx['vereda']}',
         if (ctx['visitador'] != null) 'Visitador': '${ctx['visitador']}',
+        // En QGIS cada lote es una fila: sin el grupo en sus datos, la carpeta
+        // se pierde al importar.
+        if (t.grupo != null) 'Grupo': t.grupo!,
         'Tipo': t.tipo.airtable,
         'Modo de captura': t.modoCaptura.airtable,
         if (t.intervaloSeg != null && t.intervaloSeg! > 0)

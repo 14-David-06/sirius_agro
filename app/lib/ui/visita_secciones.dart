@@ -11,6 +11,7 @@ import '../core/informe_tecnico.dart';
 import '../core/ubicacion.dart';
 import '../data/db/app_database.dart';
 import '../data/nombres_archivo.dart';
+import '../data/trazado_repository.dart';
 import '../data/visita_repository.dart';
 import '../state/informe.dart';
 import '../state/informe_tecnico.dart';
@@ -20,6 +21,7 @@ import '../state/trazado.dart';
 import 'agricultor_page.dart';
 import 'camara_page.dart';
 import 'complemento_page.dart';
+import 'dibujo_mapa_page.dart';
 import 'galeria_fotos.dart';
 import 'informe_page.dart';
 import 'marca.dart';
@@ -528,8 +530,28 @@ class _SeccionTrazadosState extends ConsumerState<SeccionTrazados> {
             if (trazados.isNotEmpty) ...[
               const SizedBox(height: 10),
               const Divider(height: 1),
+              // Cada grupo sale donde aparece su primer trazado, con todos los
+              // suyos debajo; los sueltos, en su lugar.
               for (final t in trazados)
-                _FilaTrazado(visitaId: visitaId, trazado: t),
+                if (t.grupo == null)
+                  _FilaTrazado(visitaId: visitaId, trazado: t)
+                else if (trazados.firstWhere((x) => x.grupo == t.grupo).id ==
+                    t.id) ...[
+                  _CabeceraGrupo(
+                    visitaId: visitaId,
+                    grupo: t.grupo!,
+                    miembros: [
+                      for (final m in trazados)
+                        if (m.grupo == t.grupo) m,
+                    ],
+                  ),
+                  for (final m in trazados)
+                    if (m.grupo == t.grupo)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 20),
+                        child: _FilaTrazado(visitaId: visitaId, trazado: m),
+                      ),
+                ],
             ],
           ],
         ),
@@ -646,7 +668,10 @@ class _SeccionTrazadosState extends ConsumerState<SeccionTrazados> {
   /// Crea el trazado y entra derecho a la pantalla de captura: el visitador
   /// toco «Nuevo» porque esta parado en el lote, no para administrar una lista.
   Future<void> _nuevo(BuildContext context, WidgetRef ref) async {
-    final ficha = await mostrarFichaTrazado(context);
+    final grupos = TrazadoRepository.gruposDe(
+      ref.read(trazadosProvider(visitaId)).valueOrNull ?? const [],
+    );
+    final ficha = await mostrarFichaTrazado(context, grupos: grupos);
     if (ficha == null) return;
 
     final id = await ref
@@ -657,6 +682,7 @@ class _SeccionTrazadosState extends ConsumerState<SeccionTrazados> {
           tipo: ficha.tipo,
           etiqueta: ficha.etiqueta,
           notas: ficha.notas,
+          grupo: ficha.grupo,
           // Los valores con los que arranca el automatico si se prende. Son
           // sugerencias, no reglas: los tres chips de la pantalla los cambian.
           intervaloSeg: 10,
@@ -806,6 +832,109 @@ class _CasillaPunto extends ConsumerWidget {
         style: const TextStyle(fontSize: 11.5),
       ),
     );
+  }
+}
+
+/// La fila de un grupo de trazados: el nombre, cuantos son y el area sumada.
+/// Desde aca se le cambia el nombre al grupo entero o se deshace; los lotes
+/// no se tocan.
+class _CabeceraGrupo extends ConsumerWidget {
+  const _CabeceraGrupo({
+    required this.visitaId,
+    required this.grupo,
+    required this.miembros,
+  });
+
+  final String visitaId;
+  final String grupo;
+  final List<Trazado> miembros;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    // El area guardada en cada fila: se refresca con cada cambio de puntos, y
+    // leer los puntos de todos los lotes para una suma no vale la pena.
+    final lotes = [
+      for (final t in miembros)
+        if (t.tipo.esPoligono && t.cerrado && t.areaM2 != null) t,
+    ];
+    final total = lotes.fold<double>(0, (s, t) => s + t.areaM2!);
+    final cuantos = miembros.every((t) => t.tipo == TipoTrazado.poligono)
+        ? (miembros.length == 1 ? '1 lote' : '${miembros.length} lotes')
+        : (miembros.length == 1 ? '1 trazado' : '${miembros.length} trazados');
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      dense: true,
+      leading: Icon(Icons.folder_outlined, color: tema.colorScheme.primary),
+      title: Text(
+        grupo,
+        style: tema.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        [
+          cuantos,
+          if (lotes.isNotEmpty) '${formatearArea(total)} en total',
+        ].join(' · '),
+        style: const TextStyle(fontSize: 11.5),
+      ),
+      trailing: PopupMenuButton<String>(
+        tooltip: 'Opciones del grupo',
+        onSelected: (accion) => accion == 'nombre'
+            ? _renombrar(context, ref)
+            : _deshacer(context, ref),
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'nombre', child: Text('Cambiar el nombre')),
+          PopupMenuItem(
+            value: 'deshacer',
+            child: Text('Deshacer el grupo (los lotes quedan)'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _renombrar(BuildContext context, WidgetRef ref) async {
+    final nuevo = await showDialog<String>(
+      context: context,
+      builder: (_) => DialogoNombre(
+        titulo: 'Nombre del grupo',
+        inicial: grupo,
+        ayuda: 'Finca El Recreo, cacao, lotes de palma...',
+        nota: 'Si otro grupo ya se llama asi, se juntan.',
+      ),
+    );
+    // Vacio aca no deshace el grupo: para eso esta la otra opcion, que lo
+    // dice. Un nombre borrado sin querer no deberia soltar cinco lotes.
+    if (nuevo == null || nuevo.trim().isEmpty || nuevo.trim() == grupo) return;
+    await ref
+        .read(trazadoRepoProvider)
+        .renombrarGrupo(visitaId, grupo, nuevo.trim());
+  }
+
+  Future<void> _deshacer(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('¿Deshacer «$grupo»?'),
+        content: Text(
+          'Los ${miembros.length} trazados quedan sueltos, con sus puntos y '
+          'sus nombres. No se borra nada.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Deshacer'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref.read(trazadoRepoProvider).renombrarGrupo(visitaId, grupo, '');
   }
 }
 

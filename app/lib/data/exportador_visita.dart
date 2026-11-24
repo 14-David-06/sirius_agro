@@ -345,7 +345,8 @@ class ExportadorVisitas {
                 : 'sin medida';
         b.writeln('  ${t['nombre']} (${t['tipo']}, ${t['modo_captura']}): '
             '$puntos punto(s), $medida'
-            '${t['etiqueta'] == null ? '' : ' — ${t['etiqueta']}'}');
+            '${t['etiqueta'] == null ? '' : ' — ${t['etiqueta']}'}'
+            '${t['grupo'] == null ? '' : ' [grupo ${t['grupo']}]'}');
       }
     }
 

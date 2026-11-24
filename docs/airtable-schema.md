@@ -561,7 +561,7 @@ Cuando se creen, el contrato ya está definido por el payload:
 
 | Tabla | Campos |
 | --- | --- |
-| `Trazados` | `Id` (texto, UUID del teléfono, llave de idempotencia), `Visita` (link), `Nombre`, `Tipo` (Poligono/Ruta/Punto), `Modo de captura` (Manual/Automatico/Mixto), `Etiqueta`, `Notas`, `Cerrado` (casilla), `Area (ha)`, `Perimetro (m)`, `Intervalo (s)`, `Distancia minima (m)`, `Precision maxima (m)`, `Creado en` |
+| `Trazados` | `Id` (texto, UUID del teléfono, llave de idempotencia), `Visita` (link), `Nombre`, `Tipo` (Poligono/Ruta/Punto), `Modo de captura` (Manual/Automatico/Mixto), `Etiqueta`, `Notas`, `Grupo`, `Cerrado` (casilla), `Area (ha)`, `Perimetro (m)`, `Intervalo (s)`, `Distancia minima (m)`, `Precision maxima (m)`, `Creado en` |
 | `Puntos de trazado` | `Id`, `Trazado` (link), `Orden`, `Latitud`, `Longitud`, `Altitud`, `Precision (m)`, `Capturado en`, `Automatico` (casilla), `Nota` |
 
 Dos decisiones del modelo que conviene no deshacer:
@@ -587,6 +587,15 @@ GPS), cada punto queda **sin precisión** y con `Nota` = «dibujado con pincel e
 el mapa» o «marcado en el mapa», y el trazado pasa a `Modo de captura =
 Manual`. Si el contorno se cruza consigo mismo se avisa antes de guardar: el
 área de un ocho no corresponde a ningún lote.
+
+**4. Varios polígonos dibujados juntos son un grupo de lotes, no un lote con
+partes.** En un lote, «Otro lote» deja dibujar varios en la misma pasada, cada
+uno con el nombre que se le quiera poner. Al guardar, el primero queda en el
+trazado que se abrió y cada uno de más es un **trazado nuevo** (con su cultivo,
+sus puntos y su área, como cualquier otro); todos llevan el mismo `Grupo`
+(«Finca El Recreo»). El grupo es solo ese nombre compartido: la app los muestra
+juntos con el área sumada y el KML los pone en una carpeta. Un lote se mete o
+se saca de un grupo editando su ficha.
 
 ## Vistas que conviene crear a mano en Airtable
 

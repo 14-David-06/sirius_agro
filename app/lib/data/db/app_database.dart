@@ -144,7 +144,7 @@ class AppDatabase extends _$AppDatabase {
   /// v18: `CatalogoCampos.orden` — la lista de temas que faltan sigue el
   ///     orden de la guia conversacional de campo, no el alfabetico.
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -177,6 +177,9 @@ class AppDatabase extends _$AppDatabase {
           // antes que la madre.
           await _asegurarTabla(m, trazados);
           await _asegurarTabla(m, puntosTrazado);
+          // v19: los lotes dibujados juntos quedan en un grupo. Nullable: lo
+          // que ya estaba en el telefono queda suelto, como siempre fue.
+          await _asegurarColumna(m, trazados, trazados.grupo);
           await _asegurarColumna(m, catalogoCampos, catalogoCampos.noSugerir);
           // v18: el orden de la guia. Queda vacio hasta que la semilla nueva
           // lo llena, y mientras tanto la lista sale como antes.
